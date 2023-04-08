@@ -23,7 +23,7 @@ from arguments import ModelArguments, DataTrainingArguments, FinetuningArguments
 
 
 IGNORE_INDEX = -100
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def prepare_args():
@@ -273,8 +273,8 @@ class TrainerForChatGLM(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         return model(**inputs).loss
-    
-    def save_model(self, output_dir: Optional[str] = None, _internal_call: bool = False):
+
+    def _save(self, output_dir: Optional[str] = None, _internal_call: bool = False):
         from transformers.trainer import TRAINING_ARGS_NAME
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
