@@ -40,6 +40,8 @@ def main():
 
     # Training
     if training_args.do_train:
+        model.gradient_checkpointing_enable()
+        model.enable_input_require_grads()
         trainer.train()
         model.save_pretrained(training_args.output_dir)
 
