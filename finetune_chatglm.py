@@ -44,13 +44,7 @@ def main():
         model.enable_input_require_grads()
         trainer.train()
         model.save_pretrained(training_args.output_dir)
-
-    # Testing
-    model = model.half()
-    model.eval()
-    response, _ = model.chat(tokenizer, query='你好', history=[])
-    print(response)
-    # model.push_to_hub("hiyouga/ice-chan", use_auth_token=True)
+        # model.push_to_hub("hiyouga/ice-chan", use_auth_token=True)
 
 
 if __name__ == '__main__':

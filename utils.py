@@ -282,11 +282,9 @@ class TrainerForChatGLM(Trainer):
         from transformers.trainer import TRAINING_ARGS_NAME
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
+        logger.info(f"Saving model checkpoint to {output_dir}")
+        self.model.save_pretrained(output_dir) # only save peft weights
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
-        state_dict = {
-            k: v.cpu() for k, v in self.model.named_parameters() if v.requires_grad
-        }
-        torch.save(state_dict, os.path.join(output_dir, "lora_params.bin"))
 
 
 # TODO: compute_metrics with dataclass
