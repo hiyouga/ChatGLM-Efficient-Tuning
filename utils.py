@@ -64,7 +64,7 @@ def prepare_args():
         f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}\n"
         + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
-    logger.info(f"Training/evaluation parameters {training_args}")
+    logger.info(f"Training parameters {training_args}")
 
     # Set seed before initializing model.
     set_seed(training_args.seed)
@@ -81,23 +81,18 @@ def prepare_data(model_args, data_args):
         if sha1 != hash:
             raise ValueError("Checksum failed for {}.".format(filepath))
 
-    data_files = {}
-    if data_args.train_file is not None:
-        data_files["train"] = os.path.join(data_args.dataset_dir, data_args.train_file)
+    if data_args.load_from_hf_hub:
+        raw_datasets = load_dataset(data_args.dataset_name, cache_dir=model_args.cache_dir)
+    else:
+        data_file = os.path.join(data_args.dataset_dir, data_args.train_file)
         extension = data_args.train_file.split(".")[-1]
-        checksum(data_files["train"], data_args.train_hash)
-
-    if data_args.validation_file is not None:
-        data_files["validation"] = os.path.join(data_args.dataset_dir, data_args.validation_file)
-        extension = data_args.validation_file.split(".")[-1]
-        checksum(data_files["validation"], data_args.validation_hash)
-
-    raw_datasets = load_dataset(
-        extension,
-        data_files=data_files,
-        cache_dir=model_args.cache_dir,
-        use_auth_token=True if model_args.use_auth_token else None
-    )
+        checksum(data_file, data_args.train_hash)
+        raw_datasets = load_dataset(
+            extension,
+            data_files=data_file,
+            cache_dir=model_args.cache_dir,
+            use_auth_token=True if model_args.use_auth_token else None
+        )
     return raw_datasets
 
 
@@ -143,17 +138,7 @@ def prepare_model(model_args, finetuning_args):
 
 def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
     # Preprocess the datasets
-    if training_args.do_train:
-        if "train" not in raw_datasets:
-            raise ValueError("This datasets does not contain a training set.")
-        column_names = list(raw_datasets["train"].column_names)
-    elif training_args.do_eval:
-        if "validation" not in raw_datasets:
-            raise ValueError("This datasets does not contain a validation set.")
-        column_names = list(raw_datasets["validation"].column_names)
-    else:
-        raise ValueError("Please specify `do_train` or `do_eval`.")
-    # Get the column names for input/target.
+    column_names = list(raw_datasets["train"].column_names)
     prompt_column = data_args.prompt_column
     query_column = data_args.query_column
     response_column = data_args.response_column
@@ -197,21 +182,21 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
             model_inputs["labels"].append(labels)
         return model_inputs
 
-    def preprocess_function_eval(examples):
-        # build inputs with format `X [gMASK] [BOS]`
-        model_inputs = {"input_ids": [], "labels": []}
-        for prompt, answer in format_example(examples):
-            source_ids = tokenizer.encode(text=prompt)
-            target_ids = tokenizer.encode(text=answer)
+    # def preprocess_function_eval(examples):
+    #     # build inputs with format `X [gMASK] [BOS]`
+    #     model_inputs = {"input_ids": [], "labels": []}
+    #     for prompt, answer in format_example(examples):
+    #         source_ids = tokenizer.encode(text=prompt)
+    #         target_ids = tokenizer.encode(text=answer)
 
-            if len(source_ids) > data_args.max_source_length:
-                source_ids = source_ids[:data_args.max_source_length]
-            if len(target_ids) > data_args.max_target_length:
-                target_ids = target_ids[:data_args.max_target_length]
+    #         if len(source_ids) > data_args.max_source_length:
+    #             source_ids = source_ids[:data_args.max_source_length]
+    #         if len(target_ids) > data_args.max_target_length:
+    #             target_ids = target_ids[:data_args.max_target_length]
 
-            model_inputs["input_ids"].append(source_ids)
-            model_inputs["labels"].append(target_ids)
-        return model_inputs
+    #         model_inputs["input_ids"].append(source_ids)
+    #         model_inputs["labels"].append(target_ids)
+    #     return model_inputs
 
     def print_dataset_example(example):
         print("input_ids", example["input_ids"])
@@ -236,21 +221,21 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
         print_dataset_example(train_dataset[0])
         return train_dataset
 
-    if training_args.do_eval:
-        eval_dataset = raw_datasets["validation"]
-        if data_args.max_eval_samples is not None:
-            max_eval_samples = min(len(eval_dataset), data_args.max_eval_samples)
-            eval_dataset = eval_dataset.select(range(max_eval_samples))
-        with training_args.main_process_first(desc="validation dataset map pre-processing"):
-            eval_dataset = eval_dataset.map(
-                preprocess_function_eval,
-                batched=True,
-                remove_columns=column_names,
-                load_from_cache_file=not data_args.overwrite_cache,
-                desc="Running tokenizer on validation dataset"
-            )
-        print_dataset_example(eval_dataset[0])
-        return eval_dataset
+    # if training_args.do_eval:
+    #     eval_dataset = raw_datasets["validation"]
+    #     if data_args.max_eval_samples is not None:
+    #         max_eval_samples = min(len(eval_dataset), data_args.max_eval_samples)
+    #         eval_dataset = eval_dataset.select(range(max_eval_samples))
+    #     with training_args.main_process_first(desc="validation dataset map pre-processing"):
+    #         eval_dataset = eval_dataset.map(
+    #             preprocess_function_eval,
+    #             batched=True,
+    #             remove_columns=column_names,
+    #             load_from_cache_file=not data_args.overwrite_cache,
+    #             desc="Running tokenizer on validation dataset"
+    #         )
+    #     print_dataset_example(eval_dataset[0])
+    #     return eval_dataset
 
 
 """

@@ -10,9 +10,21 @@ Fine-tuning ðŸ¤–[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with ðŸ¤
 
 ## Datasets
 
+Now our script supports the following datasets:
+
 - [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca)
 - [Stanford Alpaca (Chinese)](https://github.com/ymcui/Chinese-LLaMA-Alpaca)
+- [GPT-4 Generated Data][https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM]
+- [BELLE 2M](https://huggingface.co/datasets/BelleGroup/train_2M_CN)
+- [BELLE 1M](https://huggingface.co/datasets/BelleGroup/train_1M_CN)
+- [BELLE 0.5M](https://huggingface.co/datasets/BelleGroup/train_0.5M_CN)
+- [BELLE Dialogue 0.4M](https://huggingface.co/datasets/BelleGroup/generated_chat_0.4M)
+- [BELLE School Math 0.25M](https://huggingface.co/datasets/BelleGroup/school_math_0.25M)
+- [BELLE Multiturn Chat 0.8M](https://huggingface.co/datasets/BelleGroup/multiturn_chat_0.8M)
+- [Guanaco Dataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
+- [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 
+Please refer to `config_data.py` for details.
 
 ## Requirement
 
@@ -38,11 +50,19 @@ pip install -r requirements.txt
 ```bash
 CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
+    --dataset guanaco \
+    --output_dir output_guanaco \
     --overwrite_cache \
-    --output_dir output \
+    --overwrite_output_dir \
     --per_device_train_batch_size 4 \
-    --gradient_accumulation_steps 2 \
+    --gradient_accumulation_steps 4 \
+    --lr_scheduler_type cosine \
+    --logging_steps 10 \
+    --save_steps 1000 \
+    --warmup_steps 100 \
+    --max_train_samples 10000 \
     --learning_rate 5e-4 \
+    --num_train_epochs 1.0 \
     --fp16
 ```
 
@@ -86,11 +106,11 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
   - [BELLE](https://github.com/LianjiaTech/BELLE)
   - [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
   - [CLUECorpus](https://github.com/CLUEbenchmark/CLUECorpus2020)
-  - [GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
-  - [FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
+  - ~~[GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)~~
+  - ~~[FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)~~
 - Incorporating [ChatGPT](https://openai.com/blog/chatgpt) & [GPT-4](https://openai.com/research/gpt-4) self-chat data into the training sets.
   - [Baize](https://github.com/project-baize/baize-chatbot)
-  - [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
+  - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
 - Implementing the Freeze-Tuning and P-Tuning method.
 - Supporting Multi-GPUs fine-tuning.
 

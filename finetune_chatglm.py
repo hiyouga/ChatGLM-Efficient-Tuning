@@ -32,19 +32,16 @@ def main():
     trainer = TrainerForChatGLM(
         model=model,
         args=training_args,
-        train_dataset=dataset if training_args.do_train else None,
-        eval_dataset=dataset if training_args.do_eval else None,
+        train_dataset=dataset,
         tokenizer=tokenizer,
         data_collator=data_collator
     )
-
     # Training
     if training_args.do_train:
         model.gradient_checkpointing_enable()
         model.enable_input_require_grads()
         trainer.train()
         model.save_pretrained(training_args.output_dir)
-        # model.push_to_hub("hiyouga/ice-chan", use_auth_token=True)
 
 
 if __name__ == '__main__':
