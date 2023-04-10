@@ -46,6 +46,7 @@ def main():
         model.save_pretrained(training_args.output_dir)
 
     # Testing
+    model = model.half()
     model.eval()
     response, _ = model.chat(tokenizer, query='你好', history=[])
     print(response)

@@ -26,6 +26,12 @@ IGNORE_INDEX = -100
 logger = logging.getLogger(__name__)
 
 
+class CastOutputToFloat(torch.nn.Sequential):
+
+    def forward(self, x):
+        return super().forward(x).to(torch.float32)
+
+
 def prepare_args():
     # Load arguments
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, FinetuningArguments))
@@ -113,14 +119,14 @@ def prepare_model(model_args, finetuning_args):
         **config_kwargs
     )
     model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
+    model.config.use_cache = False
 
     if model_args.quantization_bit is not None:
         print("Quantized to {} bit".format(model_args.quantization_bit))
         model = model.quantize(model_args.quantization_bit)
+        model.lm_head = CastOutputToFloat(model.lm_head)
 
     if finetuning_args.finetuning_type == 'lora':
-        for param in model.parameters():
-            param.requires_grad_(False)
         peft_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
             inference_mode=False,
@@ -131,8 +137,6 @@ def prepare_model(model_args, finetuning_args):
         )
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
-
-    model = model.half()
 
     return tokenizer, model
 
@@ -174,6 +178,7 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
                 yield prompt, answer
 
     def preprocess_function_train(examples):
+        # build inputs with format `X [gMASK] [BOS] Y [EOP]`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
@@ -193,6 +198,7 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
         return model_inputs
 
     def preprocess_function_eval(examples):
+        # build inputs with format `X [gMASK] [BOS]`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt)
@@ -250,7 +256,7 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
 """
 Note: The ChatGLM tokenizer assigns False on token to be attended in attention mask. In general settings, it should be True.
 Refer to: https://huggingface.co/THUDM/chatglm-6b/blob/6650ae3a53c28fc176d06762ca80b05d5ab3792b/tokenization_chatglm.py#L401
-Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L166
+Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/aa65c492bb788e144712daab42bc5d11c2761591/train.py#L166
 """
 @dataclass
 class DataCollatorForChatGLM(DataCollatorWithPadding):
@@ -263,16 +269,14 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
         label_pad_token_id = IGNORE_INDEX if self.data_args.ignore_pad_token_for_loss else self.tokenizer.pad_token_id
         labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=label_pad_token_id)
         features = {"input_ids": input_ids, "labels": labels}
-        return super().__call__(features)
+        # return super().__call__(features) # enable generating attention mask and position ids
+        return features
 
 
 """
-Inspired by: https://github.com/mymusise/ChatGLM-Tuning/blob/master/finetune.py#L52
+Inspired by: https://github.com/mymusise/ChatGLM-Tuning/blob/997393046a49510e6cda36962f9a399297959311/finetune.py#L52
 """
 class TrainerForChatGLM(Trainer):
-
-    def compute_loss(self, model, inputs, return_outputs=False):
-        return model(**inputs).loss
 
     def _save(self, output_dir: Optional[str] = None, _internal_call: bool = False):
         from transformers.trainer import TRAINING_ARGS_NAME

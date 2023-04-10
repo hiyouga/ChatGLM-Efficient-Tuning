@@ -2,7 +2,7 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 
-CHATGLM_LASTEST_HASH = 'acd41f77311be8584836edc2fc7251d5b6e65840'
+CHATGLM_LASTEST_HASH = 'cde457b39fe0670b10dd293909aab17387ea2c80'
 DATASETS = {
     "alpaca_en": {
         "train": {
