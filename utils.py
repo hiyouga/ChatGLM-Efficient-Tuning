@@ -146,7 +146,7 @@ def prepare_model(model_args, finetuning_args):
             "lora_dropout": finetuning_args.lora_dropout,
             "target_modules": ['query_key_value'] # query_key_value or dense
         }
-        peft_config = get_peft_config(config)
+        peft_config = get_peft_config(peft_config)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
 
