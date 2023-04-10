@@ -4,13 +4,11 @@
 ![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)
 ![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)
 
-
 Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with 🤗[PEFT](https://github.com/huggingface/peft).
-
 
 ## Datasets
 
-Now our script supports the following datasets:
+Our script now supports the following datasets:
 
 - [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca)
 - [Stanford Alpaca (Chinese)](https://github.com/ymcui/Chinese-LLaMA-Alpaca)
@@ -25,6 +23,13 @@ Now our script supports the following datasets:
 - [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 
 Please refer to `config_data.py` for details.
+
+## Fine-Tuning Methods
+
+Our script now supports the following fine-tuning methods:
+
+- [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
+- [LoRA](https://arxiv.org/abs/2106.09685)
 
 ## Requirement
 
@@ -111,7 +116,7 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
 - Incorporating [ChatGPT](https://openai.com/blog/chatgpt) & [GPT-4](https://openai.com/research/gpt-4) self-chat data into the training sets.
   - [Baize](https://github.com/project-baize/baize-chatbot)
   - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
-- Implementing the Freeze-Tuning and P-Tuning method.
+- Implementing the Freeze-Tuning and ~~P-Tuning~~ method.
 - Supporting Multi-GPUs fine-tuning.
 
 
@@ -125,10 +130,10 @@ This repository is licensed under the [Apache-2.0 License](LICENSE).
 If this work is helpful, please cite as:
 
 ```bibtex
-@Misc{cet,
+@Misc{chatglm-efficient-tuning,
   title = {ChatGLM Efficient Tuning},
   author = {hiyouga},
-  howpublished = {\url{https://github.com/huggingface/peft}},
+  howpublished = {\url{https://github.com/hiyouga/ChatGLM-Efficient-Tuning}},
   year = {2023}
 }
 ```

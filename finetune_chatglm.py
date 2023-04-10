@@ -8,12 +8,15 @@
 # [4] https://github.com/yuanzhoulvpi2017/zero_nlp/blob/main/Chatglm6b_ModelParallel_ptuning/main.py
 
 
+import os
+import torch
 import logging
 from utils import (
     prepare_args,
     prepare_data,
     prepare_model,
     preprocess_data,
+    save_trainable_params,
     DataCollatorForChatGLM,
     TrainerForChatGLM
 )
@@ -41,7 +44,11 @@ def main():
         model.gradient_checkpointing_enable()
         model.enable_input_require_grads()
         trainer.train()
-        model.save_pretrained(training_args.output_dir)
+        if finetuning_args.finetuning_type == "p_tuning":
+            save_trainable_params(training_args.output_dir, model)
+        elif finetuning_args.finetuning_type == "lora":
+            model.save_pretrained(training_args.output_dir)
+        torch.save(training_args, os.path.join(training_args.output_dir, "training_args.bin"))
 
 
 if __name__ == '__main__':

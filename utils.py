@@ -18,7 +18,7 @@ from transformers import (
 from typing import Type, Dict, Sequence, Optional
 from dataclasses import dataclass
 from datasets import load_dataset
-from peft import get_peft_model, LoraConfig, TaskType
+from peft import get_peft_model, get_peft_config, TaskType
 from arguments import ModelArguments, DataTrainingArguments, FinetuningArguments
 
 
@@ -113,6 +113,11 @@ def prepare_model(model_args, finetuning_args):
         use_fast=model_args.use_fast_tokenizer,
         **config_kwargs
     )
+
+    if finetuning_args.finetuning_type == 'p_tuning': # use the built-in p-tuning method in ChatGLM
+        config.pre_seq_len = finetuning_args.pre_seq_len
+        config.prefix_projection = finetuning_args.prefix_projection
+
     model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
     model.config.use_cache = False
 
@@ -121,15 +126,27 @@ def prepare_model(model_args, finetuning_args):
         model = model.quantize(model_args.quantization_bit)
         model.lm_head = CastOutputToFloat(model.lm_head)
 
+    if finetuning_args.finetuning_type == 'p_tuning':
+        logger.info("Fine-tuning method: P-Tuning V2")
+        model.transformer.prefix_encoder.float() # we cannot use peft since the attention mask is unusual >_<
+        total_params = sum(p.numel() for p in model.parameters())
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print("trainable params: {:d} || all params: {:d} || trainable%: {:.4f}".format(
+            trainable_params, total_params, 100 * trainable_params / total_params
+        ))
+
     if finetuning_args.finetuning_type == 'lora':
-        peft_config = LoraConfig(
-            task_type=TaskType.CAUSAL_LM,
-            inference_mode=False,
-            r=finetuning_args.lora_rank,
-            lora_alpha=finetuning_args.lora_alpha,
-            lora_dropout=finetuning_args.lora_dropout,
-            target_modules=['query_key_value'] # query_key_value or dense
-        )
+        logger.info("Fine-tuning method: LoRA")
+        peft_config = {
+            "peft_type": "LORA",
+            "task_type": TaskType.CAUSAL_LM,
+            "inference_mode": False,
+            "r": finetuning_args.lora_rank,
+            "lora_alpha": finetuning_args.lora_alpha,
+            "lora_dropout": finetuning_args.lora_dropout,
+            "target_modules": ['query_key_value'] # query_key_value or dense
+        }
+        peft_config = get_peft_config(config)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
 
@@ -199,10 +216,10 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
     #     return model_inputs
 
     def print_dataset_example(example):
-        print("input_ids", example["input_ids"])
-        print("inputs", tokenizer.decode(example["input_ids"]))
-        print("label_ids", example["labels"])
-        print("labels", tokenizer.decode(example["labels"]))
+        print("input_ids:\n", example["input_ids"])
+        print("inputs:\n", tokenizer.decode(example["input_ids"]))
+        print("label_ids:\n", example["labels"])
+        print("labels:\n", tokenizer.decode(example["labels"]))
 
     if training_args.do_train:
         train_dataset = raw_datasets["train"]
@@ -238,6 +255,23 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
     #     return eval_dataset
 
 
+def filter_model_params(model): # filter out the freezed parameters
+    state_dict = model.state_dict()
+    filtered_state_dict = {}
+    for k, v in model.named_parameters():
+        if v.requires_grad:
+            filtered_state_dict[k] = state_dict[k]
+    return filtered_state_dict
+
+
+def save_trainable_params(save_directory, model):
+    if os.path.isfile(save_directory):
+        raise ValueError(f"Provided path ({save_directory}) should be a directory, not a file")
+    os.makedirs(save_directory, exist_ok=True)
+    filtered_state_dict = filter_model_params(model)
+    torch.save(filtered_state_dict, os.path.join(save_directory, "adapter_model.bin"))
+
+
 """
 Note: The ChatGLM tokenizer assigns False on token to be attended in attention mask. In general settings, it should be True.
 Refer to: https://huggingface.co/THUDM/chatglm-6b/blob/6650ae3a53c28fc176d06762ca80b05d5ab3792b/tokenization_chatglm.py#L401
@@ -268,7 +302,11 @@ class TrainerForChatGLM(Trainer):
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        self.model.save_pretrained(output_dir) # only save peft weights
+        if hasattr(self.model, "pre_seq_len"): # p-tuning v2
+            filtered_state_dict = filter_model_params(self.model)
+            torch.save(filtered_state_dict, os.path.join(output_dir, "adapter_model.bin"))
+        elif hasattr(self.model, "peft_config"): # LoRA
+            self.model.save_pretrained(output_dir) # only save peft weights with the built-in method
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
 
 

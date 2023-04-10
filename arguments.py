@@ -125,12 +125,12 @@ class FinetuningArguments:
         metadata={"help": "The name of fine-tuning technique."}
     )
     pre_seq_len: Optional[int] = field(
-        default=None,
-        metadata={"help": "Number of tokens to use for p-tuning."}
+        default=8,
+        metadata={"help": "Number of prefix tokens to use for P-tuning v2."}
     )
     prefix_projection: bool = field(
         default=False,
-        metadata={"help": "Whether to add a project layer for the prefix in p-tuning."}
+        metadata={"help": "Whether to add a project layer for the prefix in P-tuning v2."}
     )
     lora_rank: Optional[int] = field(
         default=8,
@@ -146,5 +146,5 @@ class FinetuningArguments:
     )
 
     def __post_init__(self):
-        if self.finetuning_type not in ["freeze", "p-tuning", "lora"]:
+        if self.finetuning_type not in ["freeze", "p_tuning", "lora"]:
             raise NotImplementedError("Invalid fine-tuning method.")
