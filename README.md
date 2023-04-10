@@ -14,7 +14,7 @@ Now our script supports the following datasets:
 
 - [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca)
 - [Stanford Alpaca (Chinese)](https://github.com/ymcui/Chinese-LLaMA-Alpaca)
-- [GPT-4 Generated Data][https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM]
+- [GPT-4 Generated Data](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [BELLE 2M](https://huggingface.co/datasets/BelleGroup/train_2M_CN)
 - [BELLE 1M](https://huggingface.co/datasets/BelleGroup/train_1M_CN)
 - [BELLE 0.5M](https://huggingface.co/datasets/BelleGroup/train_0.5M_CN)
@@ -80,12 +80,12 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
 
 
 ## Compared with Existing Implementations
-- [THUDM/ChatGLM-6B-PT](https://github.com/THUDM/ChatGLM-6B/tree/main/ptuning)
+- [THUDM/ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B/tree/main/ptuning)
   - Official implementation of fine-tuning ChatGLM with [P-Tuning v2](https://github.com/THUDM/P-tuning-v2) on the [ADGEN](https://aclanthology.org/D19-1321.pdf) dataset.
   - Our fine-tuning script is largely depend on it. We further implement the [LoRA](https://arxiv.org/abs/2106.09685) tuning method. Additionally, we **dynamically** pad the inputs to the longest sequence in the batch instead of the maximum length.
 - [mymusise/ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning)
   - An unoffical implementation of fine-tuning ChatGLM with [LoRA](https://arxiv.org/abs/2106.09685) on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) dataset.
-  - We borrowed some ideas from it. Our fine-tuning script integrates the data preprocessing part into the training procedure, so we need not generate a preprocessed dataset before training.
+  - We borrowed some ideas from it. Our fine-tuning script **integrates** the data pre-processing part into the training procedure, so we need not generate a pre-processed dataset before training.
 - [ssbuild/chatglm_finetuning](https://github.com/ssbuild/chatglm_finetuning)
   - An unofficial implementation of fine-tuning ChatGLM with several PEFT methods on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) dataset.
   - Our fine-tuning script is implemented **purely** with [Huggingface transformers](https://github.com/huggingface/transformers) and is independent of the [deep_training](https://github.com/ssbuild/deep_training) framework.
@@ -97,7 +97,7 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
   - We are aim to incorporate more instruction-following datasets for fine-tuning the ChatGLM model.
 - [yanqiangmiffy/InstructGLM](https://github.com/yanqiangmiffy/InstructGLM)
   - An unofficial implementation of fine-tuning ChatGLM that explores the ChatGLM's ability on the instruction-following datasets.
-  - Our fine-tuning script integrates the data preprocessing part in to the training procedure.
+  - Our fine-tuning script integrates the data pre-processing part in to the training procedure.
 
 
 ## TODO
