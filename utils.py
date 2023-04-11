@@ -81,8 +81,10 @@ def prepare_data(model_args, data_args):
         if sha1 != hash:
             raise ValueError("Checksum failed for {}.".format(filepath))
 
-    if data_args.load_from_hf_hub:
+    if data_args.load_from == "hf_hub":
         raw_datasets = load_dataset(data_args.dataset_name, cache_dir=model_args.cache_dir)
+    elif data_args.load_from == "script":
+        raw_datasets = load_dataset(os.path.join(data_args.dataset_dir, data_args.dataset_name), cache_dir=model_args.cache_dir)
     else:
         data_file = os.path.join(data_args.dataset_dir, data_args.train_file)
         extension = data_args.train_file.split(".")[-1]
@@ -216,10 +218,10 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
     #     return model_inputs
 
     def print_dataset_example(example):
-        print("input_ids:\n", example["input_ids"])
-        print("inputs:\n", tokenizer.decode(example["input_ids"]))
-        print("label_ids:\n", example["labels"])
-        print("labels:\n", tokenizer.decode(example["labels"]))
+        print("input_ids:\n{}".format(example["input_ids"]))
+        print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
+        print("label_ids:\n{}".format(example["labels"]))
+        print("labels:\n{}".format(tokenizer.decode(example["labels"])))
 
     if training_args.do_train:
         train_dataset = raw_datasets["train"]

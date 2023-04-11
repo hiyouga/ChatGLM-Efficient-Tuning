@@ -3,7 +3,8 @@ List all the available datasets.
 
 Data format:
 "dataset_name": {
-    "hf_hub_url": the name of the dataset repository on the HF hub. (if specified, ignore below 2 arguments)
+    "hf_hub_url": the name of the dataset repository on the HF hub. (if specified, ignore below 3 arguments)
+    "script_url": the name of the script in the local `dataset_dir` directory. (if specified, ignore below 2 arguments)
     "filename": the name of the dataset file in the local `dataset_dir` directory. (required if hf_hub_url not specified)
     "sha1": the SHA-1 hash value of the dataset file. (required if hf_hub_url not specified)
     "columns": { (optional, if not provided, use the default values)
@@ -30,6 +31,15 @@ DATASETS = {
     "belle_dialog": {"hf_hub_url": "BelleGroup/generated_chat_0.4M"},
     "belle_math": {"hf_hub_url": "BelleGroup/school_math_0.25M"},
     "belle_multiturn": {"hf_hub_url": "BelleGroup/multiturn_chat_0.8M"},
+    "belle_multiturn_chatglm": {
+        "script_url": "belle_multiturn",
+        "columns": {
+            "prompt": "instruction",
+            "query": None,
+            "response": "output",
+            "history": "history"
+        }
+    },
     "guanaco": {"hf_hub_url": "JosephusCheung/GuanacoDataset"},
     "firefly": {
         "hf_hub_url": "YeungNLP/firefly-train-1.1M",

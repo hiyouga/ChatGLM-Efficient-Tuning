@@ -12,14 +12,6 @@ from peft import PeftModel, PeftConfig
 from transformers import AutoTokenizer, AutoModel
 
 
-config = PeftConfig.from_pretrained("output")
-model = AutoModel.from_pretrained(config.base_model_name_or_path, trust_remote_code=True, revision=CHATGLM_LASTEST_HASH)
-tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path, trust_remote_code=True, revision=CHATGLM_LASTEST_HASH)
-model = PeftModel.from_pretrained(model, "output")
-model = model.half().cuda()
-# model.eval()
-
-
 os_name = platform.system()
 clear_command = "cls" if os_name == "Windows" else "clear"
 stop_stream = False
@@ -40,6 +32,11 @@ def signal_handler(signal, frame):
 
 
 def main():
+    config = PeftConfig.from_pretrained("output")
+    model = AutoModel.from_pretrained(config.base_model_name_or_path, trust_remote_code=True, revision=CHATGLM_LASTEST_HASH)
+    tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path, trust_remote_code=True, revision=CHATGLM_LASTEST_HASH)
+    model = PeftModel.from_pretrained(model, "output")
+    model = model.half().cuda()
     history = []
     global stop_stream
     print(welcome)

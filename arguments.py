@@ -96,10 +96,13 @@ class DataTrainingArguments:
             raise ValueError("Undefined dataset in config_data.py.")
 
         if "hf_hub_url" in DATASETS[self.dataset]:
-            self.load_from_hf_hub = True
+            self.load_from = "hf_hub"
             self.dataset_name = DATASETS[self.dataset]["hf_hub_url"]
+        elif "script_url" in DATASETS[self.dataset]:
+            self.load_from = "script"
+            self.dataset_name = DATASETS[self.dataset]["script_url"]
         else:
-            self.load_from_hf_hub = False
+            self.load_from = "file"
             self.train_file = DATASETS[self.dataset]["filename"]
             self.train_hash = DATASETS[self.dataset]["sha1"]
 
