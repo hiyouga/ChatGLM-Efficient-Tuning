@@ -16,15 +16,21 @@ Data format:
 }
 """
 
-CHATGLM_LASTEST_HASH = 'cde457b39fe0670b10dd293909aab17387ea2c80'
+CHATGLM_LASTEST_HASH = 'aa51e62ddc9c9f334858b0af44cf59b05c70148a'
 DATASETS = {
     "alpaca_en": {"hf_hub_url": "tatsu-lab/alpaca"},
     "alpaca_zh": {
         "file_name": "alpaca_data_zh_51k.json",
         "file_sha1": "e655af3db557a4197f7b0cf92e1986b08fae6311"
     },
-    "alpaca_gpt4_en": {"hf_hub_url": "c-s-ale/alpaca-gpt4-data"},
-    "alpaca_gpt4_zh": {"hf_hub_url": "c-s-ale/alpaca-gpt4-data-zh"},
+    "alpaca_gpt4_en": {
+        "file_name": "alpaca_gpt4_data_en.json",
+        "file_sha1": "647f4ad447bd993e4b6b6223d1be15208bab694a"
+    },
+    "alpaca_gpt4_zh": {
+        "file_name": "alpaca_gpt4_data_zh.json",
+        "file_sha1": "736d3a9d0fcbb252d1e8f902920961ecfd310e41"
+    },
     "belle_0.5m": {"hf_hub_url": "BelleGroup/train_0.5M_CN"},
     "belle_1m": {"hf_hub_url": "BelleGroup/train_1M_CN"},
     "belle_2m": {"hf_hub_url": "BelleGroup/train_2M_CN"},

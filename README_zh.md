@@ -40,6 +40,7 @@
 - Python 3.10, PyTorch 2.0.0
 - 🤗Transformers, Datasets, PEFT
 - protobuf, cpm_kernels, sentencepiece
+- jieba, rouge_chinese, nltk
 
 以及 **强而有力的 GPU**！
 
@@ -59,7 +60,7 @@ pip install -r requirements.txt
 ```bash
 CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
-    --dataset alpaca_gpt4_zh \
+    --dataset alpaca_zh \
     --finetuning_type lora \
     --output_dir output \
     --overwrite_cache \
@@ -76,7 +77,21 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --fp16
 ```
 
-### 测试效果
+### 指标评估（BLEU分数和汉语ROUGE分数）
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+    --do_eval \
+    --dataset alpaca_zh \
+    --output_dir eval \
+    --overwrite_cache \
+    --overwrite_output_dir \
+    --per_device_eval_batch_size 1 \
+    --max_eval_samples 20 \
+    --predict_with_generate
+```
+
+### 效果测试
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
@@ -123,7 +138,7 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
   - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
 - 实现参数冻结和 ~~P-Tuning~~ 微调方法。
 - 支持多GPU训练。
-- 加入模型评估脚本。
+- ~~加入模型评估脚本。~~（但它可能很慢！）
 
 ## 协议
 
@@ -145,4 +160,4 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
 
 ## 声明
 
-本项目受益于 [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B)、 [ChatGLM-Tuning](https://github.com/THUDM/ChatGLM-6B) 和 [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp)，感谢作者的付出。
+本项目受益于 [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B)、[ChatGLM-Tuning](https://github.com/THUDM/ChatGLM-6B) 和 [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp)，感谢作者的付出。

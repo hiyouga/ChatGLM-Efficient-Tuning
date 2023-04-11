@@ -1,8 +1,10 @@
 import os
 import sys
+import jieba
 import hashlib
 import logging
 import logging
+import numpy as np
 import torch
 import transformers
 from transformers import (
@@ -10,12 +12,15 @@ from transformers import (
     AutoModel,
     AutoTokenizer,
     HfArgumentParser,
-    Trainer,
-    TrainingArguments,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
     DataCollatorWithPadding,
     set_seed
 )
-from typing import Type, Dict, Sequence, Optional
+from transformers.deepspeed import is_deepspeed_zero3_enabled
+from rouge_chinese import Rouge
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+from typing import Any, Dict, List, Optional, Sequence, Type, Tuple, Union
 from dataclasses import dataclass
 from datasets import concatenate_datasets, load_dataset
 from peft import get_peft_model, get_peft_config, TaskType
@@ -34,7 +39,7 @@ class CastOutputToFloat(torch.nn.Sequential):
 
 def prepare_args():
     # Load arguments
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, FinetuningArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # Provide argumetns with a json file.
         model_args, data_args, training_args, finetuning_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
@@ -64,7 +69,7 @@ def prepare_args():
         f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}\n"
         + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
-    logger.info(f"Training parameters {training_args}")
+    logger.info(f"Training/evaluation parameters {training_args}")
 
     # Set seed before initializing model.
     set_seed(training_args.seed)
@@ -209,15 +214,15 @@ def preprocess_data(dataset, tokenizer, data_args, training_args):
                 yield prompt, answer
 
     def preprocess_function_train(examples):
-        # build inputs with format `X [gMASK] [BOS] Y [EOP]`
+        # build inputs with format `X [gMASK] [BOS] Y [EOS]` and labels with format `[IGNORE] ... [IGNORE] [BOS] Y [EOS]`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
             target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
 
-            if len(source_ids) > data_args.max_source_length - 1: # gmask or eos token
+            if len(source_ids) > data_args.max_source_length - 1: # gmask or end token
                 source_ids = source_ids[:data_args.max_source_length-1]
-            if len(target_ids) > data_args.max_target_length - 2: # bos and eop tokens
+            if len(target_ids) > data_args.max_target_length - 2: # bos and eos tokens
                 target_ids = target_ids[:data_args.max_target_length-2]
             input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
 
@@ -229,19 +234,19 @@ def preprocess_data(dataset, tokenizer, data_args, training_args):
         return model_inputs
 
     def preprocess_function_eval(examples):
-        # build inputs with format `X [gMASK] [BOS]`
-        model_inputs = {"input_ids": [], "labels": []}
+        # build inputs with format `[PAD] ... [PAD] X [gMASK] [BOS]` and labels with format `Y [gMASK] [BOS]`
+        # left-padding is needed for prediction, use the built-in tokenizer
+        inputs, targets = [], []
         for prompt, answer in format_example(examples):
-            source_ids = tokenizer.encode(text=prompt)
-            target_ids = tokenizer.encode(text=answer)
-
-            if len(source_ids) > data_args.max_source_length:
-                source_ids = source_ids[:data_args.max_source_length]
-            if len(target_ids) > data_args.max_target_length:
-                target_ids = target_ids[:data_args.max_target_length]
-
-            model_inputs["input_ids"].append(source_ids)
-            model_inputs["labels"].append(target_ids)
+            inputs.append(prompt)
+            targets.append(answer)
+        model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, truncation=True, padding=True)
+        labels = tokenizer(text_target=targets, max_length=data_args.max_target_length, truncation=True)
+        if data_args.ignore_pad_token_for_loss:
+            labels["input_ids"] = [
+                [(l_id if l_id != tokenizer.pad_token_id else IGNORE_INDEX) for l_id in label] for label in labels["input_ids"]
+            ]
+        model_inputs["labels"] = labels["input_ids"]
         return model_inputs
 
     def print_dataset_example(example):
@@ -302,9 +307,52 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
 
 
 """
-Inspired by: https://github.com/mymusise/ChatGLM-Tuning/blob/997393046a49510e6cda36962f9a399297959311/finetune.py#L52
+Borrowed from: https://github.com/THUDM/ChatGLM-6B/blob/0c2806fea82683349194e21996dd6b3acc3c265b/ptuning/main.py#L307
 """
-class TrainerForChatGLM(Trainer):
+@dataclass
+class ComputeMetrics:
+    tokenizer: transformers.PreTrainedTokenizer
+    data_args: Type[dataclass]
+
+    def __call__(self, eval_preds):
+        preds, labels = eval_preds
+        if isinstance(preds, tuple):
+            preds = preds[0]
+        decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
+        if self.data_args.ignore_pad_token_for_loss:
+            # Replace -100 in the labels as we cannot decode them.
+            labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
+        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+        score_dict = {
+            "rouge-1": [],
+            "rouge-2": [],
+            "rouge-l": [],
+            'bleu-4': []
+        }
+        for pred, label in zip(decoded_preds, decoded_labels):
+            hypothesis = list(jieba.cut(pred))
+            reference = list(jieba.cut(label))
+            rouge = Rouge()
+            scores = rouge.get_scores(' '.join(hypothesis), ' '.join(reference))
+            result = scores[0]
+
+            for k, v in result.items():
+                score_dict[k].append(round(v["f"] * 100, 4))
+            bleu_score = sentence_bleu([list(label)], list(pred), smoothing_function=SmoothingFunction().method3)
+            score_dict["bleu-4"].append(round(bleu_score * 100, 4))
+
+        for k, v in score_dict.items():
+            score_dict[k] = float(np.mean(v))
+        return score_dict
+
+
+"""
+Inspired by: https://github.com/mymusise/ChatGLM-Tuning/blob/997393046a49510e6cda36962f9a399297959311/finetune.py#L52
+Use Seq2SeqTrainer to compute generative metrics such as BLEU, ROUGE, and etc.
+However, the evaluation seems very slow, it will be resolved in the future.
+"""
+class TrainerForChatGLM(Seq2SeqTrainer):
 
     def _save(self, output_dir: Optional[str] = None, _internal_call: bool = False):
         from transformers.trainer import TRAINING_ARGS_NAME
@@ -318,5 +366,72 @@ class TrainerForChatGLM(Trainer):
             self.model.save_pretrained(output_dir) # only save peft weights with the built-in method
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
 
+    def prediction_step(
+            self,
+            model: torch.nn.Module,
+            inputs: Dict[str, Union[torch.Tensor, Any]],
+            prediction_loss_only: bool,
+            ignore_keys: Optional[List[str]] = None
+    ) -> Tuple[Optional[float], Optional[torch.Tensor], Optional[torch.Tensor]]:
+        # Override to inject custom bevavior.
+        if not self.args.predict_with_generate or prediction_loss_only:
+            return super().prediction_step(
+                model, inputs, prediction_loss_only=prediction_loss_only, ignore_keys=ignore_keys
+            )
 
-# TODO: compute_metrics with dataclass
+        has_labels = "labels" in inputs
+        inputs = self._prepare_inputs(inputs)
+
+        gen_kwargs = self._gen_kwargs.copy()
+        if gen_kwargs.get("max_length") is None and gen_kwargs.get("max_new_tokens") is None:
+            gen_kwargs["max_length"] = self.model.config.max_length
+        gen_kwargs["num_beams"] = gen_kwargs["num_beams"] \
+                    if gen_kwargs.get("num_beams") is not None else self.model.config.num_beams
+        default_synced_gpus = True if is_deepspeed_zero3_enabled() else False
+        gen_kwargs["synced_gpus"] = gen_kwargs["synced_gpus"] \
+                    if gen_kwargs.get("synced_gpus") is not None else default_synced_gpus
+
+        if "attention_mask" in inputs:
+            gen_kwargs["attention_mask"] = inputs.get("attention_mask", None)
+        if "position_ids" in inputs:
+            gen_kwargs["position_ids"] = inputs.get("position_ids", None)
+        if "global_attention_mask" in inputs:
+            gen_kwargs["global_attention_mask"] = inputs.get("global_attention_mask", None)
+
+        # prepare generation inputs
+        if hasattr(self.model, "encoder") and self.model.encoder.main_input_name != self.model.main_input_name:
+            generation_inputs = inputs[self.model.encoder.main_input_name]
+        else:
+            generation_inputs = inputs[self.model.main_input_name]
+
+        gen_kwargs["input_ids"] = generation_inputs
+        generated_tokens = self.model.generate(**gen_kwargs)
+        generated_tokens = generated_tokens[:, generation_inputs.size()[-1]:] # important
+
+        # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
+        if self.model.generation_config._from_model_config:
+            self.model.generation_config._from_model_config = False
+
+        # Retrieves GenerationConfig from model.generation_config
+        gen_config = self.model.generation_config
+        # in case the batch is shorter than max length, the output should be padded
+        if generated_tokens.shape[-1] < gen_config.max_length:
+            generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_config.max_length)
+        elif gen_config.max_new_tokens is not None and generated_tokens.shape[-1] < gen_config.max_new_tokens + 1:
+            generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_config.max_new_tokens + 1)
+
+        loss = None
+
+        if self.args.prediction_loss_only:
+            return loss, None, None
+
+        if has_labels:
+            labels = inputs["labels"]
+            if labels.shape[-1] < gen_config.max_length:
+                labels = self._pad_tensors_to_max_len(labels, gen_config.max_length)
+            elif gen_config.max_new_tokens is not None and labels.shape[-1] < gen_config.max_new_tokens + 1:
+                labels = self._pad_tensors_to_max_len(labels, gen_config.max_new_tokens + 1)
+        else:
+            labels = None
+
+        return loss, generated_tokens, labels

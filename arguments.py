@@ -67,11 +67,11 @@ class DataTrainingArguments:
         metadata={"help": "The number of processes to use for the preprocessing."}
     )
     max_source_length: Optional[int] = field(
-        default=1024,
+        default=512,
         metadata={"help": "The maximum total input sequence length after tokenization."}
     )
     max_target_length: Optional[int] = field(
-        default=1024,
+        default=512,
         metadata={"help": "The maximum total output sequence length after tokenization."}
     )
     pad_to_max_length: bool = field(
@@ -85,6 +85,10 @@ class DataTrainingArguments:
     max_eval_samples: Optional[int] = field(
         default=None,
         metadata={"help": "For debugging purposes, truncate the number of evaluation examples for each dataset."}
+    )
+    num_beams: Optional[int] = field(
+        default=None,
+        metadata={"help": "Number of beams to use for evaluation. This argument will be passed to ``model.generate``"}
     )
     ignore_pad_token_for_loss: bool = field(
         default=True,

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+    --do_eval \
+    --dataset alpaca_zh \
+    --output_dir eval \
+    --overwrite_cache \
+    --overwrite_output_dir \
+    --per_device_eval_batch_size 1 \
+    --max_eval_samples 20 \
+    --predict_with_generate

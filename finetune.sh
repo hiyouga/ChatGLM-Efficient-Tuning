@@ -2,7 +2,7 @@
 
 CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
-    --dataset alpaca_gpt4_zh \
+    --dataset alpaca_zh \
     --finetuning_type lora \
     --output_dir output \
     --overwrite_cache \

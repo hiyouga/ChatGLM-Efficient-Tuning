@@ -40,6 +40,7 @@ Our script now supports the following fine-tuning methods:
 - Python 3.10 and PyTorch 2.0.0
 - 🤗Transformers, Datasets, and PEFT
 - protobuf, cpm_kernels, sentencepiece
+- jieba, rouge_chinese, nltk
 
 And **powerful GPUs**!
 
@@ -59,7 +60,7 @@ pip install -r requirements.txt
 ```bash
 CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
-    --dataset alpaca_gpt4_zh \
+    --dataset alpaca_zh \
     --finetuning_type lora \
     --output_dir output \
     --overwrite_cache \
@@ -74,6 +75,20 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
     --fp16
+```
+
+### Evaluation (BLEU and ROUGE_CHINESE)
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+    --do_eval \
+    --dataset alpaca_zh \
+    --output_dir eval \
+    --overwrite_cache \
+    --overwrite_output_dir \
+    --per_device_eval_batch_size 1 \
+    --max_eval_samples 20 \
+    --predict_with_generate
 ```
 
 ### Inference
@@ -123,7 +138,7 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
   - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
 - Implementing the Freeze-Tuning and ~~P-Tuning~~ method.
 - Supporting Multi-GPUs fine-tuning.
-- Add script for evaluation.
+- ~~Add script for evaluation.~~ (but it appears very slow)
 
 ## License
 
