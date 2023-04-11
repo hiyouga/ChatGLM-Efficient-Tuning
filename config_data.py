@@ -5,8 +5,8 @@ Data format:
 "dataset_name": {
     "hf_hub_url": the name of the dataset repository on the HF hub. (if specified, ignore below 3 arguments)
     "script_url": the name of the script in the local `dataset_dir` directory. (if specified, ignore below 2 arguments)
-    "filename": the name of the dataset file in the local `dataset_dir` directory. (required if hf_hub_url not specified)
-    "sha1": the SHA-1 hash value of the dataset file. (required if hf_hub_url not specified)
+    "file_name": the name of the dataset file in the local `dataset_dir` directory. (required if hf_hub_url not specified)
+    "file_sha1": the SHA-1 hash value of the dataset file. (required if hf_hub_url not specified)
     "columns": { (optional, if not provided, use the default values)
         "prompt": the name of the column in the datasets containing the prompts. (default: instruction)
         "query": the name of the column in the datasets containing the queries. (default: input)
@@ -20,8 +20,8 @@ CHATGLM_LASTEST_HASH = 'cde457b39fe0670b10dd293909aab17387ea2c80'
 DATASETS = {
     "alpaca_en": {"hf_hub_url": "tatsu-lab/alpaca"},
     "alpaca_zh": {
-        "filename": "alpaca_data_zh_51k.json",
-        "sha1": "e655af3db557a4197f7b0cf92e1986b08fae6311"
+        "file_name": "alpaca_data_zh_51k.json",
+        "file_sha1": "e655af3db557a4197f7b0cf92e1986b08fae6311"
     },
     "alpaca_gpt4_en": {"hf_hub_url": "c-s-ale/alpaca-gpt4-data"},
     "alpaca_gpt4_zh": {"hf_hub_url": "c-s-ale/alpaca-gpt4-data-zh"},

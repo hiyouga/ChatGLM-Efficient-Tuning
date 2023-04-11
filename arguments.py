@@ -48,11 +48,11 @@ class ModelArguments:
 @dataclass
 class DataTrainingArguments:
     """
-    Arguments pertaining to what data we are going to input our model for training.
+    Arguments pertaining to what data we are going to input our model for training and evaluation.
     """
     dataset: Optional[str] = field(
         default="alpaca_zh",
-        metadata={"help": "The name of provided dataset to use."}
+        metadata={"help": "The name of provided dataset to use. Use comma to separate multiple datasets."}
     )
     dataset_dir: Optional[str] = field(
         default="data",
@@ -60,7 +60,7 @@ class DataTrainingArguments:
     )
     overwrite_cache: bool = field(
         default=False,
-        metadata={"help": "Overwrite the cached training and sets."}
+        metadata={"help": "Overwrite the cached training and evaluation sets."}
     )
     preprocessing_num_workers: Optional[int] = field(
         default=None,
@@ -80,7 +80,11 @@ class DataTrainingArguments:
     )
     max_train_samples: Optional[int] = field(
         default=None,
-        metadata={"help": "For debugging purposes, truncate the number of training examples."}
+        metadata={"help": "For debugging purposes, truncate the number of training examples for each dataset."}
+    )
+    max_eval_samples: Optional[int] = field(
+        default=None,
+        metadata={"help": "For debugging purposes, truncate the number of evaluation examples for each dataset."}
     )
     ignore_pad_token_for_loss: bool = field(
         default=True,
@@ -91,31 +95,40 @@ class DataTrainingArguments:
         metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
     )
 
-    def __post_init__(self):
-        if self.dataset not in DATASETS:
-            raise ValueError("Undefined dataset in config_data.py.")
-
-        if "hf_hub_url" in DATASETS[self.dataset]:
-            self.load_from = "hf_hub"
-            self.dataset_name = DATASETS[self.dataset]["hf_hub_url"]
-        elif "script_url" in DATASETS[self.dataset]:
-            self.load_from = "script"
-            self.dataset_name = DATASETS[self.dataset]["script_url"]
+    def __post_init__(self): # support mixing multiple datasets
+        if "," in self.dataset:
+            dataset_names = [ds.strip() for ds in self.dataset.split(",")]
         else:
-            self.load_from = "file"
-            self.train_file = DATASETS[self.dataset]["filename"]
-            self.train_hash = DATASETS[self.dataset]["sha1"]
+            dataset_names = [self.dataset.strip()]
 
-        if "columns" in DATASETS[self.dataset]:
-            self.prompt_column = DATASETS[self.dataset]["columns"]["prompt"]
-            self.query_column = DATASETS[self.dataset]["columns"]["query"]
-            self.response_column = DATASETS[self.dataset]["columns"]["response"]
-            self.history_column = DATASETS[self.dataset]["columns"]["history"]
-        else:
-            self.prompt_column = "instruction"
-            self.query_column = "input"
-            self.response_column = "output"
-            self.history_column = None
+        self.dataset_list = []
+        for name in dataset_names:
+            if name not in DATASETS:
+                raise ValueError("Undefined dataset {} in config_data.py.".format(name))
+
+            dataset_info = {}
+            if "hf_hub_url" in DATASETS[name]:
+                dataset_info["load_from"] = "hf_hub"
+                dataset_info["dataset_name"] = DATASETS[name]["hf_hub_url"]
+            elif "script_url" in DATASETS[name]:
+                dataset_info["load_from"] = "script"
+                dataset_info["dataset_name"] = DATASETS[name]["script_url"]
+            else:
+                dataset_info["load_from"] = "file"
+                dataset_info["file_name"] = DATASETS[name]["file_name"]
+                dataset_info["file_sha1"] = DATASETS[name]["file_sha1"]
+
+            if "columns" in DATASETS[name]:
+                dataset_info["prompt_column"] = DATASETS[name]["columns"]["prompt"]
+                dataset_info["query_column"] = DATASETS[name]["columns"]["query"]
+                dataset_info["response_column"] = DATASETS[name]["columns"]["response"]
+                dataset_info["history_column"] = DATASETS[name]["columns"]["history"]
+            else:
+                dataset_info["prompt_column"] = "instruction"
+                dataset_info["query_column"] = "input"
+                dataset_info["response_column"] = "output"
+                dataset_info["history_column"] = None
+            self.dataset_list.append(dataset_info)
 
 
 @dataclass

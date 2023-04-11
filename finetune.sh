@@ -2,7 +2,8 @@
 
 CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
-    --dataset guanaco \
+    --dataset alpaca_gpt4_zh \
+    --finetuning_type lora \
     --output_dir output \
     --overwrite_cache \
     --overwrite_output_dir \
@@ -13,7 +14,6 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --save_steps 1000 \
     --warmup_steps 100 \
     --max_train_samples 10000 \
-    --learning_rate 5e-4 \
+    --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
-    --finetuning_type lora \
     --fp16

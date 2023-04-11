@@ -6,6 +6,8 @@
 
 Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with 🤗[PEFT](https://github.com/huggingface/peft).
 
+\[ English | [中文](README_zh.md) \]
+
 ## Datasets
 
 Our script now supports the following datasets:
@@ -24,6 +26,8 @@ Our script now supports the following datasets:
 
 Please refer to `config_data.py` for details.
 
+[23/04/11] Now we support training with combined datasets! Try `dataset1,dataset2` argument for training with multiple datasets.
+
 ## Fine-Tuning Methods
 
 Our script now supports the following fine-tuning methods:
@@ -41,7 +45,7 @@ And **powerful GPUs**!
 
 ## Getting Started
 
-### Preparation
+### Preparation (optional)
 
 ```bash
 git clone https://github.com/hiyouga/ChatGLM-Efficient-Tuning.git
@@ -55,8 +59,9 @@ pip install -r requirements.txt
 ```bash
 CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
-    --dataset guanaco \
-    --output_dir output_guanaco \
+    --dataset alpaca_gpt4_zh \
+    --finetuning_type lora \
+    --output_dir output \
     --overwrite_cache \
     --overwrite_output_dir \
     --per_device_train_batch_size 4 \
@@ -66,7 +71,7 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --save_steps 1000 \
     --warmup_steps 100 \
     --max_train_samples 10000 \
-    --learning_rate 5e-4 \
+    --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
     --fp16
 ```
@@ -85,9 +90,10 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
 
 
 ## Compared with Existing Implementations
+
 - [THUDM/ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B/tree/main/ptuning)
   - Official implementation of fine-tuning ChatGLM with [P-Tuning v2](https://github.com/THUDM/P-tuning-v2) on the [ADGEN](https://aclanthology.org/D19-1321.pdf) dataset.
-  - Our fine-tuning script is largely depend on it. We further implement the [LoRA](https://arxiv.org/abs/2106.09685) tuning method. Additionally, we **dynamically** pad the inputs to the longest sequence in the batch instead of the maximum length.
+  - Our fine-tuning script is largely depend on it. We further implement the [LoRA](https://arxiv.org/abs/2106.09685) tuning method. Additionally, we **dynamically** pad the inputs to the longest sequence in the batch instead of the maximum length, to accelerate the fine-tuning.
 - [mymusise/ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning)
   - An unoffical implementation of fine-tuning ChatGLM with [LoRA](https://arxiv.org/abs/2106.09685) on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) dataset.
   - We borrowed some ideas from it. Our fine-tuning script **integrates** the data pre-processing part into the training procedure, so we need not generate a pre-processed dataset before training.
@@ -104,11 +110,10 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
   - An unofficial implementation of fine-tuning ChatGLM that explores the ChatGLM's ability on the instruction-following datasets.
   - Our fine-tuning script integrates the data pre-processing part in to the training procedure.
 
-
 ## TODO
 
 - Incorporating [Chinese datasets](https://github.com/brightmart/nlp_chinese_corpus) into the training sets.
-  - [BELLE](https://github.com/LianjiaTech/BELLE)
+  - ~~[BELLE](https://github.com/LianjiaTech/BELLE)~~
   - [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
   - [CLUECorpus](https://github.com/CLUEbenchmark/CLUECorpus2020)
   - ~~[GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)~~
@@ -118,12 +123,11 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
   - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
 - Implementing the Freeze-Tuning and ~~P-Tuning~~ method.
 - Supporting Multi-GPUs fine-tuning.
-
+- Add script for evaluation.
 
 ## License
 
 This repository is licensed under the [Apache-2.0 License](LICENSE).
-
 
 ## Citation
 
@@ -137,7 +141,6 @@ If this work is helpful, please cite as:
   year = {2023}
 }
 ```
-
 
 ## Acknowledgement
 

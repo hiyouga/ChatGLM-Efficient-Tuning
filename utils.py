@@ -17,7 +17,7 @@ from transformers import (
 )
 from typing import Type, Dict, Sequence, Optional
 from dataclasses import dataclass
-from datasets import load_dataset
+from datasets import concatenate_datasets, load_dataset
 from peft import get_peft_model, get_peft_config, TaskType
 from arguments import ModelArguments, DataTrainingArguments, FinetuningArguments
 
@@ -72,30 +72,61 @@ def prepare_args():
     return model_args, data_args, training_args, finetuning_args
 
 
-def prepare_data(model_args, data_args):
+def prepare_data(model_args, data_args, training_args):
     # Load and verify dataset
-    def checksum(filepath, hash):
-        with open(filepath, "rb") as datafile:
+    def checksum(file_path, hash):
+        with open(file_path, "rb") as datafile:
             binary_data = datafile.read()
         sha1 = hashlib.sha1(binary_data).hexdigest()
         if sha1 != hash:
-            raise ValueError("Checksum failed for {}.".format(filepath))
+            raise ValueError("Checksum failed for {}.".format(file_path))
 
-    if data_args.load_from == "hf_hub":
-        raw_datasets = load_dataset(data_args.dataset_name, cache_dir=model_args.cache_dir)
-    elif data_args.load_from == "script":
-        raw_datasets = load_dataset(os.path.join(data_args.dataset_dir, data_args.dataset_name), cache_dir=model_args.cache_dir)
+    max_samples = data_args.max_train_samples if training_args.do_train else data_args.max_eval_samples
+    all_datasets = [] # support multiple datasets
+
+    for dataset_info in data_args.dataset_list:
+        logger.info("Loading dataset {}...".format(dataset_info))
+        if dataset_info["load_from"] == "hf_hub":
+            raw_datasets = load_dataset(dataset_info["dataset_name"], cache_dir=model_args.cache_dir)
+        elif dataset_info["load_from"] == "script":
+            raw_datasets = load_dataset(
+                os.path.join(data_args.dataset_dir, dataset_info["dataset_name"]),
+                cache_dir=model_args.cache_dir
+            )
+        else:
+            data_file = os.path.join(data_args.dataset_dir, dataset_info["file_name"])
+            extension = dataset_info["file_name"].split(".")[-1]
+            checksum(data_file, dataset_info["file_sha1"])
+            raw_datasets = load_dataset(
+                extension,
+                data_files=data_file,
+                cache_dir=model_args.cache_dir,
+                use_auth_token=True if model_args.use_auth_token else None
+            )
+        dataset = raw_datasets["train"] # always use the training set
+
+        if max_samples is not None:
+            max_samples_temp = min(len(dataset), max_samples)
+            dataset = dataset.select(range(max_samples_temp))
+
+        dummy_data = [None] * len(dataset)
+        for column, column_name in [
+            ("prompt_column", "prompt"),
+            ("query_column", "query"),
+            ("response_column", "response"),
+            ("history_column", "history")
+        ]: # every dataset will have 4 columns same as each other
+            if dataset_info[column] != column_name:
+                if dataset_info[column] is not None:
+                    dataset = dataset.rename_column(dataset_info[column], column_name)
+                else:
+                    dataset = dataset.add_column(column_name, dummy_data)
+        all_datasets.append(dataset)
+    if len(data_args.dataset_list) == 1:
+        all_datasets = all_datasets[0]
     else:
-        data_file = os.path.join(data_args.dataset_dir, data_args.train_file)
-        extension = data_args.train_file.split(".")[-1]
-        checksum(data_file, data_args.train_hash)
-        raw_datasets = load_dataset(
-            extension,
-            data_files=data_file,
-            cache_dir=model_args.cache_dir,
-            use_auth_token=True if model_args.use_auth_token else None
-        )
-    return raw_datasets
+        all_datasets = concatenate_datasets(all_datasets)
+    return all_datasets
 
 
 def prepare_model(model_args, finetuning_args):
@@ -155,24 +186,20 @@ def prepare_model(model_args, finetuning_args):
     return tokenizer, model
 
 
-def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
+def preprocess_data(dataset, tokenizer, data_args, training_args):
     # Preprocess the datasets
-    column_names = list(raw_datasets["train"].column_names)
-    prompt_column = data_args.prompt_column
-    query_column = data_args.query_column
-    response_column = data_args.response_column
-    history_column = data_args.history_column
+    column_names = list(dataset.column_names)
     prefix = data_args.source_prefix if data_args.source_prefix is not None else ""
 
     def format_example(examples):
-        for i in range(len(examples[prompt_column])):
-            if examples[prompt_column][i] and examples[response_column][i]:
-                query, answer = examples[prompt_column][i], examples[response_column][i]
-                if query_column is not None and examples[query_column][i]:
-                    query += examples[query_column][i]
-                if history_column is not None and examples[history_column][i]:
+        for i in range(len(examples["prompt"])):
+            if examples["prompt"][i] and examples["response"][i]:
+                query, answer = examples["prompt"][i], examples["response"][i]
+                if examples["query"][i]:
+                    query += examples["query"][i]
+                if examples["history"][i]:
                     prompt = ""
-                    history = examples[history_column][i]
+                    history = examples["history"][i]
                     for i, (old_query, response) in enumerate(history):
                         prompt += "[Round {}]\n问：{}\n答：{}\n".format(i, old_query, response)
                     prompt += "[Round {}]\n问：{}\n答：".format(len(history), query)
@@ -201,21 +228,21 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
             model_inputs["labels"].append(labels)
         return model_inputs
 
-    # def preprocess_function_eval(examples):
-    #     # build inputs with format `X [gMASK] [BOS]`
-    #     model_inputs = {"input_ids": [], "labels": []}
-    #     for prompt, answer in format_example(examples):
-    #         source_ids = tokenizer.encode(text=prompt)
-    #         target_ids = tokenizer.encode(text=answer)
+    def preprocess_function_eval(examples):
+        # build inputs with format `X [gMASK] [BOS]`
+        model_inputs = {"input_ids": [], "labels": []}
+        for prompt, answer in format_example(examples):
+            source_ids = tokenizer.encode(text=prompt)
+            target_ids = tokenizer.encode(text=answer)
 
-    #         if len(source_ids) > data_args.max_source_length:
-    #             source_ids = source_ids[:data_args.max_source_length]
-    #         if len(target_ids) > data_args.max_target_length:
-    #             target_ids = target_ids[:data_args.max_target_length]
+            if len(source_ids) > data_args.max_source_length:
+                source_ids = source_ids[:data_args.max_source_length]
+            if len(target_ids) > data_args.max_target_length:
+                target_ids = target_ids[:data_args.max_target_length]
 
-    #         model_inputs["input_ids"].append(source_ids)
-    #         model_inputs["labels"].append(target_ids)
-    #     return model_inputs
+            model_inputs["input_ids"].append(source_ids)
+            model_inputs["labels"].append(target_ids)
+        return model_inputs
 
     def print_dataset_example(example):
         print("input_ids:\n{}".format(example["input_ids"]))
@@ -223,38 +250,18 @@ def preprocess_data(raw_datasets, tokenizer, data_args, training_args):
         print("label_ids:\n{}".format(example["labels"]))
         print("labels:\n{}".format(tokenizer.decode(example["labels"])))
 
-    if training_args.do_train:
-        train_dataset = raw_datasets["train"]
-        if data_args.max_train_samples is not None:
-            max_train_samples = min(len(train_dataset), data_args.max_train_samples)
-            train_dataset = train_dataset.select(range(max_train_samples))
-        with training_args.main_process_first(desc="train dataset map pre-processing"):
-            train_dataset = train_dataset.map(
-                preprocess_function_train,
-                batched=True,
-                num_proc=data_args.preprocessing_num_workers,
-                remove_columns=column_names,
-                load_from_cache_file=not data_args.overwrite_cache,
-                desc="Running tokenizer on train dataset"
-            )
-        print_dataset_example(train_dataset[0])
-        return train_dataset
-
-    # if training_args.do_eval:
-    #     eval_dataset = raw_datasets["validation"]
-    #     if data_args.max_eval_samples is not None:
-    #         max_eval_samples = min(len(eval_dataset), data_args.max_eval_samples)
-    #         eval_dataset = eval_dataset.select(range(max_eval_samples))
-    #     with training_args.main_process_first(desc="validation dataset map pre-processing"):
-    #         eval_dataset = eval_dataset.map(
-    #             preprocess_function_eval,
-    #             batched=True,
-    #             remove_columns=column_names,
-    #             load_from_cache_file=not data_args.overwrite_cache,
-    #             desc="Running tokenizer on validation dataset"
-    #         )
-    #     print_dataset_example(eval_dataset[0])
-    #     return eval_dataset
+    preprocess_function = preprocess_function_train if training_args.do_train else preprocess_function_eval
+    with training_args.main_process_first(desc="dataset map pre-processing"):
+        dataset = dataset.map(
+            preprocess_function,
+            batched=True,
+            num_proc=data_args.preprocessing_num_workers,
+            remove_columns=column_names,
+            load_from_cache_file=not data_args.overwrite_cache,
+            desc="Running tokenizer on dataset"
+        )
+    print_dataset_example(dataset[0])
+    return dataset
 
 
 def filter_model_params(model): # filter out the freezed parameters

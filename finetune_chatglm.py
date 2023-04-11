@@ -28,9 +28,9 @@ logger = logging.getLogger(__name__)
 def main():
 
     model_args, data_args, training_args, finetuning_args = prepare_args()
-    raw_datasets = prepare_data(model_args, data_args)
+    dataset = prepare_data(model_args, data_args, training_args)
     tokenizer, model = prepare_model(model_args, finetuning_args)
-    dataset = preprocess_data(raw_datasets, tokenizer, data_args, training_args)
+    dataset = preprocess_data(dataset, tokenizer, data_args, training_args)
     data_collator = DataCollatorForChatGLM(tokenizer=tokenizer, data_args=data_args)
     trainer = TrainerForChatGLM(
         model=model,
