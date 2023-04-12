@@ -12,7 +12,7 @@
 
 [23/04/12] 现在我们加入了断点训练支持！请尝试给定 `--checkpoint_dir` 参数加载指定的模型断点。
 
-[23/04/11] 现在我们实现了数据集组合训练！请尝试使用 `dataset1,dataset2` 参数进行组合训练。
+[23/04/11] 现在我们实现了数据集组合训练！请尝试使用 `--dataset dataset1,dataset2` 参数进行组合训练。
 
 ## 数据集
 
@@ -36,10 +36,10 @@
 
 目前我们实现了针对以下高效微调方法的支持：
 
-- [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
-  - 仅微调前缀编码器。
 - [LoRA](https://arxiv.org/abs/2106.09685)
   - 仅微调低秩适应器。
+- [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
+  - 仅微调前缀编码器。
 - [Freeze](https://arxiv.org/abs/2012.14913)
   - 仅微调后几层的全连接层。
 
@@ -110,10 +110,7 @@ python infer_chatglm.py --checkpoint_dir output
 | P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
 | Freeze (l=2)     |     2      | FP16 |  32GB  | 4ex/s |
 
-<sub>
-r：LoRA 维数大小，p：前缀词表大小，l：微调层数，ex/s：每秒训练的样本数
-</sub>
-
+> r：LoRA 维数大小，p：前缀词表大小，l：微调层数，ex/s：每秒训练的样本数
 
 ## 和现有类似项目的比较
 

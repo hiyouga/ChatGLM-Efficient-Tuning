@@ -8,11 +8,11 @@ Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with �
 
 \[ English | [中文](README_zh.md) \]
 
-## Change Log
+## Changelog
 
 [23/04/12] Now we support training from checkpoints! Use `--checkpoint_dir` to specify the checkpoint model to fine-tune from.
 
-[23/04/11] Now we support training with combined datasets! Try `dataset1,dataset2` argument for training with multiple datasets.
+[23/04/11] Now we support training with combined datasets! Try `--dataset dataset1,dataset2` argument for training with multiple datasets.
 
 ## Datasets
 
@@ -36,12 +36,12 @@ Please refer to `config_data.py` for details.
 
 Our script now supports the following fine-tuning methods:
 
-- [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
-  - We fine-tune the prefix encoder of the model.
 - [LoRA](https://arxiv.org/abs/2106.09685)
-  - We fine-tune the model with the low-rank adapters.
+  - Fine-tuning the low-rank adapters of the model.
+- [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
+  - Fine-tuning the prefix encoder of the model.
 - [Freeze](https://arxiv.org/abs/2012.14913)
-  - We fine-tune the MLPs in the last n blocks.
+  - Fine-tuning the MLPs in the last n blocks of the model.
 
 ## Requirement
 
@@ -103,19 +103,14 @@ python infer_chatglm.py --checkpoint_dir output
 
 ### Hardware Requirements
 
-|     微调方法     |  批处理大小  | 模式 | GPU显存 | 速度 |
+| Fine-tune method | Batch size | Mode |  GRAM  | Speed |
 | ---------------- | ---------- | ---- | ------ | ----- |
 | LoRA (r=8)       |     8      | FP16 |  20GB  | 7ex/s |
 | LoRA (r=8)       |     16     | FP16 |  26GB  | 8ex/s |
 | P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
 | Freeze (l=2)     |     2      | FP16 |  32GB  | 4ex/s |
 
-<sub>
-r: lora rank,
-p: number of prefix tokens,
-l: number of trainable layers,
-ex/s: examples per second
-</sub>
+> r: lora rank, p: number of prefix tokens, l: number of trainable layers, ex/s: examples per second
 
 ## Compared with Existing Implementations
 
