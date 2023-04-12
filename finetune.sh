@@ -2,11 +2,10 @@
 
 CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
-    --dataset alpaca_zh \
+    --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
     --output_dir output \
     --overwrite_cache \
-    --overwrite_output_dir \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \

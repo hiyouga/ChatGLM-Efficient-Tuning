@@ -3,9 +3,10 @@ import sys
 import jieba
 import hashlib
 import logging
-import logging
 import numpy as np
 import torch
+import datasets
+from datasets import concatenate_datasets, load_dataset
 import transformers
 from transformers import (
     AutoConfig,
@@ -14,20 +15,24 @@ from transformers import (
     HfArgumentParser,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
-    DataCollatorWithPadding,
+    DataCollatorForSeq2Seq,
     set_seed
 )
+from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.deepspeed import is_deepspeed_zero3_enabled
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from peft import get_peft_config, get_peft_model, PeftModel, TaskType
+from peft.peft_model import WEIGHTS_NAME
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from typing import Any, Dict, List, Optional, Sequence, Type, Tuple, Union
-from dataclasses import dataclass
-from datasets import concatenate_datasets, load_dataset
-from peft import get_peft_model, get_peft_config, TaskType
 from arguments import ModelArguments, DataTrainingArguments, FinetuningArguments
 
 
 IGNORE_INDEX = -100
+FINETUNING_ARGS_NAME = "finetuning_args.bin"
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,14 +42,122 @@ class CastOutputToFloat(torch.nn.Sequential):
         return super().forward(x).to(torch.float32)
 
 
+def print_trainable_params(model: torch.nn.Module) -> None:
+    trainable_params, all_param = 0, 0
+    for param in model.parameters():
+        num_params = param.numel()
+        # if using DS Zero 3 and the weights are initialized empty
+        if num_params == 0 and hasattr(param, "ds_numel"):
+            num_params = param.ds_numel
+        all_param += num_params
+        if param.requires_grad:
+            trainable_params += num_params
+    print("trainable params: {:d} || all params: {:d} || trainable%: {:.4f}".format(
+                trainable_params, all_param, 100 * trainable_params / all_param))
+
+
+def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
+    model_state_dict = torch.load(os.path.join(checkpoint_dir, WEIGHTS_NAME))
+    model.load_state_dict(model_state_dict, strict=False) # skip missing keys
+
+
+def load_pretrained(
+        model_args: ModelArguments,
+        finetuning_args: Optional[FinetuningArguments]=None,
+        is_trainable: Optional[bool]=False
+) -> Tuple[transformers.modeling_utils.PreTrainedModel, transformers.tokenization_utils.PreTrainedTokenizer]:
+    # Load pretrained model and tokenizer
+    if model_args.checkpoint_dir is None and finetuning_args is None:
+        print("Checkpoint or fine-tuning arguments are not found, load the original model")
+        finetuning_args = FinetuningArguments(finetuning_type="none")
+
+    if model_args.checkpoint_dir is not None: # load fine-tuned model from checkpoint
+        if not os.path.isfile(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME)):
+            raise ValueError("The fine-tuning arguments is not found in the provided dictionary.")
+        logger.info("load fine-tuned model from checkpoint: {}".format(model_args.checkpoint_dir))
+        finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME))
+
+    config_kwargs = {
+        "trust_remote_code": True,
+        "cache_dir": model_args.cache_dir,
+        "revision": model_args.model_revision,
+        "use_auth_token": True if model_args.use_auth_token else None,
+    }
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        use_fast=model_args.use_fast_tokenizer,
+        **config_kwargs
+    )
+    config = AutoConfig.from_pretrained(
+        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        **config_kwargs
+    )
+
+    if finetuning_args.finetuning_type == "p_tuning":
+        # use the built-in p-tuning method in ChatGLM, we cannot use peft since the attention mask is unusual >_<
+        config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
+        config.prefix_projection = finetuning_args.prefix_projection
+
+    model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
+    model.config.use_cache = False if is_trainable else model.config.use_cache # turn off in training for gradient checkpointing
+
+    if model_args.quantization_bit is not None:
+        print("Quantized to {} bit".format(model_args.quantization_bit))
+        model = model.quantize(model_args.quantization_bit)
+        model.lm_head = CastOutputToFloat(model.lm_head) if is_trainable else model.lm_head
+
+    if finetuning_args.finetuning_type == "none" and is_trainable:
+        raise ValueError("You cannot use finetuning_type=none when training.")
+
+    if finetuning_args.finetuning_type == "freeze":
+        logger.info("Fine-tuning method: Freeze")
+        trainable_layers = ["layers.{:d}.mlp".format(27-k) for k in range(finetuning_args.num_layer_trainable)]
+        for name, param in model.named_parameters():
+            if not any(kw in name for kw in trainable_layers):
+                param.requires_grad_(False)
+        model = model.float() # we cannot train model with half precision
+
+    if finetuning_args.finetuning_type == "p_tuning":
+        logger.info("Fine-tuning method: P-Tuning V2")
+        model.transformer.prefix_encoder.float() # we cannot train model with half precision
+
+    if finetuning_args.finetuning_type == "lora":
+        logger.info("Fine-tuning method: LoRA")
+        if model_args.checkpoint_dir is not None:
+            model = PeftModel.from_pretrained(model, model_args.checkpoint_dir, is_trainable=is_trainable)
+        else:
+            peft_config = {
+                "peft_type": "LORA",
+                "task_type": TaskType.CAUSAL_LM,
+                "inference_mode": False,
+                "r": finetuning_args.lora_rank,
+                "lora_alpha": finetuning_args.lora_alpha,
+                "lora_dropout": finetuning_args.lora_dropout,
+                "target_modules": ["query_key_value"] # query_key_value or dense
+            }
+            peft_config = get_peft_config(peft_config)
+            model = get_peft_model(model, peft_config)
+    else: # Freeze and P-Tuning
+        if model_args.checkpoint_dir is not None:
+            load_trainable_params(model, model_args.checkpoint_dir)
+
+    print_trainable_params(model)
+
+    return model, tokenizer
+
+
 def prepare_args():
     # Load arguments
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        # Provide argumetns with a json file.
+        # Provide arguments with a json file.
         model_args, data_args, training_args, finetuning_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
         model_args, data_args, training_args, finetuning_args = parser.parse_args_into_dataclasses()
+
+    if training_args.do_train and training_args.do_eval:
+        raise ValueError("We don't support training and evaluation simultaneously.")
+    training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim
 
     # Setup logging
     logging.basicConfig(
@@ -59,7 +172,7 @@ def prepare_args():
 
     log_level = training_args.get_process_log_level()
     logger.setLevel(log_level)
-    # datasets.utils.logging.set_verbosity(log_level)
+    datasets.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()
@@ -91,23 +204,25 @@ def prepare_data(model_args, data_args, training_args):
 
     for dataset_info in data_args.dataset_list:
         logger.info("Loading dataset {}...".format(dataset_info))
-        if dataset_info["load_from"] == "hf_hub":
-            raw_datasets = load_dataset(dataset_info["dataset_name"], cache_dir=model_args.cache_dir)
-        elif dataset_info["load_from"] == "script":
+        if dataset_info.load_from == "hf_hub":
+            raw_datasets = load_dataset(dataset_info.dataset_name, cache_dir=model_args.cache_dir)
+        elif dataset_info.load_from == "script":
             raw_datasets = load_dataset(
-                os.path.join(data_args.dataset_dir, dataset_info["dataset_name"]),
+                os.path.join(data_args.dataset_dir, dataset_info.dataset_name),
                 cache_dir=model_args.cache_dir
             )
-        else:
-            data_file = os.path.join(data_args.dataset_dir, dataset_info["file_name"])
-            extension = dataset_info["file_name"].split(".")[-1]
-            checksum(data_file, dataset_info["file_sha1"])
+        elif dataset_info.load_from == "file":
+            data_file = os.path.join(data_args.dataset_dir, dataset_info.file_name)
+            extension = dataset_info.file_name.split(".")[-1]
+            checksum(data_file, dataset_info.file_sha1)
             raw_datasets = load_dataset(
                 extension,
                 data_files=data_file,
                 cache_dir=model_args.cache_dir,
                 use_auth_token=True if model_args.use_auth_token else None
             )
+        else:
+            raise NotImplementedError
         dataset = raw_datasets["train"] # always use the training set
 
         if max_samples is not None:
@@ -121,74 +236,19 @@ def prepare_data(model_args, data_args, training_args):
             ("response_column", "response"),
             ("history_column", "history")
         ]: # every dataset will have 4 columns same as each other
-            if dataset_info[column] != column_name:
-                if dataset_info[column] is not None:
-                    dataset = dataset.rename_column(dataset_info[column], column_name)
+            if getattr(dataset_info, column) != column_name:
+                if getattr(dataset_info, column) is not None:
+                    dataset = dataset.rename_column(getattr(dataset_info, column), column_name)
                 else:
                     dataset = dataset.add_column(column_name, dummy_data)
         all_datasets.append(dataset)
+
     if len(data_args.dataset_list) == 1:
         all_datasets = all_datasets[0]
     else:
         all_datasets = concatenate_datasets(all_datasets)
+
     return all_datasets
-
-
-def prepare_model(model_args, finetuning_args):
-    # Load pretrained model and tokenizer
-    config_kwargs = {
-        "trust_remote_code": True,
-        "cache_dir": model_args.cache_dir,
-        "revision": model_args.model_revision,
-        "use_auth_token": True if model_args.use_auth_token else None,
-    }
-    config = AutoConfig.from_pretrained(
-        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
-        **config_kwargs
-    )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-        use_fast=model_args.use_fast_tokenizer,
-        **config_kwargs
-    )
-
-    if finetuning_args.finetuning_type == 'p_tuning': # use the built-in p-tuning method in ChatGLM
-        config.pre_seq_len = finetuning_args.pre_seq_len
-        config.prefix_projection = finetuning_args.prefix_projection
-
-    model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
-    model.config.use_cache = False
-
-    if model_args.quantization_bit is not None:
-        print("Quantized to {} bit".format(model_args.quantization_bit))
-        model = model.quantize(model_args.quantization_bit)
-        model.lm_head = CastOutputToFloat(model.lm_head)
-
-    if finetuning_args.finetuning_type == 'p_tuning':
-        logger.info("Fine-tuning method: P-Tuning V2")
-        model.transformer.prefix_encoder.float() # we cannot use peft since the attention mask is unusual >_<
-        total_params = sum(p.numel() for p in model.parameters())
-        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        print("trainable params: {:d} || all params: {:d} || trainable%: {:.4f}".format(
-            trainable_params, total_params, 100 * trainable_params / total_params
-        ))
-
-    if finetuning_args.finetuning_type == 'lora':
-        logger.info("Fine-tuning method: LoRA")
-        peft_config = {
-            "peft_type": "LORA",
-            "task_type": TaskType.CAUSAL_LM,
-            "inference_mode": False,
-            "r": finetuning_args.lora_rank,
-            "lora_alpha": finetuning_args.lora_alpha,
-            "lora_dropout": finetuning_args.lora_dropout,
-            "target_modules": ['query_key_value'] # query_key_value or dense
-        }
-        peft_config = get_peft_config(peft_config)
-        model = get_peft_model(model, peft_config)
-        model.print_trainable_parameters()
-
-    return tokenizer, model
 
 
 def preprocess_data(dataset, tokenizer, data_args, training_args):
@@ -235,7 +295,7 @@ def preprocess_data(dataset, tokenizer, data_args, training_args):
 
     def preprocess_function_eval(examples):
         # build inputs with format `[PAD] ... [PAD] X [gMASK] [BOS]` and labels with format `Y [gMASK] [BOS]`
-        # left-padding is needed for prediction, use the built-in tokenizer
+        # left-padding is needed for prediction, use the built-in function of the tokenizer
         inputs, targets = [], []
         for prompt, answer in format_example(examples):
             inputs.append(prompt)
@@ -256,6 +316,7 @@ def preprocess_data(dataset, tokenizer, data_args, training_args):
         print("labels:\n{}".format(tokenizer.decode(example["labels"])))
 
     preprocess_function = preprocess_function_train if training_args.do_train else preprocess_function_eval
+    # we don't provide `do_train` and `do_eval` arguments simultaneously
     with training_args.main_process_first(desc="dataset map pre-processing"):
         dataset = dataset.map(
             preprocess_function,
@@ -266,10 +327,11 @@ def preprocess_data(dataset, tokenizer, data_args, training_args):
             desc="Running tokenizer on dataset"
         )
     print_dataset_example(dataset[0])
+
     return dataset
 
 
-def filter_model_params(model): # filter out the freezed parameters
+def filter_model_params(model: torch.nn.Module) -> None: # filter out the freezed parameters
     state_dict = model.state_dict()
     filtered_state_dict = {}
     for k, v in model.named_parameters():
@@ -278,12 +340,12 @@ def filter_model_params(model): # filter out the freezed parameters
     return filtered_state_dict
 
 
-def save_trainable_params(save_directory, model):
+def save_trainable_params(save_directory: os.PathLike, model: torch.nn.Module) -> None:
     if os.path.isfile(save_directory):
         raise ValueError(f"Provided path ({save_directory}) should be a directory, not a file")
     os.makedirs(save_directory, exist_ok=True)
     filtered_state_dict = filter_model_params(model)
-    torch.save(filtered_state_dict, os.path.join(save_directory, "adapter_model.bin"))
+    torch.save(filtered_state_dict, os.path.join(save_directory, WEIGHTS_NAME))
 
 
 """
@@ -291,18 +353,25 @@ Note: The ChatGLM tokenizer assigns False on token to be attended in attention m
 Refer to: https://huggingface.co/THUDM/chatglm-6b/blob/6650ae3a53c28fc176d06762ca80b05d5ab3792b/tokenization_chatglm.py#L401
 Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/aa65c492bb788e144712daab42bc5d11c2761591/train.py#L166
 """
-@dataclass
-class DataCollatorForChatGLM(DataCollatorWithPadding):
-    # Use collator to pad each sequence to the longest sequence in a batch
-    data_args: Type[dataclass] = None # required
+class DataCollatorForChatGLM(DataCollatorForSeq2Seq): # dynamically padding for training set
+
+    def __init__(
+            self,
+            tokenizer: transformers.tokenization_utils.PreTrainedTokenizer,
+            model: transformers.modeling_utils.PreTrainedModel,
+            data_args: DataTrainingArguments
+    ):
+        label_pad_token_id = IGNORE_INDEX if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
+        super().__init__(tokenizer, model=model, label_pad_token_id=label_pad_token_id, padding=False)
+        self.label_pad_token_id = label_pad_token_id
 
     def __call__(self, features: Sequence[Dict[str, Sequence]]) -> Dict[str, torch.Tensor]:
+        if "attention_mask" in features[0]: # evaluation set adopts left-padding
+            return super().__call__(features)
         input_ids, labels = tuple([torch.tensor(feature[key]) for feature in features] for key in ("input_ids", "labels"))
         input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
-        label_pad_token_id = IGNORE_INDEX if self.data_args.ignore_pad_token_for_loss else self.tokenizer.pad_token_id
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=label_pad_token_id)
+        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=self.label_pad_token_id)
         features = {"input_ids": input_ids, "labels": labels}
-        # return super().__call__(features) # enable generating attention mask and position ids
         return features
 
 
@@ -311,8 +380,9 @@ Borrowed from: https://github.com/THUDM/ChatGLM-6B/blob/0c2806fea82683349194e219
 """
 @dataclass
 class ComputeMetrics:
-    tokenizer: transformers.PreTrainedTokenizer
-    data_args: Type[dataclass]
+
+    tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
+    data_args: DataTrainingArguments
 
     def __call__(self, eval_preds):
         preds, labels = eval_preds
@@ -328,13 +398,13 @@ class ComputeMetrics:
             "rouge-1": [],
             "rouge-2": [],
             "rouge-l": [],
-            'bleu-4': []
+            "bleu-4": []
         }
         for pred, label in zip(decoded_preds, decoded_labels):
             hypothesis = list(jieba.cut(pred))
             reference = list(jieba.cut(label))
             rouge = Rouge()
-            scores = rouge.get_scores(' '.join(hypothesis), ' '.join(reference))
+            scores = rouge.get_scores(" ".join(hypothesis), " ".join(reference))
             result = scores[0]
 
             for k, v in result.items():
@@ -354,17 +424,18 @@ However, the evaluation seems very slow, it will be resolved in the future.
 """
 class TrainerForChatGLM(Seq2SeqTrainer):
 
-    def _save(self, output_dir: Optional[str] = None, _internal_call: bool = False):
-        from transformers.trainer import TRAINING_ARGS_NAME
+    def _save(self, output_dir: Optional[str] = None, _internal_call: bool = False) -> None:
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        if hasattr(self.model, "pre_seq_len"): # p-tuning v2
-            filtered_state_dict = filter_model_params(self.model)
-            torch.save(filtered_state_dict, os.path.join(output_dir, "adapter_model.bin"))
-        elif hasattr(self.model, "peft_config"): # LoRA
+        if hasattr(self.model, "peft_config"): # LoRA
             self.model.save_pretrained(output_dir) # only save peft weights with the built-in method
+        else:
+            save_trainable_params(output_dir, self.model) # Freeze and P-Tuning
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
+
+    def save_finetuning_args(self, finetuning_args: FinetuningArguments) -> None:
+        torch.save(finetuning_args, os.path.join(self.args.output_dir, FINETUNING_ARGS_NAME))
 
     def prediction_step(
             self,
@@ -406,9 +477,10 @@ class TrainerForChatGLM(Seq2SeqTrainer):
 
         gen_kwargs["input_ids"] = generation_inputs
         generated_tokens = self.model.generate(**gen_kwargs)
-        generated_tokens = generated_tokens[:, generation_inputs.size()[-1]:] # important
+        generated_tokens = generated_tokens[:, generation_inputs.size()[-1]:] # important for ChatGLM
 
         # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
+        # Inspired by: https://github.com/huggingface/transformers/blob/main/src/transformers/trainer_seq2seq.py#L273
         if self.model.generation_config._from_model_config:
             self.model.generation_config._from_model_config = False
 

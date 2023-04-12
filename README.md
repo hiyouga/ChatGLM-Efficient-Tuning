@@ -8,6 +8,12 @@ Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with �
 
 \[ English | [中文](README_zh.md) \]
 
+## Change Log
+
+[23/04/12] Now we support training from checkpoints! Use `--checkpoint_dir` to specify the checkpoint model to fine-tune from.
+
+[23/04/11] Now we support training with combined datasets! Try `dataset1,dataset2` argument for training with multiple datasets.
+
 ## Datasets
 
 Our script now supports the following datasets:
@@ -26,14 +32,16 @@ Our script now supports the following datasets:
 
 Please refer to `config_data.py` for details.
 
-[23/04/11] Now we support training with combined datasets! Try `dataset1,dataset2` argument for training with multiple datasets.
-
 ## Fine-Tuning Methods
 
 Our script now supports the following fine-tuning methods:
 
 - [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
+  - We fine-tune the prefix encoder of the model.
 - [LoRA](https://arxiv.org/abs/2106.09685)
+  - We fine-tune the model with the low-rank adapters.
+- [Freeze](https://arxiv.org/abs/2012.14913)
+  - We fine-tune the MLPs in the last n blocks.
 
 ## Requirement
 
@@ -58,19 +66,16 @@ pip install -r requirements.txt
 ### Fine-tuning
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+python finetune_chatglm.py \
     --do_train \
-    --dataset alpaca_zh \
+    --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
     --output_dir output \
-    --overwrite_cache \
-    --overwrite_output_dir \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --warmup_steps 100 \
     --max_train_samples 10000 \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
@@ -80,29 +85,37 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+python finetune_chatglm.py \
     --do_eval \
     --dataset alpaca_zh \
+    --checkpoint_dir output \
     --output_dir eval \
-    --overwrite_cache \
-    --overwrite_output_dir \
     --per_device_eval_batch_size 1 \
-    --max_eval_samples 20 \
+    --max_eval_samples 50 \
     --predict_with_generate
 ```
 
 ### Inference
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
+python infer_chatglm.py --checkpoint_dir output
 ```
 
 ### Hardware Requirements
 
-| Batch size | LoRA `r` | Mode | GRAM |
-| ---------- | -------- | ---- | ---- |
-|     8      |     8    | FP16 | 24GB |
+|     微调方法     |  批处理大小  | 模式 | GPU显存 | 速度 |
+| ---------------- | ---------- | ---- | ------ | ----- |
+| LoRA (r=8)       |     8      | FP16 |  20GB  | 7ex/s |
+| LoRA (r=8)       |     16     | FP16 |  26GB  | 8ex/s |
+| P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
+| Freeze (l=2)     |     2      | FP16 |  32GB  | 4ex/s |
 
+<sub>
+r: lora rank,
+p: number of prefix tokens,
+l: number of trainable layers,
+ex/s: examples per second
+</sub>
 
 ## Compared with Existing Implementations
 
@@ -136,9 +149,10 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
 - Incorporating [ChatGPT](https://openai.com/blog/chatgpt) & [GPT-4](https://openai.com/research/gpt-4) self-chat data into the training sets.
   - [Baize](https://github.com/project-baize/baize-chatbot)
   - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
-- Implementing the Freeze-Tuning and ~~P-Tuning~~ method.
+- ~~Implementing the Freeze-Tuning and P-Tuning method.~~
 - Supporting Multi-GPUs fine-tuning.
 - ~~Add script for evaluation.~~ (but it appears very slow)
+- ~~Load from checkpoint.~~
 
 ## License
 

@@ -8,6 +8,12 @@
 
 \[ [English](README.md) | 中文 \]
 
+## 更新日志
+
+[23/04/12] 现在我们加入了断点训练支持！请尝试给定 `--checkpoint_dir` 参数加载指定的模型断点。
+
+[23/04/11] 现在我们实现了数据集组合训练！请尝试使用 `dataset1,dataset2` 参数进行组合训练。
+
 ## 数据集
 
 目前我们实现了针对以下数据集的支持：
@@ -26,14 +32,16 @@
 
 使用方法请参考 `config_data.py`。
 
-[23/04/11] 现在我们实现了数据集组合训练！请尝试使用 `dataset1,dataset2` 参数进行组合训练。
-
 ## 微调方法
 
 目前我们实现了针对以下高效微调方法的支持：
 
 - [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
+  - 仅微调前缀编码器。
 - [LoRA](https://arxiv.org/abs/2106.09685)
+  - 仅微调低秩适应器。
+- [Freeze](https://arxiv.org/abs/2012.14913)
+  - 仅微调后几层的全连接层。
 
 ## 软件依赖
 
@@ -58,19 +66,16 @@ pip install -r requirements.txt
 ### 微调训练
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+python finetune_chatglm.py \
     --do_train \
-    --dataset alpaca_zh \
+    --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
     --output_dir output \
-    --overwrite_cache \
-    --overwrite_output_dir \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --warmup_steps 100 \
     --max_train_samples 10000 \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
@@ -80,28 +85,34 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
 ### 指标评估（BLEU分数和汉语ROUGE分数）
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+python finetune_chatglm.py \
     --do_eval \
     --dataset alpaca_zh \
+    --checkpoint_dir output \
     --output_dir eval \
-    --overwrite_cache \
-    --overwrite_output_dir \
     --per_device_eval_batch_size 1 \
-    --max_eval_samples 20 \
+    --max_eval_samples 50 \
     --predict_with_generate
 ```
 
 ### 效果测试
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
+python infer_chatglm.py --checkpoint_dir output
 ```
 
 ### 硬件需求
 
-| 批处理大小 | LoRA `r` | 模式 | GPU显存 |
-| --------- | -------- | ---- | ------ |
-|     8     |     8    | FP16 |  24GB  |
+|     微调方法     |  批处理大小  | 模式 | GPU显存 | 速度 |
+| ---------------- | ---------- | ---- | ------ | ----- |
+| LoRA (r=8)       |     8      | FP16 |  20GB  | 7ex/s |
+| LoRA (r=8)       |     16     | FP16 |  26GB  | 8ex/s |
+| P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
+| Freeze (l=2)     |     2      | FP16 |  32GB  | 4ex/s |
+
+<sub>
+r：LoRA 维数大小，p：前缀词表大小，l：微调层数，ex/s：每秒训练的样本数
+</sub>
 
 
 ## 和现有类似项目的比较
@@ -136,9 +147,10 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py
 - 加入基于 [ChatGPT](https://openai.com/blog/chatgpt) 和 [GPT-4](https://openai.com/research/gpt-4) 产生的数据集。
   - [Baize](https://github.com/project-baize/baize-chatbot)
   - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
-- 实现参数冻结和 ~~P-Tuning~~ 微调方法。
+- ~~实现参数冻结和 P-Tuning 微调方法。~~
 - 支持多GPU训练。
 - ~~加入模型评估脚本。~~（但它可能很慢！）
+- ~~断点加载。~~
 
 ## 协议
 

@@ -7,9 +7,9 @@
 import os
 import signal
 import platform
-from arguments import CHATGLM_LASTEST_HASH
-from peft import PeftModel, PeftConfig
-from transformers import AutoTokenizer, AutoModel
+from utils import load_pretrained
+from arguments import ModelArguments
+from transformers import HfArgumentParser
 
 
 os_name = platform.system()
@@ -32,13 +32,14 @@ def signal_handler(signal, frame):
 
 
 def main():
-    config = PeftConfig.from_pretrained("output")
-    model = AutoModel.from_pretrained(config.base_model_name_or_path, trust_remote_code=True, revision=CHATGLM_LASTEST_HASH)
-    tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path, trust_remote_code=True, revision=CHATGLM_LASTEST_HASH)
-    model = PeftModel.from_pretrained(model, "output")
-    model = model.half().cuda()
-    history = []
+
     global stop_stream
+    parser = HfArgumentParser(ModelArguments)
+    model_args = parser.parse_args_into_dataclasses()
+    model, tokenizer = load_pretrained(model_args[0])
+    model = model.half().cuda()
+
+    history = []
     print(welcome)
     while True:
         query = input("\nInput:")

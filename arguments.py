@@ -1,6 +1,21 @@
 from typing import Optional
 from dataclasses import dataclass, field
-from config_data import CHATGLM_LASTEST_HASH, DATASETS
+from config_data import CHATGLM_REPO_NAME, CHATGLM_LASTEST_HASH, DATASETS
+
+
+@dataclass
+class DatasetInfo:
+
+    load_from: str
+    dataset_name: Optional[str] = None
+    file_name: Optional[str] = None
+    file_sha1: Optional[str] = None
+
+    def __post_init__(self):
+        self.prompt_column = "instruction"
+        self.query_column = "input"
+        self.response_column = "output"
+        self.history_column = None
 
 
 @dataclass
@@ -9,7 +24,7 @@ class ModelArguments:
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune.
     """
     model_name_or_path: Optional[str] = field(
-        default="THUDM/chatglm-6b",
+        default=CHATGLM_REPO_NAME,
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models."}
     )
     config_name: Optional[str] = field(
@@ -41,7 +56,12 @@ class ModelArguments:
         metadata={"help": "Whether to resize the position embeddings if `max_source_length` exceeds."}
     )
     quantization_bit: Optional[int] = field(
-        default=None
+        default=None,
+        metadata={"help": "The number of bits to quantize the model."}
+    )
+    checkpoint_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the directory containing the model checkpoints as well as the configurations."}
     )
 
 
@@ -100,7 +120,7 @@ class DataTrainingArguments:
     )
 
     def __post_init__(self): # support mixing multiple datasets
-        if "," in self.dataset:
+        if self.dataset.find(",") != -1:
             dataset_names = [ds.strip() for ds in self.dataset.split(",")]
         else:
             dataset_names = [self.dataset.strip()]
@@ -110,28 +130,23 @@ class DataTrainingArguments:
             if name not in DATASETS:
                 raise ValueError("Undefined dataset {} in config_data.py.".format(name))
 
-            dataset_info = {}
             if "hf_hub_url" in DATASETS[name]:
-                dataset_info["load_from"] = "hf_hub"
-                dataset_info["dataset_name"] = DATASETS[name]["hf_hub_url"]
+                dataset_info = DatasetInfo("hf_hub", dataset_name=DATASETS[name]["hf_hub_url"])
             elif "script_url" in DATASETS[name]:
-                dataset_info["load_from"] = "script"
-                dataset_info["dataset_name"] = DATASETS[name]["script_url"]
+                dataset_info = DatasetInfo("script", dataset_name=DATASETS[name]["script_url"])
             else:
-                dataset_info["load_from"] = "file"
-                dataset_info["file_name"] = DATASETS[name]["file_name"]
-                dataset_info["file_sha1"] = DATASETS[name]["file_sha1"]
+                dataset_info = DatasetInfo(
+                    "file",
+                    file_name=DATASETS[name]["file_name"],
+                    file_sha1=DATASETS[name]["file_sha1"]
+                )
 
             if "columns" in DATASETS[name]:
-                dataset_info["prompt_column"] = DATASETS[name]["columns"]["prompt"]
-                dataset_info["query_column"] = DATASETS[name]["columns"]["query"]
-                dataset_info["response_column"] = DATASETS[name]["columns"]["response"]
-                dataset_info["history_column"] = DATASETS[name]["columns"]["history"]
-            else:
-                dataset_info["prompt_column"] = "instruction"
-                dataset_info["query_column"] = "input"
-                dataset_info["response_column"] = "output"
-                dataset_info["history_column"] = None
+                dataset_info.prompt_column = DATASETS[name]["columns"]["prompt"]
+                dataset_info.query_column = DATASETS[name]["columns"]["query"]
+                dataset_info.response_column = DATASETS[name]["columns"]["response"]
+                dataset_info.history_column = DATASETS[name]["columns"]["history"]
+
             self.dataset_list.append(dataset_info)
 
 
@@ -143,6 +158,10 @@ class FinetuningArguments:
     finetuning_type: Optional[str] = field(
         default="lora",
         metadata={"help": "The name of fine-tuning technique."}
+    )
+    num_layer_trainable: Optional[int] = field(
+        default=2,
+        metadata={"help": "Number of trainable layers for Freeze fine-tuning."}
     )
     pre_seq_len: Optional[int] = field(
         default=8,
@@ -166,5 +185,5 @@ class FinetuningArguments:
     )
 
     def __post_init__(self):
-        if self.finetuning_type not in ["freeze", "p_tuning", "lora"]:
+        if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
             raise NotImplementedError("Invalid fine-tuning method.")
