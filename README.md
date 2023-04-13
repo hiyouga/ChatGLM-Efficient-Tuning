@@ -71,7 +71,7 @@ pip install -r requirements.txt
 ### Fine-tuning
 
 ```bash
-python finetune_chatglm.py \
+CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
@@ -90,7 +90,7 @@ python finetune_chatglm.py \
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
 ```bash
-python finetune_chatglm.py \
+CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --do_eval \
     --dataset alpaca_gpt4_zh \
     --checkpoint_dir output \
@@ -103,7 +103,7 @@ python finetune_chatglm.py \
 ### Inference
 
 ```bash
-python infer_chatglm.py --checkpoint_dir output
+CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py --checkpoint_dir output
 ```
 
 ### Hardware Requirements
