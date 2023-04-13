@@ -131,12 +131,15 @@ We use the whole `alpaca_gpt4_zh` dataset to fine-tune the ChatGLM model with Lo
 
 We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tuned ChatGLM model and compute the BLEU and ROUGE scores. The results are presented below.
 
-|  Score  | Original |     LoRA (r=8)    |
-| ------- | -------- | ----------------- |
-| BLEU-4  |  15.75   | 17.01 (**+1.26**) |
-| Rouge-1 |  34.51   | 36.77 (**+2.26**) |
-| Rouge-2 |  15.11   | 16.83 (**+1.72**) |
-| Rouge-l |  26.18   | 28.86 (**+2.68**) |
+|   Score   | Original | FZ (l=2) | PT (p=16) | LoRA (r=8) |
+| --------- | -------- | ----- | ----- | ----------------- |
+| BLEU-4    |  15.75   | 16.85 | 16.06 | 17.01 (**+1.26**) |
+| Rouge-1   |  34.51   | 36.62 | 34.80 | 36.77 (**+2.26**) |
+| Rouge-2   |  15.11   | 17.04 | 15.32 | 16.83 (**+1.72**) |
+| Rouge-l   |  26.18   | 28.17 | 26.35 | 28.86 (**+2.68**) |
+| Params (%)|  /       | 4.35% | 0.06% | 0.06%             |
+
+> FZ: freeze tuning, PT: P-Tuning V2 (we use `pre_seq_len=16` for fair comparison with LoRA), Params: the percentange of trainable parameters.
 
 ## Compared with Existing Implementations
 
