@@ -4,7 +4,7 @@ cpm_kernels
 sentencepiece
 transformers>=4.27.4
 datasets>=2.10.1
-peft>=0.2.0
 jieba
 rouge_chinese
 nltk
+git+https://github.com/huggingface/peft.git

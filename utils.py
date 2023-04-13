@@ -33,7 +33,13 @@ IGNORE_INDEX = -100
 FINETUNING_ARGS_NAME = "finetuning_args.bin"
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) # setup logging
+logger.setLevel(logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
 
 
 class CastOutputToFloat(torch.nn.Sequential):
@@ -68,7 +74,7 @@ def load_pretrained(
 ) -> Tuple[transformers.modeling_utils.PreTrainedModel, transformers.tokenization_utils.PreTrainedTokenizer]:
     # Load pretrained model and tokenizer
     if (not is_trainable) and (model_args.checkpoint_dir is None):
-        print("Checkpoint is not found at evaluation, load the original model.")
+        logger.warning("Checkpoint is not found at evaluation, load the original model.")
         finetuning_args = FinetuningArguments(finetuning_type="none")
 
     if model_args.checkpoint_dir is not None: # load fine-tuned model from checkpoint
@@ -102,7 +108,7 @@ def load_pretrained(
     model.config.use_cache = False if is_trainable else model.config.use_cache # turn off in training for gradient checkpointing
 
     if model_args.quantization_bit is not None:
-        print("Quantized to {} bit".format(model_args.quantization_bit))
+        logger.info("Quantized to {} bit".format(model_args.quantization_bit))
         model = model.quantize(model_args.quantization_bit)
         model.lm_head = CastOutputToFloat(model.lm_head) if is_trainable else model.lm_head
 
@@ -125,6 +131,7 @@ def load_pretrained(
         logger.info("Fine-tuning method: LoRA")
         if model_args.checkpoint_dir is not None:
             model = PeftModel.from_pretrained(model, model_args.checkpoint_dir, is_trainable=is_trainable)
+            model = model if is_trainable else model.merge_and_unload() # merge LoRA weights to evaluate the model
         else:
             peft_config = {
                 "peft_type": "LORA",
@@ -158,13 +165,6 @@ def prepare_args():
     if training_args.do_train and training_args.do_eval:
         raise ValueError("We don't support training and evaluation simultaneously.")
     training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim
-
-    # Setup logging
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        handlers=[logging.StreamHandler(sys.stdout)],
-    )
 
     if training_args.should_log:
         # The default of training_args.log_level is passive, so we set log level at info here to have that default.
@@ -382,24 +382,17 @@ Borrowed from: https://github.com/THUDM/ChatGLM-6B/blob/0c2806fea82683349194e219
 class ComputeMetrics:
 
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
-    data_args: DataTrainingArguments
 
     def __call__(self, eval_preds):
         preds, labels = eval_preds
         if isinstance(preds, tuple):
             preds = preds[0]
         decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
-        if self.data_args.ignore_pad_token_for_loss:
-            # Replace -100 in the labels as we cannot decode them.
-            labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
+        # Replace IGNORE_INDEX in the labels with pad_token_id as we cannot decode them if ignore_pad_token_for_loss=True.
+        labels = np.where(labels != IGNORE_INDEX, labels, self.tokenizer.pad_token_id)
         decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
 
-        score_dict = {
-            "rouge-1": [],
-            "rouge-2": [],
-            "rouge-l": [],
-            "bleu-4": []
-        }
+        score_dict = {"rouge-1": [], "rouge-2": [], "rouge-l": [], "bleu-4": []}
         for pred, label in zip(decoded_preds, decoded_labels):
             hypothesis = list(jieba.cut(pred))
             reference = list(jieba.cut(label))
@@ -412,9 +405,7 @@ class ComputeMetrics:
             bleu_score = sentence_bleu([list(label)], list(pred), smoothing_function=SmoothingFunction().method3)
             score_dict["bleu-4"].append(round(bleu_score * 100, 4))
 
-        for k, v in score_dict.items():
-            score_dict[k] = float(np.mean(v))
-        return score_dict
+        return {k: float(np.mean(v)) for k, v in score_dict.items()}
 
 
 """

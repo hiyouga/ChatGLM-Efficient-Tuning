@@ -35,8 +35,8 @@ def main():
 
     global stop_stream
     parser = HfArgumentParser(ModelArguments)
-    model_args = parser.parse_args_into_dataclasses()
-    model, tokenizer = load_pretrained(model_args[0])
+    model_args, = parser.parse_args_into_dataclasses()
+    model, tokenizer = load_pretrained(model_args)
     model = model.half().cuda()
 
     history = []

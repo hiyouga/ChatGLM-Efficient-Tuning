@@ -46,7 +46,7 @@
 ## 软件依赖
 
 - Python 3.10, PyTorch 2.0.0
-- 🤗Transformers, Datasets, PEFT
+- 🤗Transformers, Datasets, PEFT（最低需要 0.3.0.dev0）
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk
 
@@ -112,7 +112,26 @@ python infer_chatglm.py --checkpoint_dir output
 
 > r：LoRA 维数大小，p：前缀词表大小，l：微调层数，ex/s：每秒训练的样本数
 >
-> 上述结果来自于单个 Tesla V100 GPU。
+> 上述结果均来自于单个 Tesla V100 GPU。
+
+## 微调 ChatGLM 的例子
+
+### 训练结果
+
+我们使用整个 `alpaca_gpt4_zh` 数据集微调 ChatGLM 模型，使用秩为 8 的 LoRA 方法，使用默认超参数进行单轮训练。下图为训练损失变化曲线。
+
+![训练损失](assets/trainer_state.jpg)
+
+### 评估结果
+
+我们选择 `alpaca_gpt4_zh` 数据集中的前一百条数据来评估微调后的 ChatGLM 模型，并计算 BLEU 和中文 ROUGE 分数。下表为评估结果。
+
+|   分数  |  原版模型 |     LoRA (r=8)    |
+| ------- | -------- | ----------------- |
+| BLEU-4  |  15.75   | 17.01 (**+1.26**) |
+| Rouge-1 |  34.51   | 36.77 (**+2.26**) |
+| Rouge-2 |  15.11   | 16.83 (**+1.72**) |
+| Rouge-l |  26.18   | 28.86 (**+2.68**) |
 
 ## 和现有类似项目的比较
 
@@ -151,6 +170,7 @@ python infer_chatglm.py --checkpoint_dir output
 - [x] 加入模型评估脚本。（但它可能很慢！）
 - [x] 断点加载。
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
+- [ ] 使用 [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat/chinese) 结合人类反馈的强化学习方法。
 
 ## 协议
 

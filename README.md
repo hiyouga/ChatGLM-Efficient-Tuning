@@ -46,7 +46,7 @@ Our script now supports the following fine-tuning methods:
 ## Requirement
 
 - Python 3.10 and PyTorch 2.0.0
-- 🤗Transformers, Datasets, and PEFT
+- 🤗Transformers, Datasets, and PEFT (0.3.0.dev0 is required)
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk
 
@@ -112,7 +112,26 @@ python infer_chatglm.py --checkpoint_dir output
 
 > r: lora rank, p: number of prefix tokens, l: number of trainable layers, ex/s: examples per second in training
 > 
-> all are evaluated on a single Tesla V100 GPU.
+> All are evaluated on a single Tesla V100 GPU.
+
+## Fine-tuning ChatGLM: A Case
+
+### Training Results
+
+We use the whole `alpaca_gpt4_zh` dataset to fine-tune the ChatGLM model with LoRA (r=8) for one epoch, using the default hyper-parameters. The loss curve during training is presented below.
+
+![training loss](assets/trainer_state.jpg)
+
+### Evaluation Results
+
+We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tuned ChatGLM model and compute the BLEU and ROUGE scores. The results are presented below.
+
+|  Score  | Original |     LoRA (r=8)    |
+| ------- | -------- | ----------------- |
+| BLEU-4  |  15.75   | 17.01 (**+1.26**) |
+| Rouge-1 |  34.51   | 36.77 (**+2.26**) |
+| Rouge-2 |  15.11   | 16.83 (**+1.72**) |
+| Rouge-l |  26.18   | 28.86 (**+2.68**) |
 
 ## Compared with Existing Implementations
 
@@ -151,6 +170,7 @@ python infer_chatglm.py --checkpoint_dir output
 - [x] Adding script for evaluation. (but it appears very slow)
 - [x] Loading from checkpoint.
 - [ ] Combining with model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
+- [ ] Combining with RLHF training using [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat).
 
 ## License
 

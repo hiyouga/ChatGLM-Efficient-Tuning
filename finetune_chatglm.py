@@ -38,7 +38,7 @@ def main():
         eval_dataset=dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        compute_metrics=ComputeMetrics(tokenizer, data_args) if training_args.predict_with_generate else None
+        compute_metrics=ComputeMetrics(tokenizer) if training_args.predict_with_generate else None
     )
 
     # Training
