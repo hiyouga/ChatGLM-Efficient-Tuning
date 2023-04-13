@@ -87,7 +87,7 @@ python finetune_chatglm.py \
 ```bash
 python finetune_chatglm.py \
     --do_eval \
-    --dataset alpaca_zh \
+    --dataset alpaca_gpt4_zh \
     --checkpoint_dir output \
     --output_dir eval \
     --per_device_eval_batch_size 1 \
@@ -110,7 +110,9 @@ python infer_chatglm.py --checkpoint_dir output
 | P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
 | Freeze (l=2)     |     2      | FP16 |  32GB  | 4ex/s |
 
-> r: lora rank, p: number of prefix tokens, l: number of trainable layers, ex/s: examples per second
+> r: lora rank, p: number of prefix tokens, l: number of trainable layers, ex/s: examples per second in training
+> 
+> all are evaluated on a single Tesla V100 GPU.
 
 ## Compared with Existing Implementations
 
@@ -135,19 +137,20 @@ python infer_chatglm.py --checkpoint_dir output
 
 ## TODO
 
-- Incorporating [Chinese datasets](https://github.com/brightmart/nlp_chinese_corpus) into the training sets.
-  - ~~[BELLE](https://github.com/LianjiaTech/BELLE)~~
-  - [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
-  - [CLUECorpus](https://github.com/CLUEbenchmark/CLUECorpus2020)
-  - ~~[GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)~~
-  - ~~[FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)~~
-- Incorporating [ChatGPT](https://openai.com/blog/chatgpt) & [GPT-4](https://openai.com/research/gpt-4) self-chat data into the training sets.
-  - [Baize](https://github.com/project-baize/baize-chatbot)
-  - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
-- ~~Implementing the Freeze-Tuning and P-Tuning method.~~
-- Supporting Multi-GPUs fine-tuning.
-- ~~Add script for evaluation.~~ (but it appears very slow)
-- ~~Load from checkpoint.~~
+- [ ] Incorporating [Chinese datasets](https://github.com/brightmart/nlp_chinese_corpus) into the training sets.
+  - [x] [BELLE](https://github.com/LianjiaTech/BELLE)
+  - [ ] [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
+  - [ ] [CLUECorpus](https://github.com/CLUEbenchmark/CLUECorpus2020)
+  - [x] [GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
+  - [x] [FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
+- [ ] Incorporating [ChatGPT](https://openai.com/blog/chatgpt) & [GPT-4](https://openai.com/research/gpt-4) self-chat data into the training sets.
+  - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
+  - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
+- [x] Implementing the Freeze-Tuning and P-Tuning method.
+- [ ] Supporting Multi-GPUs fine-tuning.
+- [x] Adding script for evaluation. (but it appears very slow)
+- [x] Loading from checkpoint.
+- [ ] Combining with model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 
 ## License
 

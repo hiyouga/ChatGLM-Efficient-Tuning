@@ -87,7 +87,7 @@ python finetune_chatglm.py \
 ```bash
 python finetune_chatglm.py \
     --do_eval \
-    --dataset alpaca_zh \
+    --dataset alpaca_gpt4_zh \
     --checkpoint_dir output \
     --output_dir eval \
     --per_device_eval_batch_size 1 \
@@ -111,6 +111,8 @@ python infer_chatglm.py --checkpoint_dir output
 | Freeze (l=2)     |     2      | FP16 |  32GB  | 4ex/s |
 
 > r：LoRA 维数大小，p：前缀词表大小，l：微调层数，ex/s：每秒训练的样本数
+>
+> 上述结果来自于单个 Tesla V100 GPU。
 
 ## 和现有类似项目的比较
 
@@ -135,19 +137,20 @@ python infer_chatglm.py --checkpoint_dir output
 
 ## TODO
 
-- 加入更多[中文数据集](https://github.com/brightmart/nlp_chinese_corpus)。
-  - ~~[BELLE](https://github.com/LianjiaTech/BELLE)~~
-  - [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
-  - [CLUECorpus](https://github.com/CLUEbenchmark/CLUECorpus2020)
-  - ~~[GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)~~
-  - ~~[FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)~~
-- 加入基于 [ChatGPT](https://openai.com/blog/chatgpt) 和 [GPT-4](https://openai.com/research/gpt-4) 产生的数据集。
-  - [Baize](https://github.com/project-baize/baize-chatbot)
-  - ~~[GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)~~
-- ~~实现参数冻结和 P-Tuning 微调方法。~~
-- 支持多GPU训练。
-- ~~加入模型评估脚本。~~（但它可能很慢！）
-- ~~断点加载。~~
+- [ ] 加入更多[中文数据集](https://github.com/brightmart/nlp_chinese_corpus)。
+  - [x] [BELLE](https://github.com/LianjiaTech/BELLE)
+  - [ ] [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
+  - [ ] [CLUECorpus](https://github.com/CLUEbenchmark/CLUECorpus2020)
+  - [x] [GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
+  - [x] [FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
+- [ ] 加入基于 [ChatGPT](https://openai.com/blog/chatgpt) 和 [GPT-4](https://openai.com/research/gpt-4) 产生的数据集。
+  - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
+  - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
+- [x] 实现参数冻结和 P-Tuning 微调方法。
+- [ ] 支持多GPU训练。
+- [x] 加入模型评估脚本。（但它可能很慢！）
+- [x] 断点加载。
+- [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
 
 ## 协议
 

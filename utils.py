@@ -67,14 +67,14 @@ def load_pretrained(
         is_trainable: Optional[bool]=False
 ) -> Tuple[transformers.modeling_utils.PreTrainedModel, transformers.tokenization_utils.PreTrainedTokenizer]:
     # Load pretrained model and tokenizer
-    if model_args.checkpoint_dir is None and finetuning_args is None:
-        print("Checkpoint or fine-tuning arguments are not found, load the original model")
+    if (not is_trainable) and (model_args.checkpoint_dir is None):
+        print("Checkpoint is not found at evaluation, load the original model.")
         finetuning_args = FinetuningArguments(finetuning_type="none")
 
     if model_args.checkpoint_dir is not None: # load fine-tuned model from checkpoint
         if not os.path.isfile(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME)):
             raise ValueError("The fine-tuning arguments is not found in the provided dictionary.")
-        logger.info("load fine-tuned model from checkpoint: {}".format(model_args.checkpoint_dir))
+        logger.info("Load fine-tuned model from checkpoint: {}".format(model_args.checkpoint_dir))
         finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME))
 
     config_kwargs = {
