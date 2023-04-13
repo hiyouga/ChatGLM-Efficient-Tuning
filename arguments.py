@@ -138,7 +138,7 @@ class DataTrainingArguments:
                 dataset_info = DatasetInfo(
                     "file",
                     file_name=DATASETS[name]["file_name"],
-                    file_sha1=DATASETS[name]["file_sha1"]
+                    file_sha1=DATASETS[name]["file_sha1"] if "file_sha1" in DATASETS[name] else None
                 )
 
             if "columns" in DATASETS[name]:

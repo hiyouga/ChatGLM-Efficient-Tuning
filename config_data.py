@@ -56,5 +56,14 @@ DATASETS = {
             "response": "target",
             "history": None
         }
+    },
+    "example": {
+        "script_url": "example_dataset", # or use `"file_name": "example_dataset/examples.json"`,
+        "columns": {
+            "prompt": "instruction",
+            "query": "input",
+            "response": "output",
+            "history": "history"
+        }
     }
 }

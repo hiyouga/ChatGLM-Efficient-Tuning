@@ -3,6 +3,7 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social)
 ![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)
 ![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)
+![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)
 
 基于 🤗[PEFT](https://github.com/huggingface/peft) 的高效 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) 微调。
 
@@ -53,6 +54,10 @@
 以及 **强而有力的 GPU**！
 
 ## 如何使用
+
+### 数据准备（可跳过）
+
+关于数据格式，请参考 `data/example_dataset` 文件夹的内容。构建自定义数据集时，既可以使用单个 `.json` 文件，也可以使用一个[数据加载脚本](https://huggingface.co/docs/datasets/dataset_script)和多个文件。
 
 ### 环境搭建（可跳过）
 
@@ -167,7 +172,7 @@ python infer_chatglm.py --checkpoint_dir output
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [x] 实现参数冻结和 P-Tuning 微调方法。
 - [ ] 支持多GPU训练。
-- [x] 加入模型评估脚本。（但它可能很慢！）
+- [x] 加入模型评估脚本。（但它可能很慢！增大批处理大小可以显著提升速度）
 - [x] 断点加载。
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
 - [ ] 使用 [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat/chinese) 结合人类反馈的强化学习方法。
@@ -188,7 +193,6 @@ python infer_chatglm.py --checkpoint_dir output
   year = {2023}
 }
 ```
-
 
 ## 声明
 

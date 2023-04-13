@@ -3,6 +3,7 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social)
 ![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)
 ![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)
+![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)
 
 Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with 🤗[PEFT](https://github.com/huggingface/peft).
 
@@ -53,6 +54,10 @@ Our script now supports the following fine-tuning methods:
 And **powerful GPUs**!
 
 ## Getting Started
+
+### Prepare Data (optional)
+
+Please refer to `data/example_dataset` for checking the details about the format. You can either use a single `.json` file or a [dataset loading script](https://huggingface.co/docs/datasets/dataset_script) with multiple files to create a custom dataset.
 
 ### Preparation (optional)
 
@@ -167,7 +172,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [x] Implementing the Freeze-Tuning and P-Tuning method.
 - [ ] Supporting Multi-GPUs fine-tuning.
-- [x] Adding script for evaluation. (but it appears very slow)
+- [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
 - [x] Loading from checkpoint.
 - [ ] Combining with model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 - [ ] Combining with RLHF training using [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat).

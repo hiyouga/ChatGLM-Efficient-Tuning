@@ -214,7 +214,10 @@ def prepare_data(model_args, data_args, training_args):
         elif dataset_info.load_from == "file":
             data_file = os.path.join(data_args.dataset_dir, dataset_info.file_name)
             extension = dataset_info.file_name.split(".")[-1]
-            checksum(data_file, dataset_info.file_sha1)
+            if dataset_info.file_sha1 is not None:
+                checksum(data_file, dataset_info.file_sha1)
+            else:
+                logger.warning("Checksum failed: missing SHA-1 hash value in dataset_info.")
             raw_datasets = load_dataset(
                 extension,
                 data_files=data_file,
