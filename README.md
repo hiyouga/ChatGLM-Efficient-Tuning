@@ -87,6 +87,13 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
     --fp16
 ```
 
+### Distributed Fine-tuning with Multiple GPUs
+```bash
+accelerate launch python finetun_chatglm.py # arguments (same as above)
+```
+
+Note: distributed fine-tuning seems **not compatible with the LoRA method**.
+
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
 ```bash
@@ -184,9 +191,9 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
   - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [x] Implementing the Freeze-Tuning and P-Tuning method.
-- [ ] Supporting Multi-GPUs fine-tuning.
+- [x] Supporting Multi-GPUs fine-tuning.
 - [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
-- [x] Loading from checkpoint.
+- [x] Loading from checkpoint. (but it does not support LoRA tuning)
 - [ ] Combining with model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 - [ ] Combining with RLHF training using [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat).
 
