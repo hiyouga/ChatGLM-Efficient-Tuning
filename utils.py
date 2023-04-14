@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import torch
 import datasets
-from datasets import concatenate_datasets, load_dataset
+from datasets import Dataset, concatenate_datasets, load_dataset
 import transformers
 from transformers import (
     AutoConfig,
@@ -20,9 +20,11 @@ from transformers import (
 )
 from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.deepspeed import is_deepspeed_zero3_enabled
+from transformers.modeling_utils import PreTrainedModel
+from transformers.tokenization_utils import PreTrainedTokenizer
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-from peft import get_peft_config, get_peft_model, PeftModel, TaskType
+from peft import PeftModel, TaskType, get_peft_config, get_peft_model
 from peft.peft_model import WEIGHTS_NAME
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
@@ -40,12 +42,6 @@ logging.basicConfig(
     datefmt="%m/%d/%Y %H:%M:%S",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
-
-
-class CastOutputToFloat(torch.nn.Sequential):
-
-    def forward(self, x):
-        return super().forward(x).to(torch.float32)
 
 
 def print_trainable_params(model: torch.nn.Module) -> None:
@@ -67,6 +63,37 @@ def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -
     model.load_state_dict(model_state_dict, strict=False) # skip missing keys
 
 
+# This function includes: 1. cast the laternorm in fp32 2. make output embedding layer require grads 3. upcast the lm_head to fp32
+# Inspired by: https://github.com/huggingface/peft/blob/c0209c35abbf88c63aa267800d98a8e212ed0a42/src/peft/utils/other.py#L35
+def prepare_model_for_training(
+        model: PreTrainedModel,
+        output_embedding_layer_name: Optional[str] = "lm_head",
+        use_gradient_checkpointing: Optional[bool] = True,
+        layer_norm_names: List[str] = ["layer_norm"]
+) -> PreTrainedModel:
+    for name, param in model.named_parameters():
+        if param.ndim == 1 and any(layer_norm_name in name for layer_norm_name in layer_norm_names):
+            param.data = param.data.to(torch.float32)
+
+    if use_gradient_checkpointing:
+        model.enable_input_require_grads()
+        model.gradient_checkpointing_enable()
+        model.config.use_cache = False # turn off in training for gradient checkpointing
+
+    if hasattr(model, output_embedding_layer_name):
+        output_embedding_layer = getattr(model, output_embedding_layer_name)
+        input_dtype = output_embedding_layer.weight.dtype
+
+        class CastOutputToFloat(torch.nn.Sequential):
+
+            def forward(self, x):
+                return super().forward(x.to(input_dtype)).to(torch.float32)
+
+        setattr(model, output_embedding_layer_name, CastOutputToFloat(output_embedding_layer))
+
+    return model
+
+
 def load_pretrained(
         model_args: ModelArguments,
         finetuning_args: Optional[FinetuningArguments]=None,
@@ -79,7 +106,7 @@ def load_pretrained(
 
     if model_args.checkpoint_dir is not None: # load fine-tuned model from checkpoint
         if not os.path.isfile(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME)):
-            raise ValueError("The fine-tuning arguments is not found in the provided dictionary.")
+            raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
         logger.info("Load fine-tuned model from checkpoint: {}".format(model_args.checkpoint_dir))
         finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME))
 
@@ -105,12 +132,12 @@ def load_pretrained(
         config.prefix_projection = finetuning_args.prefix_projection
 
     model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
-    model.config.use_cache = False if is_trainable else model.config.use_cache # turn off in training for gradient checkpointing
 
     if model_args.quantization_bit is not None:
         logger.info("Quantized to {} bit".format(model_args.quantization_bit))
         model = model.quantize(model_args.quantization_bit)
-        model.lm_head = CastOutputToFloat(model.lm_head) if is_trainable else model.lm_head
+
+    model = prepare_model_for_training(model) if is_trainable else model
 
     if finetuning_args.finetuning_type == "none" and is_trainable:
         raise ValueError("You cannot use finetuning_type=none when training.")
@@ -119,13 +146,14 @@ def load_pretrained(
         logger.info("Fine-tuning method: Freeze")
         trainable_layers = ["layers.{:d}.mlp".format(27-k) for k in range(finetuning_args.num_layer_trainable)]
         for name, param in model.named_parameters():
-            if not any(kw in name for kw in trainable_layers):
+            if not any(trainable_layer in name for trainable_layer in trainable_layers):
                 param.requires_grad_(False)
-        model = model.float() # we cannot train model with half precision
+            else:
+                param.data = param.data.to(torch.float32) # we cannot train model in half (fp16) precision
 
     if finetuning_args.finetuning_type == "p_tuning":
         logger.info("Fine-tuning method: P-Tuning V2")
-        model.transformer.prefix_encoder.float() # we cannot train model with half precision
+        model.transformer.prefix_encoder.float() # we cannot train model in half (fp16) precision
 
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
@@ -153,7 +181,7 @@ def load_pretrained(
     return model, tokenizer
 
 
-def prepare_args():
+def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments]:
     # Load arguments
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
@@ -190,7 +218,7 @@ def prepare_args():
     return model_args, data_args, training_args, finetuning_args
 
 
-def prepare_data(model_args, data_args, training_args):
+def prepare_data(model_args: ModelArguments, data_args: DataTrainingArguments, training_args: Seq2SeqTrainingArguments) -> Dataset:
     # Load and verify dataset
     def checksum(file_path, hash):
         with open(file_path, "rb") as datafile:
@@ -254,7 +282,12 @@ def prepare_data(model_args, data_args, training_args):
     return all_datasets
 
 
-def preprocess_data(dataset, tokenizer, data_args, training_args):
+def preprocess_data(
+        dataset: Dataset,
+        tokenizer: PreTrainedTokenizer,
+        data_args: DataTrainingArguments,
+        training_args: Seq2SeqTrainingArguments
+) -> Dataset:
     # Preprocess the datasets
     column_names = list(dataset.column_names)
     prefix = data_args.source_prefix if data_args.source_prefix is not None else ""
@@ -283,7 +316,7 @@ def preprocess_data(dataset, tokenizer, data_args, training_args):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
             target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
 
-            if len(source_ids) > data_args.max_source_length - 1: # gmask or end token
+            if len(source_ids) > data_args.max_source_length - 1: # gmask token
                 source_ids = source_ids[:data_args.max_source_length-1]
             if len(target_ids) > data_args.max_target_length - 2: # bos and eos tokens
                 target_ids = target_ids[:data_args.max_target_length-2]
@@ -334,7 +367,7 @@ def preprocess_data(dataset, tokenizer, data_args, training_args):
     return dataset
 
 
-def filter_model_params(model: torch.nn.Module) -> None: # filter out the freezed parameters
+def filter_model_params(model: torch.nn.Module) -> Dict[str, torch.Tensor]: # filter out the freezed parameters
     state_dict = model.state_dict()
     filtered_state_dict = {}
     for k, v in model.named_parameters():
@@ -360,11 +393,11 @@ class DataCollatorForChatGLM(DataCollatorForSeq2Seq): # dynamically padding for 
 
     def __init__(
             self,
-            tokenizer: transformers.tokenization_utils.PreTrainedTokenizer,
-            model: transformers.modeling_utils.PreTrainedModel,
-            data_args: DataTrainingArguments
+            tokenizer: PreTrainedTokenizer,
+            model: PreTrainedModel,
+            ignore_pad_token_for_loss: bool
     ):
-        label_pad_token_id = IGNORE_INDEX if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
+        label_pad_token_id = IGNORE_INDEX if ignore_pad_token_for_loss else tokenizer.pad_token_id
         super().__init__(tokenizer, model=model, label_pad_token_id=label_pad_token_id, padding=False)
         self.label_pad_token_id = label_pad_token_id
 
@@ -384,9 +417,9 @@ Borrowed from: https://github.com/THUDM/ChatGLM-6B/blob/0c2806fea82683349194e219
 @dataclass
 class ComputeMetrics:
 
-    tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
+    tokenizer: PreTrainedTokenizer
 
-    def __call__(self, eval_preds):
+    def __call__(self, eval_preds: Sequence[Union[np.ndarray, Tuple[np.ndarray]]]) -> Dict[str, float]:
         preds, labels = eval_preds
         if isinstance(preds, tuple):
             preds = preds[0]

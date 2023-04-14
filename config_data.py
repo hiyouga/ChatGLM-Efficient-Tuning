@@ -17,7 +17,7 @@ Data format:
 """
 
 CHATGLM_REPO_NAME = "THUDM/chatglm-6b"
-CHATGLM_LASTEST_HASH = "aa51e62ddc9c9f334858b0af44cf59b05c70148a"
+CHATGLM_LASTEST_HASH = "4de8efebc837788ffbfc0a15663de8553da362a2"
 DATASETS = {
     "alpaca_en": {"hf_hub_url": "tatsu-lab/alpaca"},
     "alpaca_zh": {

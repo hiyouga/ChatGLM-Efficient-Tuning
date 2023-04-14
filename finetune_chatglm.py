@@ -22,7 +22,7 @@ def main():
     dataset = prepare_data(model_args, data_args, training_args)
     model, tokenizer = load_pretrained(model_args, finetuning_args, is_trainable=training_args.do_train)
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args)
-    data_collator = DataCollatorForChatGLM(tokenizer, model, data_args)
+    data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss)
 
     # Override the decoding parameters of Trainer
     training_args.generation_max_length = training_args.generation_max_length if \
@@ -43,10 +43,7 @@ def main():
 
     # Training
     if training_args.do_train:
-        model.gradient_checkpointing_enable()
-        model.enable_input_require_grads()
         train_result = trainer.train()
-
         trainer.log_metrics("train", train_result.metrics)
         trainer.save_metrics("train", train_result.metrics)
         trainer.save_state() # along with the loss values
@@ -55,9 +52,8 @@ def main():
 
     # Evaluation
     if training_args.do_eval:
-        model = model.half() # use model.half() instead of the `--fp16` argument
+        model = model.half() # don't use `--fp16` argument in evaluation
         metrics = trainer.evaluate(metric_key_prefix="eval", do_sample=True, top_p=0.7, max_length=256, temperature=0.95)
-
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
 

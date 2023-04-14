@@ -106,6 +106,16 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
 CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py --checkpoint_dir output
 ```
 
+### Deploy the Fine-tuned Model
+```python
+from utils import load_pretrained
+from arguments import ModelArguments
+model_args = ModelArguments(checkpoint_dir=path_to_checkpoint_dir)
+model, tokenizer = load_pretrained(model_args)
+model = model.half().cuda()
+# model.generate, model.chat()...
+```
+
 ### Hardware Requirements
 
 | Fine-tune method | Batch size | Mode |  GRAM  | Speed |
@@ -113,7 +123,7 @@ CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py --checkpoint_dir output
 | LoRA (r=8)       |     8      | FP16 |  20GB  | 7ex/s |
 | LoRA (r=8)       |     16     | FP16 |  26GB  | 8ex/s |
 | P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
-| Freeze (l=2)     |     2      | FP16 |  32GB  | 4ex/s |
+| Freeze (l=3)     |     8      | FP16 |  26GB  | 5ex/s |
 
 > r: lora rank, p: number of prefix tokens, l: number of trainable layers, ex/s: examples per second in training
 > 

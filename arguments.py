@@ -160,7 +160,7 @@ class FinetuningArguments:
         metadata={"help": "The name of fine-tuning technique."}
     )
     num_layer_trainable: Optional[int] = field(
-        default=2,
+        default=3,
         metadata={"help": "Number of trainable layers for Freeze fine-tuning."}
     )
     pre_seq_len: Optional[int] = field(
