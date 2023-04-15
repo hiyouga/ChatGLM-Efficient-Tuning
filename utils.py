@@ -225,7 +225,7 @@ def prepare_data(model_args: ModelArguments, data_args: DataTrainingArguments, t
             binary_data = datafile.read()
         sha1 = hashlib.sha1(binary_data).hexdigest()
         if sha1 != hash:
-            raise ValueError("Checksum failed for {}.".format(file_path))
+            logger.warning("Checksum failed for {}. It may vary depending on the platform.".format(file_path))
 
     max_samples = data_args.max_train_samples if training_args.do_train else data_args.max_eval_samples
     all_datasets = [] # support multiple datasets
