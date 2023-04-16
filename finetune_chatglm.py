@@ -53,7 +53,7 @@ def main():
     # Evaluation
     if training_args.do_eval:
         model = model.half() # don't use `--fp16` argument in evaluation
-        metrics = trainer.evaluate(metric_key_prefix="eval", do_sample=True, top_p=0.7, max_length=256, temperature=0.95)
+        metrics = trainer.evaluate(metric_key_prefix="eval", do_sample=True, top_p=0.7, max_length=768, temperature=0.95)
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
 

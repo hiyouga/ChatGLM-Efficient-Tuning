@@ -433,8 +433,11 @@ class ComputeMetrics:
             hypothesis = list(jieba.cut(pred))
             reference = list(jieba.cut(label))
             rouge = Rouge()
-            scores = rouge.get_scores(" ".join(hypothesis), " ".join(reference))
-            result = scores[0]
+            if len(hypothesis) == 0:
+                result = {"rouge-1": 0.0, "rouge-2": 0.0, "rouge-l": 0.0}
+            else:
+                scores = rouge.get_scores(" ".join(hypothesis), " ".join(reference))
+                result = scores[0]
 
             for k, v in result.items():
                 score_dict[k].append(round(v["f"] * 100, 4))
