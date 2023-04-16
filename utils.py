@@ -451,6 +451,10 @@ However, the evaluation seems very slow, it will be resolved in the future.
 """
 class TrainerForChatGLM(Seq2SeqTrainer):
 
+    def __init__(self, finetuning_args: FinetuningArguments, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.finetuning_args = finetuning_args
+
     def _save(self, output_dir: Optional[str] = None, _internal_call: bool = False) -> None:
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -460,9 +464,7 @@ class TrainerForChatGLM(Seq2SeqTrainer):
         else:
             save_trainable_params(output_dir, self.model) # Freeze and P-Tuning
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
-
-    def save_finetuning_args(self, finetuning_args: FinetuningArguments) -> None:
-        torch.save(finetuning_args, os.path.join(self.args.output_dir, FINETUNING_ARGS_NAME))
+        torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
 
     def prediction_step(
             self,

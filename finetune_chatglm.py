@@ -32,6 +32,7 @@ def main():
 
     # Initialize our Trainer
     trainer = TrainerForChatGLM(
+        finetuning_args=finetuning_args,
         model=model,
         args=training_args,
         train_dataset=dataset if training_args.do_train else None,
@@ -48,7 +49,6 @@ def main():
         trainer.save_metrics("train", train_result.metrics)
         trainer.save_state() # along with the loss values
         trainer.save_model()
-        trainer.save_finetuning_args(finetuning_args)
 
     # Evaluation
     if training_args.do_eval:
