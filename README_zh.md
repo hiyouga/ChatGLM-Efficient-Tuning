@@ -127,14 +127,15 @@ model = model.half().cuda()
 
 |     微调方法     |  批处理大小  | 模式 | GPU显存 | 速度 |
 | ---------------- | ---------- | ---- | ------ | ----- |
-| LoRA (r=8)       |     8      | FP16 |  20GB  | 7ex/s |
-| LoRA (r=8)       |     16     | FP16 |  26GB  | 8ex/s |
-| P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
-| Freeze (l=3)     |     8      | FP16 |  26GB  | 5ex/s |
+| LoRA (r=8)       |     16     | FP16 |  28GB  | 8ex/s |
+| LoRA (r=8)       |     8      | FP16 |  24GB  | 8ex/s |
+| LoRA (r=8)       |     4      | FP16 |  20GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | FP16 |  20GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | int8 |  16GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | int4 |  12GB  | 8ex/s |
+| Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
 
-> r：LoRA 维数大小，p：前缀词表大小，l：微调层数，ex/s：每秒训练的样本数
->
-> 上述结果均来自于单个 Tesla V100 GPU。
+> 注：`r` 为LoRA 维数大小，`p` 为前缀词表大小，`l` 为微调层数，`ex/s` 为每秒训练的样本数。`gradient_accumulation_steps` 参数设置为 `1`。上述结果均来自于单个 Tesla V100 GPU，仅供参考。
 
 ## 微调 ChatGLM 的例子
 
@@ -194,8 +195,11 @@ model = model.half().cuda()
 - [x] 支持多GPU训练。（但尚不支持 LoRA 方法）
 - [x] 加入模型评估脚本。（但它可能很慢！增大批处理大小可以显著提升速度）
 - [x] 断点加载。
+- [x] 量化微调。（目前仅支持 P-Tuning 方法）
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
-- [ ] 使用 [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat/chinese) 结合人类反馈的强化学习方法。
+- [ ] 使用 [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat/chinese) 结合 RLHF（人类反馈的强化学习）方法。
+- [ ] 结合 [Wombat](https://github.com/GanjinZero/RRHF) 项目中提出的 RRHF（人类反馈的答复排序）方法。
+- [ ] 加入 [OpenAssistant 对话数据集](https://huggingface.co/datasets/OpenAssistant/oasst1)用于监督微调和人类反馈的强化学习。
 
 ## 协议
 

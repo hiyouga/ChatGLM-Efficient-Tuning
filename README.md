@@ -127,14 +127,15 @@ model = model.half().cuda()
 
 | Fine-tune method | Batch size | Mode |  GRAM  | Speed |
 | ---------------- | ---------- | ---- | ------ | ----- |
-| LoRA (r=8)       |     8      | FP16 |  20GB  | 7ex/s |
-| LoRA (r=8)       |     16     | FP16 |  26GB  | 8ex/s |
-| P-Tuning (p=8)   |     8      | FP16 |  24GB  | 8ex/s |
-| Freeze (l=3)     |     8      | FP16 |  26GB  | 5ex/s |
+| LoRA (r=8)       |     16     | FP16 |  28GB  | 8ex/s |
+| LoRA (r=8)       |     8      | FP16 |  24GB  | 8ex/s |
+| LoRA (r=8)       |     4      | FP16 |  20GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | FP16 |  20GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | int8 |  16GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | int4 |  12GB  | 8ex/s |
+| Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
 
-> r: lora rank, p: number of prefix tokens, l: number of trainable layers, ex/s: examples per second in training
-> 
-> All are evaluated on a single Tesla V100 GPU.
+> Note: `r` is the lora rank, `p` is the number of prefix tokens, `l` is the number of trainable layers, `ex/s` is the examples per second in training. The `gradient_accumulation_steps` is set to `1`. All are evaluated on a single Tesla V100 (32G) GPU, they are approximated values and may vary in different GPUs.
 
 ## Fine-tuning ChatGLM: A Case
 
@@ -191,11 +192,14 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
   - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [x] Implementing the Freeze-Tuning and P-Tuning method.
-- [x] Supporting Multi-GPUs fine-tuning.
+- [x] Supporting Multi-GPUs fine-tuning. (but it does not support LoRA tuning)
 - [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
-- [x] Loading from checkpoint. (but it does not support LoRA tuning)
+- [x] Loading from checkpoint.
+- [x] Fine-tuning the quantized model. (only support P-Tuning currently)
 - [ ] Combining with model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 - [ ] Combining with RLHF training using [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat).
+- [ ] Combining with RRHF training used in [Wombat](https://github.com/GanjinZero/RRHF).
+- [ ] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and RLHF.
 
 ## License
 

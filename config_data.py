@@ -3,10 +3,10 @@ List all the available datasets.
 
 Data format:
 "dataset_name": {
-    "hf_hub_url": the name of the dataset repository on the HF hub. (if specified, ignore below 3 arguments)
-    "script_url": the name of the script in the local `dataset_dir` directory. (if specified, ignore below 2 arguments)
-    "file_name": the name of the dataset file in the local `dataset_dir` directory. (required if hf_hub_url not specified)
-    "file_sha1": the SHA-1 hash value of the dataset file. (required if hf_hub_url not specified)
+    "hf_hub_url": the name of the dataset repository on the HuggingFace hub. (if specified, ignore below 3 arguments)
+    "script_url": the name of the directory containing a dataset loading script. (if specified, ignore below 2 arguments)
+    "file_name": the name of the dataset file in the local `dataset_dir` directory. (required if above are not specified)
+    "file_sha1": the SHA-1 hash value of the dataset file. (optional)
     "columns": { (optional, if not provided, use the default values)
         "prompt": the name of the column in the datasets containing the prompts. (default: instruction)
         "query": the name of the column in the datasets containing the queries. (default: input)
@@ -30,7 +30,7 @@ DATASETS = {
     },
     "alpaca_gpt4_zh": {
         "file_name": "alpaca_gpt4_data_zh.json",
-        "file_sha1": "736d3a9d0fcbb252d1e8f902920961ecfd310e41"
+        "file_sha1": "3eaa3bda364ccdd59925d7448a698256c31ef845"
     },
     "belle_0.5m": {"hf_hub_url": "BelleGroup/train_0.5M_CN"},
     "belle_1m": {"hf_hub_url": "BelleGroup/train_1M_CN"},

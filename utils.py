@@ -22,6 +22,8 @@ from transformers.trainer import TRAINING_ARGS_NAME
 from transformers.deepspeed import is_deepspeed_zero3_enabled
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.utils import check_min_version
+from transformers.utils.versions import require_version
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from peft import PeftModel, TaskType, get_peft_config, get_peft_model
@@ -42,6 +44,10 @@ logging.basicConfig(
     datefmt="%m/%d/%Y %H:%M:%S",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
+
+
+check_min_version("4.27.4")
+require_version("datasets>=2.10.0", "To fix: pip install datasets>=2.10.0")
 
 
 def print_trainable_params(model: torch.nn.Module) -> None:
@@ -69,7 +75,7 @@ def prepare_model_for_training(
         model: PreTrainedModel,
         output_embedding_layer_name: Optional[str] = "lm_head",
         use_gradient_checkpointing: Optional[bool] = True,
-        layer_norm_names: List[str] = ["layer_norm"]
+        layer_norm_names: List[str] = ["layernorm"] # chatglm setting
 ) -> PreTrainedModel:
     for name, param in model.named_parameters():
         if param.ndim == 1 and any(layer_norm_name in name for layer_norm_name in layer_norm_names):
@@ -78,7 +84,7 @@ def prepare_model_for_training(
     if use_gradient_checkpointing:
         model.enable_input_require_grads()
         model.gradient_checkpointing_enable()
-        model.config.use_cache = False # turn off in training for gradient checkpointing
+        model.config.use_cache = False # turn off when gradient checkpointing is enabled
 
     if hasattr(model, output_embedding_layer_name):
         output_embedding_layer = getattr(model, output_embedding_layer_name)
@@ -131,13 +137,29 @@ def load_pretrained(
         config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
         config.prefix_projection = finetuning_args.prefix_projection
 
-    model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
-
     if model_args.quantization_bit is not None:
-        logger.info("Quantized to {} bit".format(model_args.quantization_bit))
-        model = model.quantize(model_args.quantization_bit)
+        if finetuning_args.finetuning_type != "p_tuning":
+            raise NotImplementedError
+            if model_args.quantization_bit != 8:
+                raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
+            require_version("bitsandbytes>=0.38.0", "bitsandbytes library is required to use this feature.")
+            config_kwargs["load_in_8bit"] = True
+
+    model = AutoModel.from_pretrained(
+        model_args.model_name_or_path,
+        config=config,
+        device_map="auto",
+        **config_kwargs
+    )
 
     model = prepare_model_for_training(model) if is_trainable else model
+
+    if model_args.quantization_bit is not None:
+        if finetuning_args.finetuning_type == "p_tuning":
+            if model_args.quantization_bit != 4 or model_args.quantization_bit != 8:
+                raise ValueError("P-Tuning only accepts 4-bit or 8-bit quantization.")
+            model = model.quantize(model_args.quantization_bit).half()
+        logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
     if finetuning_args.finetuning_type == "none" and is_trainable:
         raise ValueError("You cannot use finetuning_type=none when training.")
@@ -192,6 +214,8 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
 
     if training_args.do_train and training_args.do_eval:
         raise ValueError("We don't support training and evaluation simultaneously.")
+    if model_args.quantization_bit is not None and training_args.fp16:
+        raise ValueError("Fp16 training conflicts with quantization.")
     training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim
 
     if training_args.should_log:
@@ -208,7 +232,7 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
     # Log on each process the small summary:
     logger.warning(
         f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}\n"
-        + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
+        + f"  distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
     logger.info(f"Training/evaluation parameters {training_args}")
 
