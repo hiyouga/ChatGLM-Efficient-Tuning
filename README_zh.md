@@ -7,6 +7,8 @@
 
 基于 🤗[PEFT](https://github.com/huggingface/peft) 的高效 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) 微调。
 
+👋 加入我们的[微信群](assets/wechat.jpg)。
+
 \[ [English](README.md) | 中文 \]
 
 ## 更新日志
@@ -186,6 +188,11 @@ model = model.half().cuda()
 
 ## TODO
 
+- [ ] 利用 [LangChain](https://github.com/hwchase17/langchain) 实现能够利用外部知识的基于 ChatGLM 微调模型应用的轻松构建。
+- [ ] 实现对齐算法使模型对齐人类意图。
+  - [ ] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
+  - [ ] [RRHF](https://github.com/GanjinZero/RRHF)
+  - [ ] [RAFT](https://github.com/OptimalScale/LMFlow)
 - [ ] 加入更多[中文数据集](https://github.com/brightmart/nlp_chinese_corpus)。
   - [x] [BELLE](https://github.com/LianjiaTech/BELLE)
   - [ ] [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
@@ -195,15 +202,12 @@ model = model.half().cuda()
 - [ ] 加入基于 [ChatGPT](https://openai.com/blog/chatgpt) 和 [GPT-4](https://openai.com/research/gpt-4) 产生的数据集。
   - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
-- [ ] 实现对齐算法使模型对齐人类意图。
-  - [ ] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
-  - [ ] [RRHF](https://github.com/GanjinZero/RRHF)
-  - [ ] [RAFT](https://github.com/OptimalScale/LMFlow)
 - [x] 实现参数冻结和 P-Tuning 微调方法。
 - [x] 支持多GPU训练。（但尚不支持 LoRA 方法）
 - [x] 加入模型评估脚本。（但它可能很慢！增大批处理大小可以显著提升速度）
 - [x] 断点加载。
 - [x] 量化微调。
+- [ ] 撰写基于该框架的 ChatGLM 模型微调指南手册。
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
 - [ ] 加入 [OpenAssistant 对话数据集](https://huggingface.co/datasets/OpenAssistant/oasst1)用于监督微调和意图对齐。
 

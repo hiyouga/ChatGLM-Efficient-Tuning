@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import jieba
 import hashlib
 import logging
@@ -18,7 +19,7 @@ from transformers import (
     DataCollatorForSeq2Seq,
     set_seed
 )
-from transformers.trainer import TRAINING_ARGS_NAME
+from transformers.trainer import TRAINING_ARGS_NAME, TRAINER_STATE_NAME
 from transformers.deepspeed import is_deepspeed_zero3_enabled
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils import PreTrainedTokenizer
@@ -30,7 +31,7 @@ from peft import PeftModel, TaskType, LoraConfig, get_peft_model
 from peft.peft_model import WEIGHTS_NAME
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from arguments import ModelArguments, DataTrainingArguments, FinetuningArguments
+from arguments import ModelArguments, DataTrainingArguments, FinetuningArguments, UtilArguments
 
 
 IGNORE_INDEX = -100
@@ -186,7 +187,7 @@ def load_pretrained(
                 r=finetuning_args.lora_rank,
                 lora_alpha=finetuning_args.lora_alpha,
                 lora_dropout=finetuning_args.lora_dropout,
-                target_modules=["query_key_value"] # query_key_value or dense
+                target_modules=finetuning_args.lora_target
             )
             model = get_peft_model(model, lora_config)
     else: # Freeze and P-Tuning
@@ -221,7 +222,10 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
             cuda = get_cuda_lib_handle()
             cc = get_compute_capability(cuda)
             if not is_cublasLt_compatible(cc):
-                raise ValueError("The current GPUs are incompatible with quantization.")
+                raise ValueError("The current GPU(s) is incompatible with quantization.")
+
+    if not training_args.fp16:
+        logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")
 
     # Set logger
     if training_args.should_log:
@@ -569,3 +573,32 @@ class TrainerForChatGLM(Seq2SeqTrainer):
             labels = None
 
         return loss, generated_tokens, labels
+
+
+if __name__ == "__main__":
+    # Implement several utilities
+    parser = HfArgumentParser(UtilArguments)
+    util_args, = parser.parse_args_into_dataclasses()
+    if util_args.do_plot: # plot the evolution of the training loss.
+        import matplotlib.pyplot as plt
+        FIGURE_NAME = "trainer_state.png"
+        if util_args.checkpoint_dir is None:
+            raise ValueError("Please provide checkpoint_dir")
+        data = json.load(open(os.path.join(util_args.checkpoint_dir, TRAINER_STATE_NAME), 'r'))
+        train_steps, train_losses = [], []
+        for i in range(len(data["log_history"]) - 1):
+            train_steps.append(data["log_history"][i]["step"])
+            train_losses.append(data["log_history"][i]["loss"])
+        plt.figure()
+        plt.plot(train_steps, train_losses)
+        plt.title("training loss of {}".format(util_args.checkpoint_dir))
+        plt.xlabel("step")
+        plt.ylabel("training loss")
+        plt.savefig(os.path.join(util_args.checkpoint_dir, FIGURE_NAME), format="png", transparent=True, dpi=300)
+        print("Figure saved: {}".format(os.path.join(util_args.checkpoint_dir, FIGURE_NAME)))
+    if util_args.do_merge: # merge multiple LoRA weights (experimental)
+        if util_args.save_dir is None:
+            raise ValueError("save_dir is required to merge LoRA weights.")
+        if os.path.exists(util_args.save_dir):
+            raise ValueError("The folder already exists.")
+        raise NotImplementedError

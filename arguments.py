@@ -72,7 +72,7 @@ class DataTrainingArguments:
     """
     dataset: Optional[str] = field(
         default="alpaca_zh",
-        metadata={"help": "The name of provided dataset to use. Use comma to separate multiple datasets."}
+        metadata={"help": "The name of provided dataset(s) to use. Use comma to separate multiple datasets."}
     )
     dataset_dir: Optional[str] = field(
         default="data",
@@ -120,10 +120,7 @@ class DataTrainingArguments:
     )
 
     def __post_init__(self): # support mixing multiple datasets
-        if self.dataset.find(",") != -1:
-            dataset_names = [ds.strip() for ds in self.dataset.split(",")]
-        else:
-            dataset_names = [self.dataset.strip()]
+        dataset_names = [ds.strip() for ds in self.dataset.split(",")]
 
         self.dataset_list = []
         for name in dataset_names:
@@ -183,7 +180,32 @@ class FinetuningArguments:
         default=0.1,
         metadata={"help": "Dropout rate for the LoRA fine-tuning."}
     )
+    lora_target: Optional[str] = field(
+        default="query_key_value",
+        metadata={"help": "The name(s) of target modules to apply LoRA. Use comma to separate multiple modules."}
+    )
 
     def __post_init__(self):
+        self.lora_target = [target.strip() for target in self.lora_target.split(",")]
+
         if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
             raise NotImplementedError("Invalid fine-tuning method.")
+
+
+@dataclass
+class UtilArguments:
+    """
+    Arguments pertaining to the utilities.
+    """
+    do_plot: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Enable the plot function."}
+    )
+    checkpoint_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the directory containing the model checkpoints as well as the configurations."}
+    )
+    save_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Where to store the merged LoRA weights."}
+    )

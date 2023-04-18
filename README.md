@@ -7,6 +7,8 @@
 
 Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with 🤗[PEFT](https://github.com/huggingface/peft).
 
+👋 Join our [WeChat](assets/wechat.jpg).
+
 \[ English | [中文](README_zh.md) \]
 
 ## Changelog
@@ -186,6 +188,11 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 
 ## TODO
 
+- [ ] Employing [LangChain](https://github.com/hwchase17/langchain) to easily build applications that are capable of leveraging external knowledge upon fine-tuned ChatGLM models.
+- [ ] Implementing the alignment algorithms to align human preferrences.
+  - [ ] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
+  - [ ] [RRHF](https://github.com/GanjinZero/RRHF)
+  - [ ] [RAFT](https://github.com/OptimalScale/LMFlow)
 - [ ] Incorporating [Chinese datasets](https://github.com/brightmart/nlp_chinese_corpus) into the training sets.
   - [x] [BELLE](https://github.com/LianjiaTech/BELLE)
   - [ ] [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
@@ -195,16 +202,13 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 - [ ] Incorporating [ChatGPT](https://openai.com/blog/chatgpt) & [GPT-4](https://openai.com/research/gpt-4) self-chat data into the training sets.
   - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
-- [ ] Implementing the alignment algorithms to align human preferrences.
-  - [ ] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
-  - [ ] [RRHF](https://github.com/GanjinZero/RRHF)
-  - [ ] [RAFT](https://github.com/OptimalScale/LMFlow)
 - [x] Implementing the Freeze-Tuning and P-Tuning method.
 - [x] Supporting Multi-GPUs fine-tuning. (but it does not support LoRA tuning)
 - [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
 - [x] Loading from checkpoint.
 - [x] Fine-tuning the quantized model.
-- [ ] Combining with model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
+- [ ] Writing a guidebook about how to fine-tune ChatGLM with this framework.
+- [ ] Combining with state-of-the-art model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 - [ ] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and alignment.
 
 ## License
