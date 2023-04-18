@@ -22,7 +22,7 @@ def main():
     dataset = prepare_data(model_args, data_args, training_args)
     model, tokenizer = load_pretrained(model_args, finetuning_args, is_trainable=training_args.do_train)
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args)
-    data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss)
+    data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss, training_args.do_eval)
 
     # Override the decoding parameters of Trainer
     training_args.generation_max_length = training_args.generation_max_length if \

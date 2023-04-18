@@ -28,7 +28,7 @@ from transformers.utils.versions import require_version
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from peft import PeftModel, TaskType, LoraConfig, get_peft_model
-from peft.peft_model import WEIGHTS_NAME
+from peft.utils.other import WEIGHTS_NAME, CONFIG_NAME
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from arguments import ModelArguments, DataTrainingArguments, FinetuningArguments, UtilArguments
@@ -76,7 +76,7 @@ def prepare_model_for_training(
         model: PreTrainedModel,
         output_embedding_layer_name: Optional[str] = "lm_head",
         use_gradient_checkpointing: Optional[bool] = True,
-        layer_norm_names: List[str] = ["layernorm"] # chatglm setting
+        layer_norm_names: List[str] = ["layernorm"] # for chatglm setting
 ) -> PreTrainedModel:
     for name, param in model.named_parameters():
         if param.ndim == 1 and any(layer_norm_name in name for layer_norm_name in layer_norm_names):
@@ -101,6 +101,32 @@ def prepare_model_for_training(
     return model
 
 
+# This function merges lora weights from multiple checkpoints
+# Inspired by: https://github.com/huggingface/peft/blob/34027fe813756897767b9a6f19ae7f1c4c7b418c/src/peft/tuners/lora.py#L451
+def merge_lora_weights(model: PreTrainedModel, checkpoints_to_merge: List[str]) -> None:
+    for checkpoint_dir in checkpoints_to_merge:
+        adapter_config = json.load(open(os.path.join(checkpoint_dir, CONFIG_NAME), "r"))
+        adapter_model = torch.load(os.path.join(checkpoint_dir, WEIGHTS_NAME))
+        scaling = adapter_config["lora_alpha"] / adapter_config["r"]
+        for name, param in model.named_parameters():
+            if "weight" not in name: # skip bias
+                continue
+            lora_a_name = "base_model.model." + ".".join(name.split(".")[:-1]) + ".lora_A.weight"
+            lora_b_name = "base_model.model." + ".".join(name.split(".")[:-1]) + ".lora_B.weight"
+            lora_a_weight, lora_b_weight = None, None
+            for adapter_name, adapter_param in adapter_model.items():
+                if adapter_name == lora_a_name:
+                    lora_a_weight = adapter_param
+                if adapter_name == lora_b_name:
+                    lora_b_weight = adapter_param
+            if lora_a_weight is not None and lora_b_weight is not None:
+                weight_to_merge = lora_b_weight @ lora_a_weight
+                weight_to_merge = weight_to_merge.T if adapter_config["fan_in_fan_out"] else weight_to_merge
+                print(weight_to_merge.shape)
+                print(param.data.shape)
+                param.data += weight_to_merge.to(param.device) * scaling
+
+
 def load_pretrained(
         model_args: ModelArguments,
         finetuning_args: Optional[FinetuningArguments]=None,
@@ -112,10 +138,11 @@ def load_pretrained(
         finetuning_args = FinetuningArguments(finetuning_type="none")
 
     if model_args.checkpoint_dir is not None: # load fine-tuned model from checkpoint
-        if not os.path.isfile(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME)):
-            raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
-        logger.info("Load fine-tuned model from checkpoint: {}".format(model_args.checkpoint_dir))
-        finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir, FINETUNING_ARGS_NAME))
+        for checkpoint_dir in model_args.checkpoint_dir:
+            if not os.path.isfile(os.path.join(checkpoint_dir, FINETUNING_ARGS_NAME)):
+                raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
+        logger.info("Load fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
+        finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir[0], FINETUNING_ARGS_NAME))
 
     config_kwargs = {
         "trust_remote_code": True,
@@ -177,10 +204,18 @@ def load_pretrained(
 
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
+        lastest_checkpoint = None
         if model_args.checkpoint_dir is not None:
-            model = PeftModel.from_pretrained(model, model_args.checkpoint_dir, is_trainable=is_trainable)
-            model = model if is_trainable else model.merge_and_unload() # merge LoRA weights to evaluate the model
-        else:
+            if finetuning_args.resume_lora_training: # continually training on the lora weights
+                checkpoints_to_merge, lastest_checkpoint = model_args.checkpoint_dir[:-1], model_args.checkpoint_dir[-1]
+            else:
+                checkpoints_to_merge = model_args.checkpoint_dir
+            merge_lora_weights(model, checkpoints_to_merge)
+            if lastest_checkpoint is not None: # resume lora training
+                model = PeftModel.from_pretrained(model, lastest_checkpoint, is_trainable=is_trainable)
+                if not is_trainable: # merge the lastest LoRA weights to evaluate the model
+                    model.merge_and_unload()
+        if lastest_checkpoint is None: # create new lora weights
             lora_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
                 inference_mode=False,
@@ -423,20 +458,22 @@ Note: The ChatGLM tokenizer assigns False on token to be attended in attention m
 Refer to: https://huggingface.co/THUDM/chatglm-6b/blob/6650ae3a53c28fc176d06762ca80b05d5ab3792b/tokenization_chatglm.py#L401
 Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/aa65c492bb788e144712daab42bc5d11c2761591/train.py#L166
 """
-class DataCollatorForChatGLM(DataCollatorForSeq2Seq): # dynamically padding for training set
+class DataCollatorForChatGLM(DataCollatorForSeq2Seq): # dynamically padding for batched data
 
     def __init__(
             self,
             tokenizer: PreTrainedTokenizer,
             model: PreTrainedModel,
-            ignore_pad_token_for_loss: bool
+            ignore_pad_token_for_loss: bool,
+            inference_mode: bool = False
     ):
         label_pad_token_id = IGNORE_INDEX if ignore_pad_token_for_loss else tokenizer.pad_token_id
         super().__init__(tokenizer, model=model, label_pad_token_id=label_pad_token_id, padding=False)
         self.label_pad_token_id = label_pad_token_id
+        self.inference_mode = inference_mode
 
     def __call__(self, features: Sequence[Dict[str, Sequence]]) -> Dict[str, torch.Tensor]:
-        if "attention_mask" in features[0]: # evaluation set adopts left-padding
+        if self.inference_mode: # evaluation set adopts left-padding
             return super().__call__(features)
         input_ids, labels = tuple([torch.tensor(feature[key]) for feature in features] for key in ("input_ids", "labels"))
         input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
@@ -584,7 +621,7 @@ if __name__ == "__main__":
         FIGURE_NAME = "trainer_state.png"
         if util_args.checkpoint_dir is None:
             raise ValueError("Please provide checkpoint_dir")
-        data = json.load(open(os.path.join(util_args.checkpoint_dir, TRAINER_STATE_NAME), 'r'))
+        data = json.load(open(os.path.join(util_args.checkpoint_dir, TRAINER_STATE_NAME), "r"))
         train_steps, train_losses = [], []
         for i in range(len(data["log_history"]) - 1):
             train_steps.append(data["log_history"][i]["step"])
@@ -596,9 +633,3 @@ if __name__ == "__main__":
         plt.ylabel("training loss")
         plt.savefig(os.path.join(util_args.checkpoint_dir, FIGURE_NAME), format="png", transparent=True, dpi=300)
         print("Figure saved: {}".format(os.path.join(util_args.checkpoint_dir, FIGURE_NAME)))
-    if util_args.do_merge: # merge multiple LoRA weights (experimental)
-        if util_args.save_dir is None:
-            raise ValueError("save_dir is required to merge LoRA weights.")
-        if os.path.exists(util_args.save_dir):
-            raise ValueError("The folder already exists.")
-        raise NotImplementedError

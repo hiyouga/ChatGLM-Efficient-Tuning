@@ -64,6 +64,10 @@ class ModelArguments:
         metadata={"help": "Path to the directory containing the model checkpoints as well as the configurations."}
     )
 
+    def __post_init__(self):
+        if self.checkpoint_dir is not None: # support merging lora weights
+            self.checkpoint_dir = [cd.strip() for cd in self.checkpoint_dir.split(",")]
+
 
 @dataclass
 class DataTrainingArguments:
@@ -184,9 +188,13 @@ class FinetuningArguments:
         default="query_key_value",
         metadata={"help": "The name(s) of target modules to apply LoRA. Use comma to separate multiple modules."}
     )
+    resume_lora_training: Optional[bool] = field(
+        default=True,
+        metadata={"help": "Whether to resume training from the last LoRA weights or create new weights after merging them."}
+    )
 
     def __post_init__(self):
-        self.lora_target = [target.strip() for target in self.lora_target.split(",")]
+        self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
 
         if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
             raise NotImplementedError("Invalid fine-tuning method.")
@@ -204,8 +212,4 @@ class UtilArguments:
     checkpoint_dir: Optional[str] = field(
         default=None,
         metadata={"help": "Path to the directory containing the model checkpoints as well as the configurations."}
-    )
-    save_dir: Optional[str] = field(
-        default=None,
-        metadata={"help": "Where to store the merged LoRA weights."}
     )

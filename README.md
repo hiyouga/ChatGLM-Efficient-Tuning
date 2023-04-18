@@ -13,9 +13,11 @@ Fine-tuning ðŸ¤–[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with ðŸ¤
 
 ## Changelog
 
+[23/04/19] Now we support merging the weights of fine-tuned models trained by LoRA! Try `--checkpoint_dir checkpoint1,checkpoint2` argument for continually fine-tuning the models.
+
 [23/04/18] Now we support training the quantized models using three fine-tuning methods! Try `quantization_bit` argument for training the model in 4/8 bits.
 
-[23/04/12] Now we support training from checkpoints! Use `--checkpoint_dir` to specify the checkpoint model to fine-tune from.
+[23/04/12] Now we support training from checkpoints! Use `--checkpoint_dir` argument to specify the checkpoint model to fine-tune from.
 
 [23/04/11] Now we support training with combined datasets! Try `--dataset dataset1,dataset2` argument for training with multiple datasets.
 
