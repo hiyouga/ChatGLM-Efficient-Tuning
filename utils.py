@@ -207,17 +207,23 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
     else:
         model_args, data_args, training_args, finetuning_args = parser.parse_args_into_dataclasses()
 
+    # Check arguments
     if training_args.do_train and training_args.do_eval:
         raise ValueError("We don't support training and evaluation simultaneously.")
     training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
 
-    if model_args.quantization_bit is not None and finetuning_args.finetuning_type != "p_tuning": # perform GPU checking
-        from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
-        cuda = get_cuda_lib_handle()
-        cc = get_compute_capability(cuda)
-        if not is_cublasLt_compatible(cc):
-            raise ValueError("The current GPUs are incompatible with quantization.")
+    if model_args.quantization_bit is not None: # perform FP16 checking or GPU checking
+        if finetuning_args.finetuning_type == "p_tuning":
+            if training_args.fp16:
+                raise ValueError("Fp16 training conflicts with quantized p-tuning.")
+        else:
+            from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
+            cuda = get_cuda_lib_handle()
+            cc = get_compute_capability(cuda)
+            if not is_cublasLt_compatible(cc):
+                raise ValueError("The current GPUs are incompatible with quantization.")
 
+    # Set logger
     if training_args.should_log:
         # The default of training_args.log_level is passive, so we set log level at info here to have that default.
         transformers.utils.logging.set_verbosity_info()
