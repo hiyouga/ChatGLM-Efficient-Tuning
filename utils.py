@@ -26,7 +26,7 @@ from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-from peft import PeftModel, TaskType, get_peft_config, get_peft_model
+from peft import PeftModel, TaskType, LoraConfig, get_peft_model
 from peft.peft_model import WEIGHTS_NAME
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
@@ -69,7 +69,7 @@ def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -
     model.load_state_dict(model_state_dict, strict=False) # skip missing keys
 
 
-# This function includes: 1. cast the laternorm in fp32 2. make output embedding layer require grads 3. upcast the lm_head to fp32
+# This function includes: (1) cast the laternorm in fp32 (2) make output embedding layer require grads (3) upcast the lm_head to fp32
 # Inspired by: https://github.com/huggingface/peft/blob/c0209c35abbf88c63aa267800d98a8e212ed0a42/src/peft/utils/other.py#L35
 def prepare_model_for_training(
         model: PreTrainedModel,
@@ -136,19 +136,16 @@ def load_pretrained(
         # use the built-in p-tuning method in ChatGLM, we cannot use peft since the attention mask is unusual >_<
         config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
         config.prefix_projection = finetuning_args.prefix_projection
-
-    if model_args.quantization_bit is not None:
-        if finetuning_args.finetuning_type != "p_tuning":
-            raise NotImplementedError
-            if model_args.quantization_bit != 8:
-                raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
-            require_version("bitsandbytes>=0.38.0", "bitsandbytes library is required to use this feature.")
-            config_kwargs["load_in_8bit"] = True
+    elif model_args.quantization_bit is not None: # freeze and lora training
+        if model_args.quantization_bit != 8:
+            raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
+        require_version("bitsandbytes>=0.38.0", "bitsandbytes library is required to use this feature.")
+        config_kwargs["load_in_8bit"] = True
+        config_kwargs["device_map"] = "auto" # it should not be specified outside of load_in_8bit
 
     model = AutoModel.from_pretrained(
         model_args.model_name_or_path,
         config=config,
-        device_map="auto",
         **config_kwargs
     )
 
@@ -156,7 +153,7 @@ def load_pretrained(
 
     if model_args.quantization_bit is not None:
         if finetuning_args.finetuning_type == "p_tuning":
-            if model_args.quantization_bit != 4 or model_args.quantization_bit != 8:
+            if model_args.quantization_bit != 4 and model_args.quantization_bit != 8:
                 raise ValueError("P-Tuning only accepts 4-bit or 8-bit quantization.")
             model = model.quantize(model_args.quantization_bit).half()
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
@@ -183,17 +180,15 @@ def load_pretrained(
             model = PeftModel.from_pretrained(model, model_args.checkpoint_dir, is_trainable=is_trainable)
             model = model if is_trainable else model.merge_and_unload() # merge LoRA weights to evaluate the model
         else:
-            peft_config = {
-                "peft_type": "LORA",
-                "task_type": TaskType.CAUSAL_LM,
-                "inference_mode": False,
-                "r": finetuning_args.lora_rank,
-                "lora_alpha": finetuning_args.lora_alpha,
-                "lora_dropout": finetuning_args.lora_dropout,
-                "target_modules": ["query_key_value"] # query_key_value or dense
-            }
-            peft_config = get_peft_config(peft_config)
-            model = get_peft_model(model, peft_config)
+            lora_config = LoraConfig(
+                task_type=TaskType.CAUSAL_LM,
+                inference_mode=False,
+                r=finetuning_args.lora_rank,
+                lora_alpha=finetuning_args.lora_alpha,
+                lora_dropout=finetuning_args.lora_dropout,
+                target_modules=["query_key_value"] # query_key_value or dense
+            )
+            model = get_peft_model(model, lora_config)
     else: # Freeze and P-Tuning
         if model_args.checkpoint_dir is not None:
             load_trainable_params(model, model_args.checkpoint_dir)
@@ -214,9 +209,14 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
 
     if training_args.do_train and training_args.do_eval:
         raise ValueError("We don't support training and evaluation simultaneously.")
-    if model_args.quantization_bit is not None and training_args.fp16:
-        raise ValueError("Fp16 training conflicts with quantization.")
-    training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim
+    training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
+
+    if model_args.quantization_bit is not None and finetuning_args.finetuning_type != "p_tuning": # perform GPU checking
+        from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
+        cuda = get_cuda_lib_handle()
+        cc = get_compute_capability(cuda)
+        if not is_cublasLt_compatible(cc):
+            raise ValueError("The current GPUs are incompatible with quantization.")
 
     if training_args.should_log:
         # The default of training_args.log_level is passive, so we set log level at info here to have that default.

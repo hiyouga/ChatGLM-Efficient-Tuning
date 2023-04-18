@@ -11,6 +11,8 @@ Fine-tuning ðŸ¤–[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with ðŸ¤
 
 ## Changelog
 
+[23/04/18] Now we support training the quantized models using three fine-tuning methods! Try `quantization_bit` argument for training the model in 4/8 bits.
+
 [23/04/12] Now we support training from checkpoints! Use `--checkpoint_dir` to specify the checkpoint model to fine-tune from.
 
 [23/04/11] Now we support training with combined datasets! Try `--dataset dataset1,dataset2` argument for training with multiple datasets.
@@ -130,10 +132,12 @@ model = model.half().cuda()
 | LoRA (r=8)       |     16     | FP16 |  28GB  | 8ex/s |
 | LoRA (r=8)       |     8      | FP16 |  24GB  | 8ex/s |
 | LoRA (r=8)       |     4      | FP16 |  20GB  | 8ex/s |
+| LoRA (r=8)       |     4      | INT8 |  10GB  | 8ex/s |
 | P-Tuning (p=16)  |     4      | FP16 |  20GB  | 8ex/s |
-| P-Tuning (p=16)  |     4      | int8 |  16GB  | 8ex/s |
-| P-Tuning (p=16)  |     4      | int4 |  12GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | INT8 |  16GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | INT4 |  12GB  | 8ex/s |
 | Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
+| Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
 
 > Note: `r` is the lora rank, `p` is the number of prefix tokens, `l` is the number of trainable layers, `ex/s` is the examples per second in training. The `gradient_accumulation_steps` is set to `1`. All are evaluated on a single Tesla V100 (32G) GPU, they are approximated values and may vary in different GPUs.
 
@@ -195,7 +199,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 - [x] Supporting Multi-GPUs fine-tuning. (but it does not support LoRA tuning)
 - [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
 - [x] Loading from checkpoint.
-- [x] Fine-tuning the quantized model. (only support P-Tuning currently)
+- [x] Fine-tuning the quantized model.
 - [ ] Combining with model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 - [ ] Combining with RLHF training using [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat).
 - [ ] Combining with RRHF training used in [Wombat](https://github.com/GanjinZero/RRHF).

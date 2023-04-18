@@ -11,6 +11,8 @@
 
 ## 更新日志
 
+[23/04/18] 现在可以微调量化版模型了！请尝试使用 `quantization_bit` 参数进行 4 比特或 8 比特量化微调。
+
 [23/04/12] 现在我们加入了断点训练支持！请尝试给定 `--checkpoint_dir` 参数加载指定的模型断点。
 
 [23/04/11] 现在我们实现了数据集组合训练！请尝试使用 `--dataset dataset1,dataset2` 参数进行组合训练。
@@ -130,10 +132,12 @@ model = model.half().cuda()
 | LoRA (r=8)       |     16     | FP16 |  28GB  | 8ex/s |
 | LoRA (r=8)       |     8      | FP16 |  24GB  | 8ex/s |
 | LoRA (r=8)       |     4      | FP16 |  20GB  | 8ex/s |
+| LoRA (r=8)       |     4      | INT8 |  10GB  | 8ex/s |
 | P-Tuning (p=16)  |     4      | FP16 |  20GB  | 8ex/s |
-| P-Tuning (p=16)  |     4      | int8 |  16GB  | 8ex/s |
-| P-Tuning (p=16)  |     4      | int4 |  12GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | INT8 |  16GB  | 8ex/s |
+| P-Tuning (p=16)  |     4      | INT4 |  12GB  | 8ex/s |
 | Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
+| Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
 
 > 注：`r` 为LoRA 维数大小，`p` 为前缀词表大小，`l` 为微调层数，`ex/s` 为每秒训练的样本数。`gradient_accumulation_steps` 参数设置为 `1`。上述结果均来自于单个 Tesla V100 GPU，仅供参考。
 
@@ -195,7 +199,7 @@ model = model.half().cuda()
 - [x] 支持多GPU训练。（但尚不支持 LoRA 方法）
 - [x] 加入模型评估脚本。（但它可能很慢！增大批处理大小可以显著提升速度）
 - [x] 断点加载。
-- [x] 量化微调。（目前仅支持 P-Tuning 方法）
+- [x] 量化微调。
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
 - [ ] 使用 [DeepSpeed Chat](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat/chinese) 结合 RLHF（人类反馈的强化学习）方法。
 - [ ] 结合 [Wombat](https://github.com/GanjinZero/RRHF) 项目中提出的 RRHF（人类反馈的答复排序）方法。
