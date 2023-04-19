@@ -104,10 +104,12 @@ def prepare_model_for_training(
 # This function merges lora weights from multiple checkpoints
 # Inspired by: https://github.com/huggingface/peft/blob/34027fe813756897767b9a6f19ae7f1c4c7b418c/src/peft/tuners/lora.py#L451
 def merge_lora_weights(model: PreTrainedModel, checkpoints_to_merge: List[str]) -> None:
+    checkpoint_merged = 0
     for checkpoint_dir in checkpoints_to_merge:
         adapter_config = json.load(open(os.path.join(checkpoint_dir, CONFIG_NAME), "r"))
         adapter_model = torch.load(os.path.join(checkpoint_dir, WEIGHTS_NAME))
         scaling = adapter_config["lora_alpha"] / adapter_config["r"]
+        is_merged = False
         for name, param in model.named_parameters():
             if "weight" not in name: # skip bias
                 continue
@@ -122,9 +124,10 @@ def merge_lora_weights(model: PreTrainedModel, checkpoints_to_merge: List[str]) 
             if lora_a_weight is not None and lora_b_weight is not None:
                 weight_to_merge = lora_b_weight @ lora_a_weight
                 weight_to_merge = weight_to_merge.T if adapter_config["fan_in_fan_out"] else weight_to_merge
-                print(weight_to_merge.shape)
-                print(param.data.shape)
                 param.data += weight_to_merge.to(param.device) * scaling
+                is_merged = True
+        checkpoint_merged = checkpoint_merged + 1 if is_merged else checkpoint_merged
+    logger.info("Merged {} model checkpoint(s).".format(checkpoint_merged))
 
 
 def load_pretrained(
