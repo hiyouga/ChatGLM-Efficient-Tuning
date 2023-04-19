@@ -1,10 +1,11 @@
 #!/bin/bash
 
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+CUDA_VISIBLE_DEVICES=0 python ../src/finetune.py \
     --do_train \
     --dataset alpaca_gpt4_zh \
+    --dataset_dir ../data \
     --finetuning_type lora \
-    --output_dir output \
+    --output_dir output_finetune \
     --overwrite_cache \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \

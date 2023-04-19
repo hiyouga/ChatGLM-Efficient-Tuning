@@ -77,11 +77,11 @@ pip install -r requirements.txt
 ### Fine-tuning
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
-    --output_dir output \
+    --output_dir path_to_checkpoint \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \
@@ -95,7 +95,7 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
 
 ### Distributed Fine-tuning with Multiple GPUs
 ```bash
-accelerate launch python finetun_chatglm.py # arguments (same as above)
+accelerate launch python src/finetune.py # arguments (same as above)
 ```
 
 Note: distributed fine-tuning seems **not compatible with the LoRA method**.
@@ -103,12 +103,12 @@ Note: distributed fine-tuning seems **not compatible with the LoRA method**.
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_eval \
     --dataset alpaca_gpt4_zh \
-    --checkpoint_dir output \
+    --checkpoint_dir path_to_checkpoint \
     --output_dir eval \
-    --per_device_eval_batch_size 1 \
+    --per_device_eval_batch_size 8 \
     --max_eval_samples 50 \
     --predict_with_generate
 ```
@@ -116,13 +116,12 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
 ### Inference
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py --checkpoint_dir output
+CUDA_VISIBLE_DEVICES=0 python src/infer.py --checkpoint_dir path_to_checkpoint
 ```
 
 ### Deploy the Fine-tuned Model
 ```python
-from utils import load_pretrained
-from arguments import ModelArguments
+from .src import load_pretrained, ModelArguments
 model_args = ModelArguments(checkpoint_dir=path_to_checkpoint_dir)
 model, tokenizer = load_pretrained(model_args)
 model = model.half().cuda()

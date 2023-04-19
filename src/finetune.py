@@ -5,10 +5,11 @@
 
 
 from utils import (
+    load_pretrained,
     prepare_args,
     prepare_data,
-    load_pretrained,
     preprocess_data,
+    plot_loss,
     DataCollatorForChatGLM,
     ComputeMetrics,
     TrainerForChatGLM
@@ -49,6 +50,8 @@ def main():
         trainer.save_metrics("train", train_result.metrics)
         trainer.save_state() # along with the loss values
         trainer.save_model()
+        if finetuning_args.plot_loss:
+            plot_loss(training_args)
 
     # Evaluation
     if training_args.do_eval:

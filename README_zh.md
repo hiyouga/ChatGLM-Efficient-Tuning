@@ -77,11 +77,11 @@ pip install -r requirements.txt
 ### 微调训练
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
-    --output_dir output \
+    --output_dir path_to_checkpoint \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \
@@ -95,7 +95,7 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
 
 ### 多 GPU 分布式微调
 ```bash
-accelerate launch python finetune_chatglm.py # 参数同上
+accelerate launch python src/finetune.py # 参数同上
 ```
 
 注意：分布式微调目前似乎**并不支持 LoRA 方法**。
@@ -103,12 +103,12 @@ accelerate launch python finetune_chatglm.py # 参数同上
 ### 指标评估（BLEU分数和汉语ROUGE分数）
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
+CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_eval \
     --dataset alpaca_gpt4_zh \
-    --checkpoint_dir output \
+    --checkpoint_dir path_to_checkpoint \
     --output_dir eval \
-    --per_device_eval_batch_size 1 \
+    --per_device_eval_batch_size 8 \
     --max_eval_samples 50 \
     --predict_with_generate
 ```
@@ -116,13 +116,12 @@ CUDA_VISIBLE_DEVICES=0 python finetune_chatglm.py \
 ### 效果测试
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python infer_chatglm.py --checkpoint_dir output
+CUDA_VISIBLE_DEVICES=0 python src/infer.py --checkpoint_dir path_to_checkpoint
 ```
 
 ### 部署微调模型
 ```python
-from utils import load_pretrained
-from arguments import ModelArguments
+from .src import load_pretrained, ModelArguments
 model_args = ModelArguments(checkpoint_dir=path_to_checkpoint_dir)
 model, tokenizer = load_pretrained(model_args)
 model = model.half().cuda()

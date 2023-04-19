@@ -1,6 +1,6 @@
 from typing import Optional
 from dataclasses import dataclass, field
-from config_data import CHATGLM_REPO_NAME, CHATGLM_LASTEST_HASH, DATASETS
+from .config import CHATGLM_REPO_NAME, CHATGLM_LASTEST_HASH, DATASETS
 
 
 @dataclass
@@ -192,24 +192,13 @@ class FinetuningArguments:
         default=True,
         metadata={"help": "Whether to resume training from the last LoRA weights or create new weights after merging them."}
     )
+    plot_loss: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to plot the training loss after fine-tuning."}
+    )
 
     def __post_init__(self):
         self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
 
         if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
             raise NotImplementedError("Invalid fine-tuning method.")
-
-
-@dataclass
-class UtilArguments:
-    """
-    Arguments pertaining to the utilities.
-    """
-    do_plot: Optional[bool] = field(
-        default=False,
-        metadata={"help": "Enable the plot function."}
-    )
-    checkpoint_dir: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the directory containing the model checkpoints as well as the configurations."}
-    )
