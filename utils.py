@@ -183,7 +183,7 @@ def load_pretrained(
         if finetuning_args.finetuning_type == "p_tuning":
             if model_args.quantization_bit != 4 and model_args.quantization_bit != 8:
                 raise ValueError("P-Tuning only accepts 4-bit or 8-bit quantization.")
-            model = model.quantize(model_args.quantization_bit).half()
+            model = model.quantize(model_args.quantization_bit).half() # quantized p_tuning should be trained in half precision
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
     if finetuning_args.finetuning_type == "none" and is_trainable:
@@ -226,8 +226,8 @@ def load_pretrained(
             )
             model = get_peft_model(model, lora_config)
     else: # Freeze and P-Tuning
-        if model_args.checkpoint_dir is not None:
-            load_trainable_params(model, model_args.checkpoint_dir)
+        if model_args.checkpoint_dir is not None: # freeze and p_tuning only accept one checkpoint
+            load_trainable_params(model, model_args.checkpoint_dir[0])
 
     print_trainable_params(model)
 
