@@ -53,7 +53,7 @@
 ## 软件依赖
 
 - Python 3.10, PyTorch 2.0.0
-- 🤗Transformers, Datasets, PEFT（最低需要 0.3.0.dev0）
+- 🤗Transformers, Datasets, Accelerate, PEFT（最低需要 0.3.0.dev0）
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk
 

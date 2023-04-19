@@ -53,7 +53,7 @@ Our script now supports the following fine-tuning methods:
 ## Requirement
 
 - Python 3.10 and PyTorch 2.0.0
-- 🤗Transformers, Datasets, and PEFT (0.3.0.dev0 is required)
+- 🤗Transformers, Datasets, Accelerate and PEFT (0.3.0.dev0 is required)
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk
 

@@ -32,6 +32,10 @@ DATASETS = {
         "file_name": "alpaca_gpt4_data_zh.json",
         "file_sha1": "3eaa3bda364ccdd59925d7448a698256c31ef845"
     },
+    "self_cognition": {
+        "file_name": "self_cognition.json",
+        "file_sha1": "44d25ec88145eef84b98a08c3d2bf5dea6467668"
+    },
     "belle_0.5m": {"hf_hub_url": "BelleGroup/train_0.5M_CN"},
     "belle_1m": {"hf_hub_url": "BelleGroup/train_1M_CN"},
     "belle_2m": {"hf_hub_url": "BelleGroup/train_2M_CN"},
