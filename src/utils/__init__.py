@@ -8,6 +8,6 @@ from .common import (
     TrainerForChatGLM
 )
 
-from .arguments import ModelArguments
+from .config import ModelArguments
 
 from .other import plot_loss

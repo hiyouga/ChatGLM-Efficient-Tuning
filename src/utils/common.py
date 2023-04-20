@@ -4,7 +4,6 @@ import hashlib
 import logging
 import torch
 import numpy as np
-
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -35,7 +34,7 @@ import jieba
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
-from .arguments import (
+from .config import (
     ModelArguments,
     DataTrainingArguments,
     FinetuningArguments
@@ -458,6 +457,8 @@ class TrainerForChatGLM(Seq2SeqTrainer):
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
+        if self.model.device.type == "cuda": # clear the cuda cache
+            torch.cuda.empty_cache()
         if hasattr(self.model, "peft_config"): # LoRA
             self.model.save_pretrained(output_dir) # only save peft weights with the built-in method
         else:

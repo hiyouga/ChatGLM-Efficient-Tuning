@@ -1,73 +1,210 @@
-"""
-List all the available datasets.
+import os
+import json
+from typing import Optional
+from dataclasses import dataclass, field
 
-Data format:
-"dataset_name": {
-    "hf_hub_url": the name of the dataset repository on the HuggingFace hub. (if specified, ignore below 3 arguments)
-    "script_url": the name of the directory containing a dataset loading script. (if specified, ignore below 2 arguments)
-    "file_name": the name of the dataset file in the local `dataset_dir` directory. (required if above are not specified)
-    "file_sha1": the SHA-1 hash value of the dataset file. (optional)
-    "columns": { (optional, if not provided, use the default values)
-        "prompt": the name of the column in the datasets containing the prompts. (default: instruction)
-        "query": the name of the column in the datasets containing the queries. (default: input)
-        "response": the name of the column in the datasets containing the responses. (default: output)
-        "history": the name of the column in the datasets containing the history of chat. (default: None)
-    }
-}
-"""
 
 CHATGLM_REPO_NAME = "THUDM/chatglm-6b"
 CHATGLM_LASTEST_HASH = "35ca52301fbedee885b0838da5d15b7b47faa37c"
-DATASETS = {
-    "alpaca_en": {"hf_hub_url": "tatsu-lab/alpaca"},
-    "alpaca_zh": {
-        "file_name": "alpaca_data_zh_51k.json",
-        "file_sha1": "e655af3db557a4197f7b0cf92e1986b08fae6311"
-    },
-    "alpaca_gpt4_en": {
-        "file_name": "alpaca_gpt4_data_en.json",
-        "file_sha1": "647f4ad447bd993e4b6b6223d1be15208bab694a"
-    },
-    "alpaca_gpt4_zh": {
-        "file_name": "alpaca_gpt4_data_zh.json",
-        "file_sha1": "3eaa3bda364ccdd59925d7448a698256c31ef845"
-    },
-    "self_cognition": {
-        "file_name": "self_cognition.json",
-        "file_sha1": "44d25ec88145eef84b98a08c3d2bf5dea6467668"
-    },
-    "belle_0.5m": {"hf_hub_url": "BelleGroup/train_0.5M_CN"},
-    "belle_1m": {"hf_hub_url": "BelleGroup/train_1M_CN"},
-    "belle_2m": {"hf_hub_url": "BelleGroup/train_2M_CN"},
-    "belle_dialog": {"hf_hub_url": "BelleGroup/generated_chat_0.4M"},
-    "belle_math": {"hf_hub_url": "BelleGroup/school_math_0.25M"},
-    "belle_multiturn": {"hf_hub_url": "BelleGroup/multiturn_chat_0.8M"},
-    "belle_multiturn_chatglm": {
-        "script_url": "belle_multiturn",
-        "columns": {
-            "prompt": "instruction",
-            "query": None,
-            "response": "output",
-            "history": "history"
-        }
-    },
-    "guanaco": {"hf_hub_url": "JosephusCheung/GuanacoDataset"},
-    "firefly": {
-        "hf_hub_url": "YeungNLP/firefly-train-1.1M",
-        "columns": {
-            "prompt": "input",
-            "query": None,
-            "response": "target",
-            "history": None
-        }
-    },
-    "example": {
-        "script_url": "example_dataset", # or use `"file_name": "example_dataset/examples.json"`,
-        "columns": {
-            "prompt": "instruction",
-            "query": "input",
-            "response": "output",
-            "history": "history"
-        }
-    }
-}
+
+
+@dataclass
+class DatasetAttr:
+
+    load_from: str
+    dataset_name: Optional[str] = None
+    file_name: Optional[str] = None
+    file_sha1: Optional[str] = None
+
+    def __post_init__(self):
+        self.prompt_column = "instruction"
+        self.query_column = "input"
+        self.response_column = "output"
+        self.history_column = None
+
+
+@dataclass
+class ModelArguments:
+    """
+    Arguments pertaining to which model/config/tokenizer we are going to fine-tune.
+    """
+    model_name_or_path: Optional[str] = field(
+        default=CHATGLM_REPO_NAME,
+        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models."}
+    )
+    config_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Pretrained config name or path if not the same as model_name."}
+    )
+    tokenizer_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Pretrained tokenizer name or path if not the same as model_name."}
+    )
+    cache_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Where to store the pretrained models downloaded from huggingface.co."}
+    )
+    use_fast_tokenizer: bool = field(
+        default=True,
+        metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."}
+    )
+    model_revision: str = field(
+        default=CHATGLM_LASTEST_HASH,
+        metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."}
+    )
+    use_auth_token: bool = field(
+        default=False,
+        metadata={"help": "Will use the token generated when running `huggingface-cli login`."}
+    )
+    resize_position_embeddings: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to resize the position embeddings if `max_source_length` exceeds."}
+    )
+    quantization_bit: Optional[int] = field(
+        default=None,
+        metadata={"help": "The number of bits to quantize the model."}
+    )
+    checkpoint_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the directory containing the model checkpoints as well as the configurations."}
+    )
+
+    def __post_init__(self):
+        if self.checkpoint_dir is not None: # support merging lora weights
+            self.checkpoint_dir = [cd.strip() for cd in self.checkpoint_dir.split(",")]
+
+
+@dataclass
+class DataTrainingArguments:
+    """
+    Arguments pertaining to what data we are going to input our model for training and evaluation.
+    """
+    dataset: Optional[str] = field(
+        default="alpaca_zh",
+        metadata={"help": "The name of provided dataset(s) to use. Use comma to separate multiple datasets."}
+    )
+    dataset_dir: Optional[str] = field(
+        default="data",
+        metadata={"help": "The name of the folder containing datasets."}
+    )
+    overwrite_cache: bool = field(
+        default=False,
+        metadata={"help": "Overwrite the cached training and evaluation sets."}
+    )
+    preprocessing_num_workers: Optional[int] = field(
+        default=None,
+        metadata={"help": "The number of processes to use for the preprocessing."}
+    )
+    max_source_length: Optional[int] = field(
+        default=512,
+        metadata={"help": "The maximum total input sequence length after tokenization."}
+    )
+    max_target_length: Optional[int] = field(
+        default=512,
+        metadata={"help": "The maximum total output sequence length after tokenization."}
+    )
+    pad_to_max_length: bool = field(
+        default=False,
+        metadata={"help": "Whether to pad all samples to model maximum sentence length or not."}
+    )
+    max_train_samples: Optional[int] = field(
+        default=None,
+        metadata={"help": "For debugging purposes, truncate the number of training examples for each dataset."}
+    )
+    max_eval_samples: Optional[int] = field(
+        default=None,
+        metadata={"help": "For debugging purposes, truncate the number of evaluation examples for each dataset."}
+    )
+    num_beams: Optional[int] = field(
+        default=None,
+        metadata={"help": "Number of beams to use for evaluation. This argument will be passed to ``model.generate``"}
+    )
+    ignore_pad_token_for_loss: bool = field(
+        default=True,
+        metadata={"help": "Whether to ignore the tokens corresponding to padded labels in the loss computation or not."}
+    )
+    source_prefix: Optional[str] = field(
+        default=None,
+        metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
+    )
+
+    def __post_init__(self): # support mixing multiple datasets
+        dataset_names = [ds.strip() for ds in self.dataset.split(",")]
+        dataset_info = json.load(open(os.path.join(self.dataset_dir, "dataset_info.json"), "r"))
+
+        self.dataset_list = []
+        for name in dataset_names:
+            if name not in dataset_info:
+                raise ValueError("Undefined dataset {} in dataset_info.json.".format(name))
+
+            if "hf_hub_url" in dataset_info[name]:
+                dataset_attr = DatasetAttr("hf_hub", dataset_name=dataset_info[name]["hf_hub_url"])
+            elif "script_url" in dataset_info[name]:
+                dataset_attr = DatasetAttr("script", dataset_name=dataset_info[name]["script_url"])
+            else:
+                dataset_attr = DatasetAttr(
+                    "file",
+                    file_name=dataset_info[name]["file_name"],
+                    file_sha1=dataset_info[name]["file_sha1"] if "file_sha1" in dataset_info[name] else None
+                )
+
+            if "columns" in dataset_info[name]:
+                dataset_attr.prompt_column = dataset_info[name]["columns"]["prompt"]
+                dataset_attr.query_column = dataset_info[name]["columns"]["query"]
+                dataset_attr.response_column = dataset_info[name]["columns"]["response"]
+                dataset_attr.history_column = dataset_info[name]["columns"]["history"]
+
+            self.dataset_list.append(dataset_attr)
+
+
+@dataclass
+class FinetuningArguments:
+    """
+    Arguments pertaining to which techniques we are going to fine-tuning with.
+    """
+    finetuning_type: Optional[str] = field(
+        default="lora",
+        metadata={"help": "The name of fine-tuning technique."}
+    )
+    num_layer_trainable: Optional[int] = field(
+        default=3,
+        metadata={"help": "Number of trainable layers for Freeze fine-tuning."}
+    )
+    pre_seq_len: Optional[int] = field(
+        default=16,
+        metadata={"help": "Number of prefix tokens to use for P-tuning v2."}
+    )
+    prefix_projection: bool = field(
+        default=False,
+        metadata={"help": "Whether to add a project layer for the prefix in P-tuning v2."}
+    )
+    lora_rank: Optional[int] = field(
+        default=8,
+        metadata={"help": "The intrinsic dimension for LoRA fine-tuning."}
+    )
+    lora_alpha: Optional[float] = field(
+        default=32.0,
+        metadata={"help": "The scale factor for LoRA fine-tuning. (similar with the learning rate)"}
+    )
+    lora_dropout: Optional[float] = field(
+        default=0.1,
+        metadata={"help": "Dropout rate for the LoRA fine-tuning."}
+    )
+    lora_target: Optional[str] = field(
+        default="query_key_value",
+        metadata={"help": "The name(s) of target modules to apply LoRA. Use comma to separate multiple modules."}
+    )
+    resume_lora_training: Optional[bool] = field(
+        default=True,
+        metadata={"help": "Whether to resume training from the last LoRA weights or create new weights after merging them."}
+    )
+    plot_loss: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to plot the training loss after fine-tuning."}
+    )
+
+    def __post_init__(self):
+        self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
+
+        if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
+            raise NotImplementedError("Invalid fine-tuning method.")
