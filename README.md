@@ -61,16 +61,17 @@ And **powerful GPUs**!
 
 ## Getting Started
 
-### Prepare Data (optional)
+### Data Preparation (optional)
 
 Please refer to `data/example_dataset` for checking the details about the format. You can either use a single `.json` file or a [dataset loading script](https://huggingface.co/docs/datasets/dataset_script) with multiple files to create a custom dataset.
 
-### Preparation (optional)
+### Dependence Installation (optional)
 
 ```bash
 git clone https://github.com/hiyouga/ChatGLM-Efficient-Tuning.git
-conda create -n cet python=3.10
-conda activate cet
+conda create -n chatglm_etuning python=3.10
+conda activate chatglm_etuning
+cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
@@ -116,7 +117,8 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
 ### Inference
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/infer.py --checkpoint_dir path_to_checkpoint
+CUDA_VISIBLE_DEVICES=0 python src/infer.py \
+    --checkpoint_dir path_to_checkpoint
 ```
 
 ### Deploy the Fine-tuned Model

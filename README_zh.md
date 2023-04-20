@@ -13,6 +13,8 @@
 
 ## 更新日志
 
+[23/04/20] 我们新增了一个修改模型自我认知的例子，请移步 [alter_self_cognition.md](examples/alter_self_cognition.md) 查阅。
+
 [23/04/19] 现在我们实现了模型融合！请尝试使用 `--checkpoint_dir checkpoint1,checkpoint2` 参数训练融合 LoRA 权重后的模型。
 
 [23/04/18] 现在可以微调量化版模型了！请尝试使用 `quantization_bit` 参数进行 4 比特或 8 比特量化微调。
@@ -41,7 +43,7 @@
 
 ## 微调方法
 
-目前我们实现了针对以下高效微调方法的支持（详细快速微调文档请移步[微调文档](docs/README_fine_tune_zh)查阅）：
+目前我们实现了针对以下高效微调方法的支持：
 
 - [LoRA](https://arxiv.org/abs/2106.09685)
   - 仅微调低秩适应器。
@@ -69,8 +71,9 @@
 
 ```bash
 git clone https://github.com/hiyouga/ChatGLM-Efficient-Tuning.git
-conda create -n cet python=3.10
-conda activate cet
+conda create -n chatglm_etuning python=3.10
+conda activate chatglm_etuning
+cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
@@ -116,7 +119,8 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
 ### 效果测试
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/infer.py --checkpoint_dir path_to_checkpoint
+CUDA_VISIBLE_DEVICES=0 python src/infer.py \
+    --checkpoint_dir path_to_checkpoint
 ```
 
 ### 部署微调模型
