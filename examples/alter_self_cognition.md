@@ -52,9 +52,9 @@ git clone https://huggingface.co/THUDM/chatglm-6b
 ]
 ```
 
-**提示：你可以将 `[NAME]` 换成你自己的名字，从而让模型回答它的创造者是你。**
+**提示：您可以将 `[NAME]` 换成您自己的名字，从而让模型回答它的创造者是您。**
 
-###### 本框架内置了十余种指令数据集，其简要介绍请移步 data 文件夹。同时，框架支持用户提供的自定义数据集，请保证你的数据集和 `data/example_dataset` 中的 `example_dataset.json` 文件格式相同。其中 `instruction` 项和 `output` 项为必需项，以保证模型的监督微调（SFT）能够正常运行。
+###### 本框架内置了十余种指令数据集，其简要介绍请移步 [data](../data/) 文件夹。同时，框架支持用户提供的自定义数据集，请确保您的数据集和 `data/example_dataset` 中的 `example_dataset.json` 文件格式相同。其中 `instruction` 项和 `output` 项为必需项，以保证模型的监督微调（SFT）能够正常运行。
 
 ## 三、模型监督微调
 
@@ -101,4 +101,4 @@ CUDA_VISIBLE_DEVICES=0 python src/infer.py \
 
 ## 五、模型部署
 
-如果要将微调后的模型部署在你的项目框架中，请参考 [README_zh.md](../README_zh.md#部署微调模型) 中关于部署微调模型的部分。
+如果要将微调后的模型部署在您的项目框架中，请参考 [README_zh.md](../README_zh.md#部署微调模型) 中关于部署微调模型的部分。
