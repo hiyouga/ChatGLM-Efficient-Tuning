@@ -41,7 +41,7 @@
 
 ## 微调方法
 
-目前我们实现了针对以下高效微调方法的支持：
+目前我们实现了针对以下高效微调方法的支持（详细快速微调文档请移步[微调文档](./docs/README_fine_tune_zh)查阅）：
 
 - [LoRA](https://arxiv.org/abs/2106.09685)
   - 仅微调低秩适应器。
@@ -55,7 +55,7 @@
 - Python 3.10, PyTorch 2.0.0
 - 🤗Transformers, Datasets, Accelerate, PEFT（最低需要 0.3.0.dev0）
 - protobuf, cpm_kernels, sentencepiece
-- jieba, rouge_chinese, nltk
+- jieba, rouge_chinese, nltk,accelerate
 
 以及 **强而有力的 GPU**！
 
