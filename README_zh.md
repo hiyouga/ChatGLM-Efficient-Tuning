@@ -13,6 +13,8 @@
 
 ## 更新日志
 
+[23/04/20] 我们的项目在 12 天内获得了 100 个 Star！祝贺！
+
 [23/04/20] 我们新增了一个修改模型自我认知的例子，请移步 [alter_self_cognition.md](examples/alter_self_cognition.md) 查阅。
 
 [23/04/19] 现在我们实现了模型融合！请尝试使用 `--checkpoint_dir checkpoint1,checkpoint2` 参数训练融合 LoRA 权重后的模型。
@@ -40,7 +42,7 @@
 - [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 - [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
 - [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
-- [Web QA](https://huggingface.co/datasets/suolyer/webqa)
+- [Web QA (Chinese)](https://huggingface.co/datasets/suolyer/webqa)
 
 使用方法请参考 [data/README.md](data/README.md) 文件。
 
@@ -57,7 +59,7 @@
 
 ## 软件依赖
 
-- Python 3.10, PyTorch 2.0.0
+- Python 3.8+, PyTorch 2.0.0
 - 🤗Transformers, Datasets, Accelerate, PEFT（最低需要 0.3.0.dev0）
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk

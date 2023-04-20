@@ -13,6 +13,8 @@ Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with �
 
 ## Changelog
 
+[23/04/20] Our repo achieved 100 stars within 12 days! Congratulations!
+
 [23/04/19] Now we support merging the weights of fine-tuned models trained by LoRA! Try `--checkpoint_dir checkpoint1,checkpoint2` argument for continually fine-tuning the models.
 
 [23/04/18] Now we support training the quantized models using three fine-tuning methods! Try `quantization_bit` argument for training the model in 4/8 bits.
@@ -38,7 +40,7 @@ Our script now supports the following datasets:
 - [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 - [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
 - [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
-- [Web QA](https://huggingface.co/datasets/suolyer/webqa)
+- [Web QA (Chinese)](https://huggingface.co/datasets/suolyer/webqa)
 
 Please refer to [data/README.md](data/README.md) for details.
 
@@ -55,7 +57,7 @@ Our script now supports the following fine-tuning methods:
 
 ## Requirement
 
-- Python 3.10 and PyTorch 2.0.0
+- Python 3.8+ and PyTorch 2.0.0
 - 🤗Transformers, Datasets, Accelerate and PEFT (0.3.0.dev0 is required)
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk
