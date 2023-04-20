@@ -60,6 +60,9 @@
     "codealpaca": {
         "hf_hub_url": "sahil2801/CodeAlpaca-20k"
     },
+    "alpaca-cot": {
+        "hf_hub_url": "QingyiSi/Alpaca-CoT"
+    },
     "example": {
         "script_url": "example_dataset",
         "columns": {

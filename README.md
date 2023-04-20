@@ -37,8 +37,9 @@ Our script now supports the following datasets:
 - [Guanaco Dataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
 - [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 - [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
+- [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
 
-Please refer to `config_data.py` for details.
+Please refer to [data/README.md](data/README.md) for details.
 
 ## Fine-Tuning Methods
 
@@ -217,7 +218,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 
 ## License
 
-This repository is licensed under the [Apache-2.0 License](LICENSE).
+This repository is licensed under the [Apache-2.0 License](LICENSE). Please follow the [Model License](https://github.com/THUDM/ChatGLM-6B/blob/main/MODEL_LICENSE) to use ChatGLM-6B model.
 
 ## Citation
 

@@ -39,8 +39,9 @@
 - [Guanaco Dataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
 - [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 - [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
+- [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
 
-使用方法请参考 `config_data.py`。
+使用方法请参考 [data/README.md](data/README.md) 文件。
 
 ## 微调方法
 
@@ -219,7 +220,7 @@ model = model.half().cuda()
 
 ## 协议
 
-本仓库的代码依照 [Apache-2.0](LICENSE) 协议开源。
+本仓库的代码依照 [Apache-2.0](LICENSE) 协议开源。ChatGLM-6B 模型的使用请遵循[模型协议](https://github.com/THUDM/ChatGLM-6B/blob/main/MODEL_LICENSE)。
 
 ## 引用
 
