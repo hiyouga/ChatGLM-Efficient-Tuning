@@ -24,9 +24,7 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
-<font size=2>
-本项目默认会联网获取最新的 ChatGLM 模型，其版本可能影响代码效果甚至报错，建议使用官方最新的模型版本文件。若频繁出现网络无法连接，请尝试使用下述命令下载官方模型，并修改 src/utils/config.py 中的 <a href="https://github.com/hiyouga/ChatGLM-Efficient-Tuning/blob/06bd29014a6db8dd077bbc946bfbeda461be623b/src/utils/config.py#L7" target="_blank">CHATGLM_REPO_NAME</a> 为存放模型文件的本地路径。
-</font>
+###### 本项目默认会联网获取最新的 ChatGLM 模型，其版本可能影响代码效果甚至报错，建议使用官方最新的模型版本文件。若频繁出现网络无法连接，请尝试使用下述命令下载官方模型，并修改 `src/utils/config.py` 中的 [CHATGLM_REPO_NAME](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/blob/06bd29014a6db8dd077bbc946bfbeda461be623b/src/utils/config.py#L7) 为存放模型文件的本地路径。
 
 ```bash
 git lfs install
@@ -54,11 +52,9 @@ git clone https://huggingface.co/THUDM/chatglm-6b
 ]
 ```
 
-提示：你可以将 `[NAME]` 换成你自己的名字，从而让模型回答它的创造者是你。
+**提示：你可以将 `[NAME]` 换成你自己的名字，从而让模型回答它的创造者是你。**
 
-<font size=2>
-本框架内置了十余种指令数据集，其简要介绍请移步 data 文件夹。同时，框架支持用户提供的自定义数据集，请保证你的数据集和 data/example_dataset 中的 example_dataset.json 文件格式相同。其中 instruction 项和 output 项为必需项，以保证模型的监督微调（SFT）能够正常运行。
-</font>
+###### 本框架内置了十余种指令数据集，其简要介绍请移步 data 文件夹。同时，框架支持用户提供的自定义数据集，请保证你的数据集和 `data/example_dataset` 中的 `example_dataset.json` 文件格式相同。其中 `instruction` 项和 `output` 项为必需项，以保证模型的监督微调（SFT）能够正常运行。
 
 ## 三、模型监督微调
 
