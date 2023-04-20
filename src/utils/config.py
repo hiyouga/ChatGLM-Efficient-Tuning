@@ -58,7 +58,7 @@ class ModelArguments:
     )
     resize_position_embeddings: Optional[bool] = field(
         default=False,
-        metadata={"help": "Whether to resize the position embeddings if `max_source_length` exceeds."}
+        metadata={"help": "Whether to resize the position embeddings if `max_source_length` exceeds or not."}
     )
     quantization_bit: Optional[int] = field(
         default=None,
@@ -86,6 +86,10 @@ class DataTrainingArguments:
     dataset_dir: Optional[str] = field(
         default="data",
         metadata={"help": "The name of the folder containing datasets."}
+    )
+    split: Optional[str] = field(
+        default="train",
+        metadata={"help": "Which split of the dataset to use for training and evaluation."}
     )
     overwrite_cache: bool = field(
         default=False,
@@ -176,7 +180,7 @@ class FinetuningArguments:
     )
     prefix_projection: bool = field(
         default=False,
-        metadata={"help": "Whether to add a project layer for the prefix in P-tuning v2."}
+        metadata={"help": "Whether to add a project layer for the prefix in P-tuning v2 or not."}
     )
     lora_rank: Optional[int] = field(
         default=8,
@@ -200,7 +204,7 @@ class FinetuningArguments:
     )
     plot_loss: Optional[bool] = field(
         default=False,
-        metadata={"help": "Whether to plot the training loss after fine-tuning."}
+        metadata={"help": "Whether to plot the training loss after fine-tuning or not."}
     )
 
     def __post_init__(self):

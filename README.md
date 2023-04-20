@@ -38,6 +38,7 @@ Our script now supports the following datasets:
 - [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 - [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
 - [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
+- [Web QA](https://huggingface.co/datasets/suolyer/webqa)
 
 Please refer to [data/README.md](data/README.md) for details.
 

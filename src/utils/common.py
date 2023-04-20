@@ -264,7 +264,7 @@ def prepare_data(
             )
         else:
             raise NotImplementedError
-        dataset = raw_datasets["train"] # always use the training set
+        dataset = raw_datasets[data_args.split]
 
         if max_samples is not None:
             max_samples_temp = min(len(dataset), max_samples)
