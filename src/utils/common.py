@@ -278,9 +278,9 @@ def prepare_data(
             ("history_column", "history")
         ]: # every dataset will have 4 columns same as each other
             if getattr(dataset_info, column) != column_name:
-                if getattr(dataset_info, column) is not None:
+                if getattr(dataset_info, column):
                     dataset = dataset.rename_column(getattr(dataset_info, column), column_name)
-                else:
+                else: # None or empty string
                     dataset = dataset.add_column(column_name, dummy_data)
         all_datasets.append(dataset)
 
