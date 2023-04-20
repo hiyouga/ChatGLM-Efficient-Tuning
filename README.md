@@ -36,6 +36,7 @@ Our script now supports the following datasets:
 - [BELLE Multiturn Chat 0.8M](https://huggingface.co/datasets/BelleGroup/multiturn_chat_0.8M)
 - [Guanaco Dataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
 - [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
+- [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
 
 Please refer to `config_data.py` for details.
 

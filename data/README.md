@@ -45,5 +45,6 @@ Data format in `dataset_info.json`:
 | [BELLE Multiturn Chat 0.8M](https://huggingface.co/datasets/BelleGroup/multiturn_chat_0.8M) | 800k | 包含约80万条由[BELLE](https://github.com/LianjiaTech/BELLE)项目生成的用户与助手的多轮对话 |
 | [Guanaco Dataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset) | 100k+ | 包含日文、简繁体中文、英文等多类数据，数据集原用于 Guanaco 模型训练 |
 | [Firefly 1.1M](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M) | 1.1M  | 中文对话大模型 firefly（流萤）的中文数据集，包含多个 NLP 任务 |
+| [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k) | 20k | 英文代码生成任务数据集 |
 
 注：BELLE 的数据集是由 ChatGPT 产生的数据集，不保证数据准确性，所有类 GPT 模型产生的 self-instruction 都不能保证准确率。

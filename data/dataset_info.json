@@ -57,6 +57,9 @@
             "history": ""
         }
     },
+    "codealpaca": {
+        "hf_hub_url": "sahil2801/CodeAlpaca-20k"
+    },
     "example": {
         "script_url": "example_dataset",
         "columns": {
