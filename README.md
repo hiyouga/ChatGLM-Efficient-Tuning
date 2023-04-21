@@ -68,7 +68,9 @@ And **powerful GPUs**!
 
 ### Data Preparation (optional)
 
-Please refer to `data/example_dataset` for checking the details about the format. You can either use a single `.json` file or a [dataset loading script](https://huggingface.co/docs/datasets/dataset_script) with multiple files to create a custom dataset.
+Please refer to `data/example_dataset` for checking the details about the format of dataset files. You can either use a single `.json` file or a [dataset loading script](https://huggingface.co/docs/datasets/dataset_script) with multiple files to create a custom dataset.
+
+Note: please update `data/dataset_info.json` to use your custom dataset. About the format of this file, please refer to `data/README.md`.
 
 ### Dependence Installation (optional)
 
