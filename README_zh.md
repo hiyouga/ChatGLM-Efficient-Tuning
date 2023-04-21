@@ -84,7 +84,7 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
-### 微调训练
+### 单 GPU 微调训练
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
@@ -97,18 +97,19 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --max_train_samples 10000 \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
     --fp16
 ```
 
 ### 多 GPU 分布式微调
+
 ```bash
+accelerate config # 首先配置分布式环境
 accelerate launch python src/finetune.py # 参数同上
 ```
 
-注意：分布式微调目前似乎**并不支持 LoRA 方法**。
+注意：若您使用 LoRA 方法进行微调，请指定以下参数 `--ddp_find_unused_parameters False` 来避免报错。
 
 ### 指标评估（BLEU分数和汉语ROUGE分数）
 
@@ -131,6 +132,7 @@ CUDA_VISIBLE_DEVICES=0 python src/infer.py \
 ```
 
 ### 部署微调模型
+
 ```python
 from .src import load_pretrained, ModelArguments
 model_args = ModelArguments(checkpoint_dir=path_to_checkpoint_dir)

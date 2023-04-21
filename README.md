@@ -82,7 +82,7 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
-### Fine-tuning
+### Fine-tuning with a Single GPU
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
@@ -95,18 +95,19 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --max_train_samples 10000 \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
     --fp16
 ```
 
 ### Distributed Fine-tuning with Multiple GPUs
+
 ```bash
+accelerate config # configure the environment
 accelerate launch python src/finetune.py # arguments (same as above)
 ```
 
-Note: distributed fine-tuning seems **not compatible with the LoRA method**.
+Note: if you are using LoRA method in fine-tuning, please provide `--ddp_find_unused_parameters False` argument to avoid the runtime error.
 
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
@@ -213,7 +214,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
   - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [x] Implementing the Freeze-Tuning and P-Tuning method.
-- [x] Supporting Multi-GPUs fine-tuning. (but it does not support LoRA tuning)
+- [x] Supporting Multi-GPUs fine-tuning.
 - [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
 - [x] Loading from checkpoint.
 - [x] Fine-tuning the quantized model.
