@@ -128,9 +128,8 @@ def load_pretrained(
 
     if finetuning_args.finetuning_type == "freeze":
         logger.info("Fine-tuning method: Freeze")
-        trainable_layers = ["layers.{:d}.mlp".format(27-k) for k in range(finetuning_args.num_layer_trainable)]
         for name, param in model.named_parameters():
-            if not any(trainable_layer in name for trainable_layer in trainable_layers):
+            if not any(trainable_layer in name for trainable_layer in finetuning_args.trainable_layers):
                 param.requires_grad_(False)
             else:
                 param.data = param.data.to(torch.float32) # we cannot train model in half (fp16) precision

@@ -44,15 +44,15 @@ class ModelArguments:
         default=None,
         metadata={"help": "Where to store the pretrained models downloaded from huggingface.co."}
     )
-    use_fast_tokenizer: bool = field(
+    use_fast_tokenizer: Optional[bool] = field(
         default=True,
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."}
     )
-    model_revision: str = field(
+    model_revision: Optional[str] = field(
         default=CHATGLM_LASTEST_HASH,
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."}
     )
-    use_auth_token: bool = field(
+    use_auth_token: Optional[bool] = field(
         default=False,
         metadata={"help": "Will use the token generated when running `huggingface-cli login`."}
     )
@@ -89,9 +89,9 @@ class DataTrainingArguments:
     )
     split: Optional[str] = field(
         default="train",
-        metadata={"help": "Which split of the dataset to use for training and evaluation."}
+        metadata={"help": "Which dataset split to use for training and evaluation."}
     )
-    overwrite_cache: bool = field(
+    overwrite_cache: Optional[bool] = field(
         default=False,
         metadata={"help": "Overwrite the cached training and evaluation sets."}
     )
@@ -107,10 +107,6 @@ class DataTrainingArguments:
         default=512,
         metadata={"help": "The maximum total output sequence length after tokenization."}
     )
-    pad_to_max_length: bool = field(
-        default=False,
-        metadata={"help": "Whether to pad all samples to model maximum sentence length or not."}
-    )
     max_train_samples: Optional[int] = field(
         default=None,
         metadata={"help": "For debugging purposes, truncate the number of training examples for each dataset."}
@@ -121,9 +117,9 @@ class DataTrainingArguments:
     )
     num_beams: Optional[int] = field(
         default=None,
-        metadata={"help": "Number of beams to use for evaluation. This argument will be passed to ``model.generate``"}
+        metadata={"help": "Number of beams to use for evaluation. This argument will be passed to `model.generate`"}
     )
-    ignore_pad_token_for_loss: bool = field(
+    ignore_pad_token_for_loss: Optional[bool] = field(
         default=True,
         metadata={"help": "Whether to ignore the tokens corresponding to padded labels in the loss computation or not."}
     )
@@ -178,7 +174,7 @@ class FinetuningArguments:
         default=16,
         metadata={"help": "Number of prefix tokens to use for P-tuning v2."}
     )
-    prefix_projection: bool = field(
+    prefix_projection: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to add a project layer for the prefix in P-tuning v2 or not."}
     )
@@ -209,6 +205,11 @@ class FinetuningArguments:
 
     def __post_init__(self):
         self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
+
+        if self.num_layer_trainable > 0: # fine-tuning the last n layers if num_layer_trainable > 0
+            self.trainable_layers = ["layers.{:d}.mlp".format(27-k) for k in range(self.num_layer_trainable)]
+        else: # fine-tuning the first n layers if num_layer_trainable < 0
+            self.trainable_layers = ["layers.{:d}.mlp".format(k) for k in range(-self.num_layer_trainable)]
 
         if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
             raise NotImplementedError("Invalid fine-tuning method.")

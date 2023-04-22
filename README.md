@@ -44,6 +44,13 @@ Our script now supports the following datasets:
 
 Please refer to [data/README.md](data/README.md) for details.
 
+Some dataset requires confirmation before using it, so we recommend logging in with your HuggingFace account using these command.
+
+```bash
+pip install --upgrade huggingface_hub
+huggingface-cli login
+```
+
 ## Fine-Tuning Methods
 
 Our script now supports the following fine-tuning methods:
@@ -99,6 +106,8 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --num_train_epochs 1.0 \
     --fp16
 ```
+
+Please refer to our [Wiki](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/wiki) about the details of the arguments.
 
 ### Distributed Fine-tuning with Multiple GPUs
 

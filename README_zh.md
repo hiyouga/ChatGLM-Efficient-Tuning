@@ -46,6 +46,13 @@
 
 使用方法请参考 [data/README.md](data/README.md) 文件。
 
+部分数据集的使用需要确认，我们推荐使用下述命令登录您的 HuggingFace 账户。
+
+```bash
+pip install --upgrade huggingface_hub
+huggingface-cli login
+```
+
 ## 微调方法
 
 目前我们实现了针对以下高效微调方法的支持：
@@ -101,6 +108,8 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --num_train_epochs 1.0 \
     --fp16
 ```
+
+关于参数信息，请查阅我们的[维基](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/wiki)。
 
 ### 多 GPU 分布式微调
 
