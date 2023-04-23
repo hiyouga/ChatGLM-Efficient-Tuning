@@ -43,6 +43,7 @@
 - [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
 - [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
 - [Web QA (Chinese)](https://huggingface.co/datasets/suolyer/webqa)
+- [UltraChat](https://github.com/thunlp/UltraChat)
 
 使用方法请参考 [data/README.md](data/README.md) 文件。
 
@@ -69,7 +70,8 @@ huggingface-cli login
 - Python 3.8+, PyTorch 2.0.0
 - 🤗Transformers, Datasets, Accelerate, PEFT（最低需要 0.3.0.dev0）
 - protobuf, cpm_kernels, sentencepiece
-- jieba, rouge_chinese, nltk
+- jieba, rouge_chinese, nltk（用于评估）
+- gradio, mdtex2html（用于网页端交互）
 
 以及 **强而有力的 GPU**！
 
@@ -115,7 +117,7 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
 
 ```bash
 accelerate config # 首先配置分布式环境
-accelerate launch python src/finetune.py # 参数同上
+accelerate launch src/finetune.py # 参数同上
 ```
 
 注意：若您使用 LoRA 方法进行微调，请指定以下参数 `--ddp_find_unused_parameters False` 来避免报错。
@@ -240,6 +242,7 @@ model = model.half().cuda()
 - [ ] 撰写基于该框架的 ChatGLM 模型微调指南手册。
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
 - [ ] 加入 [OpenAssistant 对话数据集](https://huggingface.co/datasets/OpenAssistant/oasst1)用于监督微调和意图对齐。
+- [ ] 加入高质量中文开源指令数据集 [COIG](https://huggingface.co/datasets/BAAI/COIG)。
 
 ## 协议
 

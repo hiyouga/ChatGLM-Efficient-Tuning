@@ -72,6 +72,15 @@
             "history": ""
         }
     },
+    "ultra_chat": {
+        "script_url": "ultra_chat",
+        "columns": {
+            "prompt": "instruction",
+            "query": "",
+            "response": "output",
+            "history": "history"
+        }
+    },
     "example": {
         "script_url": "example_dataset",
         "columns": {

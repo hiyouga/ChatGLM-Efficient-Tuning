@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding=utf-8
 # Implement several parameter-efficient fine-tuning method for ChatGLM.
 # This code is largely borrowed from https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py

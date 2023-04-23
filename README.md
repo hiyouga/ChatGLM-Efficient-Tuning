@@ -41,10 +41,11 @@ Our script now supports the following datasets:
 - [CodeAlpaca 20k](https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k)
 - [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
 - [Web QA (Chinese)](https://huggingface.co/datasets/suolyer/webqa)
+- [UltraChat](https://github.com/thunlp/UltraChat)
 
 Please refer to [data/README.md](data/README.md) for details.
 
-Some dataset requires confirmation before using it, so we recommend logging in with your HuggingFace account using these command.
+Some datasets require confirmation before using them, so we recommend logging in with your HuggingFace account using these commands.
 
 ```bash
 pip install --upgrade huggingface_hub
@@ -67,7 +68,8 @@ Our script now supports the following fine-tuning methods:
 - Python 3.8+ and PyTorch 2.0.0
 - 🤗Transformers, Datasets, Accelerate and PEFT (0.3.0.dev0 is required)
 - protobuf, cpm_kernels, sentencepiece
-- jieba, rouge_chinese, nltk
+- jieba, rouge_chinese, nltk (used at evaluation)
+- gradio, mdtex2html (used in web_demo.py)
 
 And **powerful GPUs**!
 
@@ -113,7 +115,7 @@ Please refer to our [Wiki](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/w
 
 ```bash
 accelerate config # configure the environment
-accelerate launch python src/finetune.py # arguments (same as above)
+accelerate launch src/finetune.py # arguments (same as above)
 ```
 
 Note: if you are using LoRA method in fine-tuning, please provide `--ddp_find_unused_parameters False` argument to avoid the runtime error.
@@ -236,6 +238,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 - [ ] Writing a guidebook about how to fine-tune ChatGLM with this framework.
 - [ ] Combining with state-of-the-art model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 - [ ] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and alignment.
+- [ ] Incorporating the high quality Chinese instruction dataset [COIG](https://huggingface.co/datasets/BAAI/COIG).
 
 ## License
 

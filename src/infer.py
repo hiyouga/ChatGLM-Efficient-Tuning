@@ -1,6 +1,5 @@
-#!/usr/bin/env python
 # coding=utf-8
-# Implement stream chat in command line for ChatGLM finetuned with PEFT.
+# Implement stream chat in command line for ChatGLM fine-tuned with PEFT.
 # This code is largely borrowed from https://github.com/THUDM/ChatGLM-6B/blob/main/cli_demo.py
 
 

@@ -1,9 +1,14 @@
-"""copy from https://github.com/THUDM/ChatGLM-6B"""
+# coding=utf-8
+# Implement user interface in browser for ChatGLM fine-tuned with PEFT.
+# This code is largely borrowed from https://github.com/THUDM/ChatGLM-6B/blob/main/web_demo.py
+
+
 import gradio as gr
 import mdtex2html
 
 from utils import ModelArguments, load_pretrained
 from transformers import HfArgumentParser
+
 
 parser = HfArgumentParser(ModelArguments)
 model_args, = parser.parse_args_into_dataclasses()
@@ -28,8 +33,7 @@ def postprocess(self, y):
 gr.Chatbot.postprocess = postprocess
 
 
-def parse_text(text):
-    """copy from https://github.com/GaiZhenbiao/ChuanhuChatGPT/"""
+def parse_text(text): # copy from https://github.com/GaiZhenbiao/ChuanhuChatGPT
     lines = text.split("\n")
     lines = [line for line in lines if line != ""]
     count = 0
