@@ -138,6 +138,12 @@ CUDA_VISIBLE_DEVICES=0 python src/infer.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
+### Web Demo
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/web_demo.py \
+    --checkpoint_dir path_to_checkpoint
+```
+
 ### Deploy the Fine-tuned Model
 ```python
 from .src import load_pretrained, ModelArguments
