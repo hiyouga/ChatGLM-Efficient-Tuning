@@ -156,19 +156,23 @@ class FinetuningArguments:
     """
     finetuning_type: Optional[str] = field(
         default="lora",
-        metadata={"help": "The name of fine-tuning technique."}
+        metadata={"help": "Which fine-tuning method to use."}
     )
     num_layer_trainable: Optional[int] = field(
         default=3,
         metadata={"help": "Number of trainable layers for Freeze fine-tuning."}
     )
+    name_module_trainable: Optional[str] = field(
+        default="mlp",
+        metadata={"help": "Name of trainable modules for Freeze fine-tuning."}
+    )
     pre_seq_len: Optional[int] = field(
         default=16,
-        metadata={"help": "Number of prefix tokens to use for P-tuning v2."}
+        metadata={"help": "Number of prefix tokens to use for P-tuning V2."}
     )
     prefix_projection: Optional[bool] = field(
         default=False,
-        metadata={"help": "Whether to add a project layer for the prefix in P-tuning v2 or not."}
+        metadata={"help": "Whether to add a project layer for the prefix in P-tuning V2 or not."}
     )
     lora_rank: Optional[int] = field(
         default=8,
@@ -184,7 +188,7 @@ class FinetuningArguments:
     )
     lora_target: Optional[str] = field(
         default="query_key_value",
-        metadata={"help": "The name(s) of target modules to apply LoRA. Use comma to separate multiple modules."}
+        metadata={"help": "Name(s) of target modules to apply LoRA. Use comma to separate multiple modules."}
     )
     resume_lora_training: Optional[bool] = field(
         default=True,
@@ -199,9 +203,13 @@ class FinetuningArguments:
         self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
 
         if self.num_layer_trainable > 0: # fine-tuning the last n layers if num_layer_trainable > 0
-            self.trainable_layers = ["layers.{:d}.mlp".format(27-k) for k in range(self.num_layer_trainable)]
+            trainable_layer_ids = [27-k for k in range(self.num_layer_trainable)]
         else: # fine-tuning the first n layers if num_layer_trainable < 0
-            self.trainable_layers = ["layers.{:d}.mlp".format(k) for k in range(-self.num_layer_trainable)]
+            trainable_layer_ids = [k for k in range(-self.num_layer_trainable)]
+        if self.name_module_trainable == "mlp":
+            self.trainable_layers = ["layers.{:d}.mlp".format(idx) for idx in trainable_layer_ids]
+        elif self.name_module_trainable == "qkv":
+            self.trainable_layers = ["layers.{:d}.attention.query_key_value".format(idx) for idx in trainable_layer_ids]
 
         if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
             raise NotImplementedError("Invalid fine-tuning method.")

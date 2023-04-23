@@ -118,7 +118,7 @@ accelerate config # configure the environment
 accelerate launch src/finetune.py # arguments (same as above)
 ```
 
-Note: if you are using LoRA method in fine-tuning, please provide `--ddp_find_unused_parameters False` argument to avoid the runtime error.
+Note: if you are using LoRA method at fine-tuning, please provide `--ddp_find_unused_parameters False` argument to avoid the runtime error.
 
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
@@ -181,7 +181,7 @@ model = model.half().cuda()
 | Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
 | Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
 
-> Note: `r` is the lora rank, `p` is the number of prefix tokens, `l` is the number of trainable layers, `ex/s` is the examples per second in training. The `gradient_accumulation_steps` is set to `1`. All are evaluated on a single Tesla V100 (32G) GPU, they are approximated values and may vary in different GPUs.
+> Note: `r` is the lora rank, `p` is the number of prefix tokens, `l` is the number of trainable layers, `ex/s` is the examples per second at training. The `gradient_accumulation_steps` is set to `1`. All are evaluated on a single Tesla V100 (32G) GPU, they are approximated values and may vary in different GPUs.
 
 ## Fine-tuning ChatGLM: A Case
 

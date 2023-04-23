@@ -41,7 +41,14 @@ def main():
     history = []
     print(welcome)
     while True:
-        query = input("\nInput:")
+        try:
+            query = input("\nInput: ")
+        except UnicodeDecodeError:
+            print("Detected decoding error at the inputs, please set the terminal encoding to utf-8.")
+            continue
+        except Exception:
+            raise
+
         if query.strip() == "stop":
             break
         if query.strip() == "clear":
@@ -49,6 +56,7 @@ def main():
             os.system(clear_command)
             print(welcome)
             continue
+
         count = 0
         for _, history in model.stream_chat(tokenizer, query, history=history):
             if stop_stream:
