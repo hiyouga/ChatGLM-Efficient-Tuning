@@ -9,3 +9,5 @@ jieba
 rouge_chinese
 nltk
 git+https://github.com/huggingface/peft.git
+gradio
+mdtex2html
