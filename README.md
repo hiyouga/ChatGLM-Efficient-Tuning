@@ -127,9 +127,21 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_eval \
     --dataset alpaca_gpt4_zh \
     --checkpoint_dir path_to_checkpoint \
-    --output_dir eval \
+    --output_dir path_to_eval_result \
     --per_device_eval_batch_size 8 \
-    --max_eval_samples 50 \
+    --max_samples 50 \
+    --predict_with_generate
+```
+
+### Predict
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+    --do_predict \
+    --dataset alpaca_gpt4_zh \
+    --checkpoint_dir path_to_checkpoint \
+    --output_dir path_to_predict_result \
+    --per_device_eval_batch_size 8 \
+    --max_samples 50 \
     --predict_with_generate
 ```
 
@@ -149,7 +161,7 @@ CUDA_VISIBLE_DEVICES=0 python src/web_demo.py \
 ### Deploy the Fine-tuned Model
 ```python
 from .src import load_pretrained, ModelArguments
-model_args = ModelArguments(checkpoint_dir=path_to_checkpoint_dir)
+model_args = ModelArguments(checkpoint_dir=path_to_checkpoint)
 model, tokenizer = load_pretrained(model_args)
 model = model.half().cuda()
 # model.generate, model.chat()...

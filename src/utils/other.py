@@ -90,7 +90,7 @@ def prepare_model_for_training(
 
 # This function merges lora weights from multiple checkpoints
 # Inspired by: https://github.com/huggingface/peft/blob/34027fe813756897767b9a6f19ae7f1c4c7b418c/src/peft/tuners/lora.py#L451
-def merge_lora_weights(model: PreTrainedModel, checkpoints_to_merge: List[str]) -> None:
+def merge_lora_weights(model: PreTrainedModel, checkpoints_to_merge: List[str]) -> int:
     checkpoint_merged = 0
     for checkpoint_dir in checkpoints_to_merge:
         adapter_config = json.load(open(os.path.join(checkpoint_dir, CONFIG_NAME), "r"))
@@ -114,7 +114,7 @@ def merge_lora_weights(model: PreTrainedModel, checkpoints_to_merge: List[str]) 
                 param.data += weight_to_merge.to(param.device) * scaling
                 is_merged = True
         checkpoint_merged = checkpoint_merged + 1 if is_merged else checkpoint_merged
-    logger.info("Merged {} model checkpoint(s).".format(checkpoint_merged))
+    return checkpoint_merged
 
 
 def plot_loss(training_args: Seq2SeqTrainingArguments) -> None:
@@ -136,3 +136,4 @@ def plot_loss(training_args: Seq2SeqTrainingArguments) -> None:
 
 IGNORE_INDEX = -100
 FINETUNING_ARGS_NAME = "finetuning_args.bin"
+PREDICTION_FILE_NAME = "generated_predictions.txt"

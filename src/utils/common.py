@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import hashlib
 import logging
 import torch
@@ -18,7 +19,7 @@ from transformers import (
     DataCollatorForSeq2Seq,
     set_seed
 )
-from transformers.trainer import TRAINING_ARGS_NAME
+from transformers.trainer import PredictionOutput, TRAINING_ARGS_NAME
 from transformers.deepspeed import is_deepspeed_zero3_enabled
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils import PreTrainedTokenizer
@@ -47,7 +48,8 @@ from .other import (
     prepare_model_for_training,
     merge_lora_weights,
     IGNORE_INDEX,
-    FINETUNING_ARGS_NAME
+    FINETUNING_ARGS_NAME,
+    PREDICTION_FILE_NAME
 )
 
 
@@ -146,11 +148,13 @@ def load_pretrained(
                 checkpoints_to_merge, lastest_checkpoint = model_args.checkpoint_dir[:-1], model_args.checkpoint_dir[-1]
             else:
                 checkpoints_to_merge = model_args.checkpoint_dir
-            merge_lora_weights(model, checkpoints_to_merge)
+            checkpoint_merged = merge_lora_weights(model, checkpoints_to_merge)
             if lastest_checkpoint is not None: # resume lora training
                 model = PeftModel.from_pretrained(model, lastest_checkpoint, is_trainable=is_trainable)
                 if not is_trainable: # merge the lastest LoRA weights to evaluate the model
                     model.merge_and_unload()
+                    checkpoint_merged += 1
+            logger.info("Merged {} model checkpoint(s).".format(checkpoint_merged))
         if lastest_checkpoint is None: # create new lora weights
             lora_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
@@ -180,8 +184,8 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
         model_args, data_args, training_args, finetuning_args = parser.parse_args_into_dataclasses()
 
     # Check arguments
-    if training_args.do_train and training_args.do_eval:
-        raise ValueError("We don't support training and evaluation simultaneously.")
+    if int(training_args.do_train) + int(training_args.do_eval) + int(training_args.do_predict) != 1:
+        raise ValueError("We must perform single operation from do_train, do_eval and do_predict.")
     training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
 
     if model_args.quantization_bit is not None: # perform FP16 checking or GPU checking
@@ -225,8 +229,7 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
 
 def prepare_data(
         model_args: ModelArguments,
-        data_args: DataTrainingArguments,
-        training_args: Seq2SeqTrainingArguments
+        data_args: DataTrainingArguments
 ) -> Dataset:
     # Load and verify dataset
     def checksum(file_path, hash):
@@ -236,7 +239,7 @@ def prepare_data(
         if sha1 != hash:
             logger.warning("Checksum failed for {}. It may vary depending on the platform.".format(file_path))
 
-    max_samples = data_args.max_train_samples if training_args.do_train else data_args.max_eval_samples
+    max_samples = data_args.max_samples
     all_datasets = [] # support multiple datasets
 
     for dataset_info in data_args.dataset_list:
@@ -533,3 +536,22 @@ class TrainerForChatGLM(Seq2SeqTrainer):
             labels = None
 
         return loss, generated_tokens, labels
+
+    def save_predictions(
+            self,
+            predict_results: PredictionOutput,
+            tokenizer: PreTrainedTokenizer
+    ) -> None: # custom behavior
+        if self.is_world_process_zero():
+            if self.args.predict_with_generate:
+                predictions = tokenizer.batch_decode(predict_results.predictions, skip_special_tokens=True)
+                predictions = [pred.strip() for pred in predictions]
+                labels = tokenizer.batch_decode(predict_results.label_ids, skip_special_tokens=True)
+                labels = [label.strip() for label in labels]
+                output_prediction_file = os.path.join(self.args.output_dir, PREDICTION_FILE_NAME)
+                logger.info(f"Saving prediction results to {output_prediction_file}")
+                with open(output_prediction_file, "w", encoding="utf-8") as writer:
+                    res = []
+                    for pred, label in zip(predictions, labels):
+                        res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
+                    writer.write("\n".join(res))

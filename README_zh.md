@@ -129,31 +129,43 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_eval \
     --dataset alpaca_gpt4_zh \
     --checkpoint_dir path_to_checkpoint \
-    --output_dir eval \
+    --output_dir path_to_eval_result \
     --per_device_eval_batch_size 8 \
-    --max_eval_samples 50 \
+    --max_samples 50 \
     --predict_with_generate
 ```
 
-### 效果测试
+### 模型预测
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+    --do_predict \
+    --dataset alpaca_gpt4_zh \
+    --checkpoint_dir path_to_checkpoint \
+    --output_dir path_to_predict_result \
+    --per_device_eval_batch_size 8 \
+    --max_samples 50 \
+    --predict_with_generate
+```
+
+### 命令行测试
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/infer.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### 网页版测试
+### 浏览器测试
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/web_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### 部署微调模型
+### 模型部署
 
 ```python
 from .src import load_pretrained, ModelArguments
-model_args = ModelArguments(checkpoint_dir=path_to_checkpoint_dir)
+model_args = ModelArguments(checkpoint_dir=path_to_checkpoint)
 model, tokenizer = load_pretrained(model_args)
 model = model.half().cuda()
 # model.generate, model.chat()...

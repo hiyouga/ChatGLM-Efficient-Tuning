@@ -19,10 +19,15 @@ def main():
 
     # Prepare pretrained model and dataset
     model_args, data_args, training_args, finetuning_args = prepare_args()
-    dataset = prepare_data(model_args, data_args, training_args)
+    dataset = prepare_data(model_args, data_args)
     model, tokenizer = load_pretrained(model_args, finetuning_args, is_trainable=training_args.do_train)
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args)
-    data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss, training_args.do_eval)
+    data_collator = DataCollatorForChatGLM(
+        tokenizer=tokenizer,
+        model=model,
+        ignore_pad_token_for_loss=data_args.ignore_pad_token_for_loss,
+        inference_mode=(not training_args.do_train)
+    )
 
     # Override the decoding parameters of Trainer
     training_args.generation_max_length = training_args.generation_max_length if \
@@ -42,6 +47,14 @@ def main():
         compute_metrics=ComputeMetrics(tokenizer) if training_args.predict_with_generate else None
     )
 
+    # Keyword arguments for `model.generate`
+    gen_kwargs = {
+        "do_sample": True,
+        "top_p": 0.7,
+        "max_length": 768,
+        "temperature": 0.95
+    }
+
     # Training
     if training_args.do_train:
         train_result = trainer.train()
@@ -55,9 +68,17 @@ def main():
     # Evaluation
     if training_args.do_eval:
         model = model.half() # don't use `--fp16` argument at evaluation
-        metrics = trainer.evaluate(metric_key_prefix="eval", do_sample=True, top_p=0.7, max_length=768, temperature=0.95)
+        metrics = trainer.evaluate(metric_key_prefix="eval", **gen_kwargs)
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
+
+    # Predict
+    if training_args.do_predict:
+        model = model.half()
+        predict_results = trainer.predict(dataset, metric_key_prefix="predict", **gen_kwargs)
+        trainer.log_metrics("predict", predict_results.metrics)
+        trainer.save_metrics("predict", predict_results.metrics)
+        trainer.save_predictions(predict_results, tokenizer)
 
 
 def _mp_fn(index):

@@ -7,5 +7,5 @@ CUDA_VISIBLE_DEVICES=0 python ../src/finetune.py \
     --output_dir output_eval \
     --overwrite_cache \
     --per_device_eval_batch_size 8 \
-    --max_eval_samples 20 \
+    --max_samples 20 \
     --predict_with_generate

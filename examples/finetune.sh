@@ -12,7 +12,7 @@ CUDA_VISIBLE_DEVICES=0 python ../src/finetune.py \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --max_train_samples 10000 \
+    --max_samples 10000 \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
     --fp16

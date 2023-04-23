@@ -56,10 +56,6 @@ class ModelArguments:
         default=False,
         metadata={"help": "Will use the token generated when running `huggingface-cli login`."}
     )
-    resize_position_embeddings: Optional[bool] = field(
-        default=False,
-        metadata={"help": "Whether to resize the position embeddings if `max_source_length` exceeds or not."}
-    )
     quantization_bit: Optional[int] = field(
         default=None,
         metadata={"help": "The number of bits to quantize the model."}
@@ -107,13 +103,9 @@ class DataTrainingArguments:
         default=512,
         metadata={"help": "The maximum total output sequence length after tokenization."}
     )
-    max_train_samples: Optional[int] = field(
+    max_samples: Optional[int] = field(
         default=None,
-        metadata={"help": "For debugging purposes, truncate the number of training examples for each dataset."}
-    )
-    max_eval_samples: Optional[int] = field(
-        default=None,
-        metadata={"help": "For debugging purposes, truncate the number of evaluation examples for each dataset."}
+        metadata={"help": "For debugging purposes, truncate the number of examples for each dataset."}
     )
     num_beams: Optional[int] = field(
         default=None,
