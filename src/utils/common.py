@@ -429,10 +429,11 @@ class ComputeMetrics:
         for pred, label in zip(decoded_preds, decoded_labels):
             hypothesis = list(jieba.cut(pred))
             reference = list(jieba.cut(label))
-            rouge = Rouge()
-            if len(hypothesis) == 0:
-                result = {"rouge-1": 0.0, "rouge-2": 0.0, "rouge-l": 0.0}
+
+            if len(" ".join(hypothesis).split()) == 0:
+                result = {"rouge-1": {"f": 0.0}, "rouge-2": {"f": 0.0}, "rouge-l": {"f": 0.0}}
             else:
+                rouge = Rouge()
                 scores = rouge.get_scores(" ".join(hypothesis), " ".join(reference))
                 result = scores[0]
 
