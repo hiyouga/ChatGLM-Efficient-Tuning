@@ -394,7 +394,7 @@ class DataCollatorForChatGLM(DataCollatorForSeq2Seq): # dynamically padding for 
             inference_mode: bool = False
     ):
         label_pad_token_id = IGNORE_INDEX if ignore_pad_token_for_loss else tokenizer.pad_token_id
-        super().__init__(tokenizer, model=model, label_pad_token_id=label_pad_token_id, padding=False)
+        super().__init__(tokenizer, model=model, label_pad_token_id=label_pad_token_id, padding=True)
         self.label_pad_token_id = label_pad_token_id
         self.inference_mode = inference_mode
 
