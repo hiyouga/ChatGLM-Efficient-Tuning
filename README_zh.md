@@ -13,6 +13,8 @@
 
 ## 更新日志
 
+[23/04/20] 我们新增了一个使用自定义数据集分布式训练的例子，请移步 [ads_generation.md](examples/ads_generation.md) 查阅。
+
 [23/04/20] 我们的项目在 12 天内获得了 100 个 Star！祝贺！
 
 [23/04/20] 我们新增了一个修改模型自我认知的例子，请移步 [alter_self_cognition.md](examples/alter_self_cognition.md) 查阅。
