@@ -101,4 +101,4 @@ CUDA_VISIBLE_DEVICES=0 python src/infer.py \
 
 ## 五、模型部署
 
-如果要将微调后的模型部署在您的项目框架中，请参考 [README_zh.md](../README_zh.md#部署微调模型) 中关于部署微调模型的部分。
+如果要将微调后的模型部署在您的项目框架中，请参考 [README_zh.md](../README_zh.md#模型部署) 中关于部署微调模型的部分。

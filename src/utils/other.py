@@ -57,7 +57,7 @@ def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -
     model.load_state_dict(model_state_dict, strict=False) # skip missing keys
 
 
-# This function includes: (1) cast the laternorm in fp32 (2) make output embedding layer require grads (3) upcast the lm_head to fp32
+# This function includes: (1) cast the layernorm in fp32 (2) make output embedding layer require grads (3) upcast the lm_head to fp32
 # Inspired by: https://github.com/huggingface/peft/blob/c0209c35abbf88c63aa267800d98a8e212ed0a42/src/peft/utils/other.py#L35
 def prepare_model_for_training(
         model: PreTrainedModel,
