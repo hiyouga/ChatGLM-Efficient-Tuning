@@ -191,7 +191,7 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
     if model_args.quantization_bit is not None: # perform FP16 checking or GPU checking
         if finetuning_args.finetuning_type == "p_tuning":
             if training_args.fp16:
-                raise ValueError("Fp16 training conflicts with quantized p-tuning.")
+                raise ValueError("FP16 training conflicts with quantized p-tuning.")
         else:
             from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
             cuda = get_cuda_lib_handle()
