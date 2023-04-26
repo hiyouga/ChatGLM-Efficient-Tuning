@@ -2,10 +2,13 @@ from .common import (
     load_pretrained,
     prepare_args,
     prepare_data,
-    preprocess_data,
-    DataCollatorForChatGLM,
+    preprocess_data
+)
+
+from .seq2seq import (
+    Seq2SeqDataCollatorForChatGLM,
     ComputeMetrics,
-    TrainerForChatGLM
+    Seq2SeqTrainerForChatGLM
 )
 
 from .config import ModelArguments

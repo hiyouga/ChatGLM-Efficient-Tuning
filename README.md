@@ -166,7 +166,8 @@ sys.path.append("src")
 from src import load_pretrained, ModelArguments
 model_args = ModelArguments(checkpoint_dir=path_to_checkpoint)
 model, tokenizer = load_pretrained(model_args)
-model = model.half().cuda()
+model = model.cuda()
+model.eval()
 # model.generate, model.chat()...
 ```
 

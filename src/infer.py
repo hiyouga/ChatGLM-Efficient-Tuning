@@ -36,7 +36,8 @@ def main():
     parser = HfArgumentParser(ModelArguments)
     model_args, = parser.parse_args_into_dataclasses()
     model, tokenizer = load_pretrained(model_args)
-    model = model.half().cuda()
+    model = model.cuda()
+    model.eval()
 
     history = []
     print(welcome)

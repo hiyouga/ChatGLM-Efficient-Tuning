@@ -13,8 +13,8 @@ from transformers import HfArgumentParser
 parser = HfArgumentParser(ModelArguments)
 model_args, = parser.parse_args_into_dataclasses()
 model, tokenizer = load_pretrained(model_args)
-model = model.half().cuda()
-model = model.eval()
+model = model.cuda()
+model.eval()
 
 
 """Override Chatbot.postprocess"""

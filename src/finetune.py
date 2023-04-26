@@ -9,9 +9,9 @@ from utils import (
     prepare_data,
     preprocess_data,
     plot_loss,
-    DataCollatorForChatGLM,
+    Seq2SeqDataCollatorForChatGLM,
     ComputeMetrics,
-    TrainerForChatGLM
+    Seq2SeqTrainerForChatGLM
 )
 
 
@@ -20,9 +20,9 @@ def main():
     # Prepare pretrained model and dataset
     model_args, data_args, training_args, finetuning_args = prepare_args()
     dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, finetuning_args, is_trainable=training_args.do_train)
+    model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, is_trainable=training_args.do_train)
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args)
-    data_collator = DataCollatorForChatGLM(
+    data_collator = Seq2SeqDataCollatorForChatGLM(
         tokenizer=tokenizer,
         model=model,
         ignore_pad_token_for_loss=data_args.ignore_pad_token_for_loss,
@@ -36,7 +36,7 @@ def main():
                 data_args.num_beams is not None else training_args.generation_num_beams
 
     # Initialize our Trainer
-    trainer = TrainerForChatGLM(
+    trainer = Seq2SeqTrainerForChatGLM(
         finetuning_args=finetuning_args,
         model=model,
         args=training_args,
@@ -67,14 +67,12 @@ def main():
 
     # Evaluation
     if training_args.do_eval:
-        model = model.half() # don't use `--fp16` argument at evaluation
         metrics = trainer.evaluate(metric_key_prefix="eval", **gen_kwargs)
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
 
     # Predict
     if training_args.do_predict:
-        model = model.half()
         predict_results = trainer.predict(dataset, metric_key_prefix="predict", **gen_kwargs)
         trainer.log_metrics("predict", predict_results.metrics)
         trainer.save_metrics("predict", predict_results.metrics)
