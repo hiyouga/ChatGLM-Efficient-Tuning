@@ -176,7 +176,7 @@ def load_pretrained(
     if finetuning_args.finetuning_type != "p_tuning" and model_args.quantization_bit is not None:
         if model_args.quantization_bit != 8:
             raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
-        require_version("bitsandbytes>=0.38.0", "bitsandbytes library is required to use this feature.")
+        require_version("bitsandbytes>=0.37.0", "bitsandbytes library is required to use this feature.")
         from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
         cuda = get_cuda_lib_handle()
         cc = get_compute_capability(cuda)
