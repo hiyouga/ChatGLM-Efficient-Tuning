@@ -20,8 +20,8 @@ def main():
     # Prepare pretrained model and dataset
     model_args, data_args, training_args, finetuning_args = prepare_args()
     dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, is_trainable=training_args.do_train)
-    dataset = preprocess_data(dataset, tokenizer, data_args, training_args)
+    model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, training_args.do_train, stage="sft")
+    dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="sft")
     data_collator = Seq2SeqDataCollatorForChatGLM(
         tokenizer=tokenizer,
         model=model,

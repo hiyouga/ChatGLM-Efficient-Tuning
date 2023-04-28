@@ -12,6 +12,12 @@ from transformers.modeling_utils import PreTrainedModel
 from peft.utils.other import WEIGHTS_NAME, CONFIG_NAME
 
 
+IGNORE_INDEX = -100
+VALUE_HEAD_FILE_NAME = "value_head.bin"
+FINETUNING_ARGS_NAME = "finetuning_args.bin"
+PREDICTION_FILE_NAME = "generated_predictions.txt"
+
+
 logger = logging.getLogger(__name__) # setup logging
 logger.setLevel(logging.INFO)
 logging.basicConfig(
@@ -35,7 +41,7 @@ def print_trainable_params(model: torch.nn.Module) -> None:
                 trainable_params, all_param, 100 * trainable_params / all_param))
 
 
-def filter_model_params(model: torch.nn.Module) -> Dict[str, torch.Tensor]: # filter out the freezed parameters
+def filter_model_params(model: torch.nn.Module) -> Dict[str, torch.Tensor]: # filter out freezed parameters
     state_dict = model.state_dict()
     filtered_state_dict = {}
     for k, v in model.named_parameters():
@@ -50,6 +56,18 @@ def save_trainable_params(save_directory: os.PathLike, model: torch.nn.Module) -
     os.makedirs(save_directory, exist_ok=True)
     filtered_state_dict = filter_model_params(model)
     torch.save(filtered_state_dict, os.path.join(save_directory, WEIGHTS_NAME))
+
+
+# Inspired by: https://github.com/lvwerra/trl/blob/52fecee8839ad826ad1e6c83a95c99a4116e98d2/trl/models/modeling_value_head.py#L197
+def save_valuehead_params(save_directory: os.PathLike, v_head: torch.nn.Module) -> None:
+    if os.path.isfile(save_directory):
+        raise ValueError(f"Provided path ({save_directory}) should be a directory, not a file")
+    os.makedirs(save_directory, exist_ok=True)
+    state_dict = {}
+    v_head_state_dict = v_head.state_dict()
+    for k, v in v_head_state_dict.items():
+        state_dict[f"v_head.{k}"] = v
+    torch.save(state_dict, os.path.join(save_directory, VALUE_HEAD_FILE_NAME))
 
 
 def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
@@ -132,8 +150,3 @@ def plot_loss(training_args: Seq2SeqTrainingArguments) -> None:
     plt.ylabel("training loss")
     plt.savefig(os.path.join(training_args.output_dir, FIGURE_NAME), format="png", transparent=True, dpi=300)
     print("Figure saved: {}".format(os.path.join(training_args.output_dir, FIGURE_NAME)))
-
-
-IGNORE_INDEX = -100
-FINETUNING_ARGS_NAME = "finetuning_args.bin"
-PREDICTION_FILE_NAME = "generated_predictions.txt"

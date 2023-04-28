@@ -64,7 +64,7 @@ class Seq2SeqDataCollatorForChatGLM(DataCollatorForSeq2Seq):
         """
         if self.inference_mode: # evaluation set adopts left-padding while training set adopts right-padding
             return super().__call__(features)
-        input_ids, labels = tuple([torch.tensor(feature[key]) for feature in features] for key in ("input_ids", "labels"))
+        input_ids, labels = [[torch.tensor(feature[key]) for feature in features] for key in ("input_ids", "labels")]
         input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
         labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=self.label_pad_token_id)
         features = {"input_ids": input_ids, "labels": labels}

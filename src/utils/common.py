@@ -3,7 +3,7 @@ import sys
 import torch
 import hashlib
 import logging
-from typing import Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import transformers
 from transformers import (
@@ -141,7 +141,7 @@ def load_pretrained(
         training_args: Optional[Seq2SeqTrainingArguments] = None,
         finetuning_args: Optional[FinetuningArguments] = None,
         is_trainable: Optional[bool] = False,
-        stage: Optional[str] = "sft" # can be sft, rwd or ppo
+        stage: Optional[Literal["sft", "rwd", "ppo"]] = "sft"
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     r"""
     Load pretrained model and tokenizer.
@@ -352,13 +352,14 @@ def preprocess_data(
         dataset: Dataset,
         tokenizer: PreTrainedTokenizer,
         data_args: DataTrainingArguments,
-        training_args: Seq2SeqTrainingArguments
+        training_args: Seq2SeqTrainingArguments,
+        stage: Optional[Literal["sft", "rwd", "ppo"]] = "sft"
 ) -> Dataset:
 
     column_names = list(dataset.column_names)
     prefix = data_args.source_prefix if data_args.source_prefix is not None else ""
 
-    def format_example(examples):
+    def format_example(examples): # support question with a single answer or multiple answers
         for i in range(len(examples["prompt"])):
             if examples["prompt"][i] and examples["response"][i]:
                 query, answer = examples["prompt"][i], examples["response"][i]
@@ -383,9 +384,10 @@ def preprocess_data(
             target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
 
             if len(source_ids) > data_args.max_source_length - 1: # gmask token
-                source_ids = source_ids[:data_args.max_source_length-1]
+                source_ids = source_ids[:data_args.max_source_length - 1]
             if len(target_ids) > data_args.max_target_length - 2: # bos and eos tokens
-                target_ids = target_ids[:data_args.max_target_length-2]
+                target_ids = target_ids[:data_args.max_target_length - 2]
+
             input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
 
             context_length = input_ids.index(tokenizer.bos_token_id)
@@ -411,14 +413,45 @@ def preprocess_data(
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
 
+    def preprocess_function_train_pair(examples):
+        # build input pairs with format `X [gMASK] [BOS] Y [EOS]` and `X [gMASK] [BOS] Y [EOS]`
+        model_inputs = {"accept_ids": [], "reject_ids": []}
+        for prompt, answer in format_example(examples):
+            source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
+            accept_ids = tokenizer.encode(text=answer[0], add_special_tokens=False)
+            reject_ids = tokenizer.encode(text=answer[1], add_special_tokens=False)
+
+            if len(source_ids) > data_args.max_source_length - 1:
+                source_ids = source_ids[:data_args.max_source_length - 1]
+            if len(accept_ids) > data_args.max_target_length - 2:
+                accept_ids = accept_ids[:data_args.max_target_length - 2]
+            if len(reject_ids) > data_args.max_target_length - 2:
+                reject_ids = reject_ids[:data_args.max_target_length - 2]
+
+            accept_ids = tokenizer.build_inputs_with_special_tokens(source_ids, accept_ids)
+            reject_ids = tokenizer.build_inputs_with_special_tokens(source_ids, reject_ids)
+
+            model_inputs["accept_ids"].append(accept_ids)
+            model_inputs["reject_ids"].append(reject_ids)
+        return model_inputs
+
     def print_dataset_example(example):
         print("input_ids:\n{}".format(example["input_ids"]))
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
         print("label_ids:\n{}".format(example["labels"]))
         print("labels:\n{}".format(tokenizer.decode(example["labels"])))
 
-    preprocess_function = preprocess_function_train if training_args.do_train else preprocess_function_eval
-    # we don't provide `do_train` and `do_eval` arguments simultaneously
+    def print_pairwise_dataset_example(example):
+        print("accept_ids:\n{}".format(example["accept_ids"]))
+        print("accepts:\n{}".format(tokenizer.decode(example["accept_ids"])))
+        print("reject_ids:\n{}".format(example["reject_ids"]))
+        print("rejects:\n{}".format(tokenizer.decode(example["reject_ids"])))
+
+    if stage == "sft":
+        preprocess_function = preprocess_function_train if training_args.do_train else preprocess_function_eval
+    elif stage == "rwd":
+        preprocess_function = preprocess_function_train_pair
+
     with training_args.main_process_first(desc="dataset map pre-processing"):
         dataset = dataset.map(
             preprocess_function,
@@ -428,9 +461,10 @@ def preprocess_data(
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset"
         )
-    print_dataset_example(dataset[0])
+
+    if stage == "sft":
+        print_dataset_example(dataset[0])
+    elif stage == "rwd":
+        print_pairwise_dataset_example(dataset[0])
 
     return dataset
-
-
-

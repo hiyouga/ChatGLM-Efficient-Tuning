@@ -16,7 +16,7 @@
     },
     "self_cognition": {
         "file_name": "self_cognition.json",
-        "file_sha1": "44d25ec88145eef84b98a08c3d2bf5dea6467668"
+        "file_sha1": "81312c57726853ae7d3489bd7d1263f3260acbad"
     },
     "belle_0.5m": {
         "hf_hub_url": "BelleGroup/train_0.5M_CN"
@@ -89,5 +89,9 @@
             "response": "output",
             "history": "history"
         }
+    },
+    "comparison_gpt4_en": {
+        "file_name": "comparison_gpt4_data_en.json",
+        "file_sha1": "eeb295ce0ab011c37af52596460c8a57d07ad19f"
     }
 }

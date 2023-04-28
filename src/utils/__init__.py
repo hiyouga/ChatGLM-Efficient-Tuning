@@ -11,6 +11,11 @@ from .seq2seq import (
     Seq2SeqTrainerForChatGLM
 )
 
+from .pairwise import (
+    PairwiseDataCollatorForChatGLM,
+    PairwiseTrainerForChatGLM
+)
+
 from .config import ModelArguments
 
 from .other import plot_loss
