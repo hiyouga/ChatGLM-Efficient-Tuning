@@ -5,9 +5,10 @@ sentencepiece
 transformers>=4.27.4
 datasets>=2.10.1
 accelerate>=0.18.0
+trl>=0.4.1
+git+https://github.com/huggingface/peft.git
 jieba
 rouge_chinese
 nltk
-git+https://github.com/huggingface/peft.git
 gradio
 mdtex2html

@@ -38,10 +38,11 @@ logging.basicConfig(
 
 # Note: The ChatGLM tokenizer assigns False on token to be attended in attention mask. In general settings, it should be True.
 # Refer to: https://huggingface.co/THUDM/chatglm-6b/blob/6650ae3a53c28fc176d06762ca80b05d5ab3792b/tokenization_chatglm.py#L401
-# Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/aa65c492bb788e144712daab42bc5d11c2761591/train.py#L166
 class Seq2SeqDataCollatorForChatGLM(DataCollatorForSeq2Seq):
     r"""
     Data collator for ChatGLM. It is capable of dynamically padding for batched data.
+
+    Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/65512697dc67779a6e53c267488aba0ec4d7c02a/train.py#L156
     """
     def __init__(
             self,
@@ -61,7 +62,7 @@ class Seq2SeqDataCollatorForChatGLM(DataCollatorForSeq2Seq):
 
         ChatGLM is able to generate attentions masks and position ids by itself.
         """
-        if self.inference_mode: # evaluation set adopts left-padding
+        if self.inference_mode: # evaluation set adopts left-padding while training set adopts right-padding
             return super().__call__(features)
         input_ids, labels = tuple([torch.tensor(feature[key]) for feature in features] for key in ("input_ids", "labels"))
         input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)

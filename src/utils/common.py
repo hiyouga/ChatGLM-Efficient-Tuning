@@ -29,6 +29,8 @@ from peft import (
     get_peft_model
 )
 
+from trl import AutoModelForCausalLMWithValueHead
+
 from .config import (
     ModelArguments,
     DataTrainingArguments,
@@ -56,21 +58,23 @@ logging.basicConfig(
 
 check_min_version("4.27.4")
 require_version("datasets>=2.10.0", "To fix: pip install datasets>=2.10.0")
+require_version("peft>=0.3.0.dev0", "To fix: pip install git+https://github.com/huggingface/peft.git")
 
 
 def init_adapter(
         model: PreTrainedModel,
         model_args: ModelArguments,
         finetuning_args: FinetuningArguments,
-        is_trainable
+        is_trainable: bool
 ) -> None:
     r"""
     Initializes the adapters.
 
     Note that the trainable parameters must be cast to float32.
     """
+
     if finetuning_args.finetuning_type == "none" and is_trainable:
-        raise ValueError("You cannot use finetuning_type=none when training.")
+        raise ValueError("You cannot use finetuning_type=none while training.")
 
     if finetuning_args.finetuning_type == "freeze":
         logger.info("Fine-tuning method: Freeze")
@@ -80,18 +84,19 @@ def init_adapter(
             else:
                 param.data = param.data.to(torch.float32)
 
+        if model_args.checkpoint_dir is not None: # freeze only accepts a single checkpoint
+            load_trainable_params(model, model_args.checkpoint_dir[0])
+
     if finetuning_args.finetuning_type == "p_tuning":
-        logger.info("Fine-tuning method: P-Tuning V2")
-        model.transformer.prefix_encoder.float()
+        logger.info("Fine-tuning method: P-Tuning v2")
+        model.transformer.prefix_encoder.float() # other parameters are already fixed
+
+        if model_args.checkpoint_dir is not None: # p-tuning v2 only accepts a single checkpoint
+            load_trainable_params(model, model_args.checkpoint_dir[0])
 
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
-
         loaded_in_8bit = getattr(model, "is_loaded_in_8bit", False)
-        if loaded_in_8bit and (not finetuning_args.resume_lora_training):
-            logger.warning("8-bit model does not support merging the LoRA weights. Setting resume_lora_training to True.")
-            finetuning_args.resume_lora_training = True
-
         lastest_checkpoint = None
 
         if model_args.checkpoint_dir is not None:
@@ -99,10 +104,15 @@ def init_adapter(
                 checkpoints_to_merge, lastest_checkpoint = model_args.checkpoint_dir[:-1], model_args.checkpoint_dir[-1]
             else:
                 checkpoints_to_merge = model_args.checkpoint_dir
+
+            if len(checkpoints_to_merge) != 0 and loaded_in_8bit:
+                raise ValueError("8-bit model does not support merging the LoRA weights.")
+
             checkpoint_merged = merge_lora_weights(model, checkpoints_to_merge)
+
             if lastest_checkpoint is not None: # resume lora training
                 model = PeftModel.from_pretrained(model, lastest_checkpoint, is_trainable=is_trainable)
-                if not (is_trainable or loaded_in_8bit):
+                if not is_trainable:
                     model.merge_and_unload()
                     checkpoint_merged += 1
             logger.info("Merged {} model checkpoint(s).".format(checkpoint_merged))
@@ -117,9 +127,11 @@ def init_adapter(
                 target_modules=finetuning_args.lora_target
             )
             model = get_peft_model(model, lora_config)
-    else: # Freeze and P-Tuning
-        if model_args.checkpoint_dir is not None: # freeze and p_tuning only accept one checkpoint
-            load_trainable_params(model, model_args.checkpoint_dir[0])
+
+    if not is_trainable:
+        for param in model.parameters():
+            param.requires_grad_(False) # fix all params
+            param.data = param.data.to(torch.float16) # cast all params to float16
 
     return model
 
@@ -129,7 +141,7 @@ def load_pretrained(
         training_args: Optional[Seq2SeqTrainingArguments] = None,
         finetuning_args: Optional[FinetuningArguments] = None,
         is_trainable: Optional[bool] = False,
-        task_type: Optional[str] = "sft" # can be sft, rwd or ppo
+        stage: Optional[str] = "sft" # can be sft, rwd or ppo
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     r"""
     Load pretrained model and tokenizer.
@@ -145,6 +157,16 @@ def load_pretrained(
                 raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
         logger.info("Load fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
         finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir[0], FINETUNING_ARGS_NAME))
+
+    quantization = None
+    if model_args.quantization_bit is not None:
+        if is_trainable:
+            if finetuning_args.finetuning_type != "p_tuning":
+                quantization = "hf" # use huggingface's quantization
+            else:
+                quantization = "cpm" # use cpm's quantization
+        else:
+            quantization = "cpm"
 
     config_kwargs = {
         "trust_remote_code": True,
@@ -169,11 +191,9 @@ def load_pretrained(
     if finetuning_args.finetuning_type == "p_tuning":
         config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
         config.prefix_projection = finetuning_args.prefix_projection
-        if is_trainable and (model_args.quantization_bit is not None) and training_args.fp16:
-            raise ValueError("FP16 training conflicts with quantized p-tuning.")
 
-    # Quantization configurations for Freeze and LoRA.
-    if finetuning_args.finetuning_type != "p_tuning" and model_args.quantization_bit is not None:
+    # Quantization configurations for Freeze and LoRA in training (using bitsandbytes library).
+    if quantization == "hf":
         if model_args.quantization_bit != 8:
             raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
         require_version("bitsandbytes>=0.37.0", "bitsandbytes library is required to use this feature.")
@@ -185,20 +205,25 @@ def load_pretrained(
         config_kwargs["load_in_8bit"] = True
         config_kwargs["device_map"] = "auto" # it should not be specified outside of load_in_8bit
 
-    # Load and prepare pretrained models. (without valuehead)
+    # Load and prepare pretrained models (without valuehead).
     model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
-    model = prepare_model_for_training(model) if is_trainable else (model.half() if model_args.quantization_bit is None else model)
+    model = prepare_model_for_training(model) if is_trainable else model
+    model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
-    # Quantization for P-Tuning v2.
+    # Quantization with the built-in method for P-Tuning v2 training or evaluation.
     # Model parameters should be cast to float16 in quantized P-Tuning setting.
-    if model_args.quantization_bit is not None:
-        if finetuning_args.finetuning_type == "p_tuning":
-            if model_args.quantization_bit != 4 and model_args.quantization_bit != 8:
-                raise ValueError("P-Tuning only accepts 4-bit or 8-bit quantization.")
-            model = model.quantize(model_args.quantization_bit).half()
+    if quantization == "cpm":
+        if model_args.quantization_bit != 4 and model_args.quantization_bit != 8:
+            raise ValueError("P-Tuning v2 and inference modes only accept 4-bit or 8-bit quantization.")
+        if is_trainable and training_args.fp16:
+            raise ValueError("FP16 training conflicts with cpm quantization.")
+        model = model.quantize(model_args.quantization_bit).half()
+
+    if quantization is not None:
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
-    model = init_adapter(model, model_args, finetuning_args, is_trainable)
+    if stage != "sft":
+        model = AutoModelForCausalLMWithValueHead(model)
 
     print_trainable_params(model)
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 
 CHATGLM_REPO_NAME = "THUDM/chatglm-6b"
-CHATGLM_LASTEST_HASH = "35ca52301fbedee885b0838da5d15b7b47faa37c"
+CHATGLM_LASTEST_HASH = "a8ede826cf1b62bd3c78bdfb3625c7c5d2048fbd"
 
 
 @dataclass
