@@ -1,6 +1,7 @@
 # coding=utf-8
 # Implements parameter-efficient training of a reward model based on ChatGLM.
-# This code is largely borrowed from:
+# This code is inspired by:
+# https://github.com/lvwerra/trl/blob/main/examples/summarization/scripts/reward_summarization.py
 # https://github.com/CarperAI/trlx/blob/main/examples/summarize_rlhf/reward_model/train_reward_model_gptj.py
 
 

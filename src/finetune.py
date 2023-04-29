@@ -1,6 +1,6 @@
 # coding=utf-8
 # Implements several parameter-efficient supervised fine-tuning method for ChatGLM.
-# This code is largely borrowed from https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py
+# This code is inspired by https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py
 
 
 from utils import (

@@ -16,6 +16,12 @@ from .pairwise import (
     PairwiseTrainerForChatGLM
 )
 
+from .ppo import (
+    PPODataCollatorForChatGLM,
+    PPOTrainerForChatGLM,
+    compute_rewards
+)
+
 from .config import ModelArguments
 
 from .other import plot_loss

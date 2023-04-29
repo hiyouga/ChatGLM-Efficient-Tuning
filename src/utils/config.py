@@ -64,6 +64,10 @@ class ModelArguments:
         default=None,
         metadata={"help": "Path to the directory containing the model checkpoints as well as the configurations."}
     )
+    reward_model: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the directory containing the checkpoints of the reward model."}
+    )
 
     def __post_init__(self):
         if self.checkpoint_dir is not None: # support merging lora weights

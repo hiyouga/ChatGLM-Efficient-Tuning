@@ -26,8 +26,6 @@ logging.basicConfig(
 )
 
 
-# Note: The ChatGLM tokenizer assigns False on token to be attended in attention mask. In general settings, it should be True.
-# Refer to: https://huggingface.co/THUDM/chatglm-6b/blob/6650ae3a53c28fc176d06762ca80b05d5ab3792b/tokenization_chatglm.py#L401
 class PairwiseDataCollatorForChatGLM(DataCollatorWithPadding):
     r"""
     Data collator for ChatGLM. It is capable of dynamically padding for batched data.
@@ -44,21 +42,21 @@ class PairwiseDataCollatorForChatGLM(DataCollatorWithPadding):
 
     def __call__(self, features: Sequence[Dict[str, Sequence]]) -> Dict[str, torch.Tensor]:
         r"""
-        Pads batched data to the longest sequence in the batch. We adopt left-padding for pairwise data.
+        Pads batched data to the longest sequence in the batch. We adopt right-padding for pairwise data.
 
         ChatGLM is able to generate attentions masks and position ids by itself.
         """
         if self.inference_mode:
             raise NotImplementedError
-        accept_ids, reject_ids = [[torch.tensor(feature[key]).flip(0) for feature in features] for key in ("accept_ids", "reject_ids")]
+        accept_ids, reject_ids = [[torch.tensor(feature[key]) for feature in features] for key in ("accept_ids", "reject_ids")]
         accept_ids = torch.nn.utils.rnn.pad_sequence(accept_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
         reject_ids = torch.nn.utils.rnn.pad_sequence(reject_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
-        features = {"accept_ids": accept_ids.flip(-1), "reject_ids": reject_ids.flip(-1)}
+        features = {"accept_ids": accept_ids, "reject_ids": reject_ids}
         return features
 
 class PairwiseTrainerForChatGLM(Trainer):
     r"""
-    Inherits Seq2SeqTrainer to compute generative metrics such as BLEU and ROUGE.
+    Inherits Trainer to compute pairwise loss.
     """
 
     def __init__(self, finetuning_args: FinetuningArguments, *args, **kwargs):
@@ -75,12 +73,17 @@ class PairwiseTrainerForChatGLM(Trainer):
         Now we adopt the first implementation. We will consider adopting the second implementation later.
         """
         _, _, r_accept = model(input_ids=inputs["accept_ids"])
-        _, _, r_reject = model(input_ids=inputs["reject_ids"]) # (seq_len x batch size)
-        return -torch.log(torch.sigmoid(r_accept[-1] - r_reject[-1])).mean()
+        _, _, r_reject = model(input_ids=inputs["reject_ids"])
+        s_accept = r_accept.transpose(0, 1)[(inputs["accept_ids"] == self.tokenizer.eos_token_id).nonzero(as_tuple=True)]
+        s_reject = r_reject.transpose(0, 1)[(inputs["reject_ids"] == self.tokenizer.eos_token_id).nonzero(as_tuple=True)]
+        loss = -torch.log(torch.sigmoid(s_accept - s_reject)).mean()
+        if return_outputs:
+            return loss, {"r_accept": r_accept, "r_reject": r_reject}
+        return loss
 
     def _save(self, output_dir: Optional[str] = None, state_dict: Optional[Dict[str, torch.Tensor]] = None) -> None:
         r"""
-        Saves trainable parameters as model checkpoints.
+        Saves trainable parameters as model checkpoints. Use `self.model.pretrained_model` to refer to the backbone model.
 
         Override to inject custom behavior.
         """
@@ -92,6 +95,6 @@ class PairwiseTrainerForChatGLM(Trainer):
         else: # Freeze and P-Tuning
             save_trainable_params(output_dir, self.model.pretrained_model)
         if hasattr(self.model, "v_head"):
-            save_valuehead_params(output_dir, self.model.v_head) # save value head weights
+            save_valuehead_params(output_dir, self.model.v_head) # save valuehead weights
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))

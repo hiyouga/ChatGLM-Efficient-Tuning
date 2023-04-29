@@ -3,10 +3,10 @@ protobuf
 cpm_kernels
 sentencepiece
 transformers>=4.27.4
-datasets>=2.10.1
+datasets>=2.10.0
 accelerate>=0.18.0
-trl>=0.4.1
 git+https://github.com/huggingface/peft.git
+trl>=0.4.1
 jieba
 rouge_chinese
 nltk

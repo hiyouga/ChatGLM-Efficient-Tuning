@@ -11,8 +11,7 @@ from transformers import (
     AutoModel,
     AutoTokenizer,
     HfArgumentParser,
-    Seq2SeqTrainingArguments,
-    set_seed
+    Seq2SeqTrainingArguments
 )
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
@@ -39,9 +38,9 @@ from .config import (
 
 from .other import (
     load_trainable_params,
+    load_valuehead_params,
     print_trainable_params,
     prepare_model_for_training,
-    merge_lora_weights,
     IGNORE_INDEX,
     FINETUNING_ARGS_NAME
 )
@@ -59,6 +58,7 @@ logging.basicConfig(
 check_min_version("4.27.4")
 require_version("datasets>=2.10.0", "To fix: pip install datasets>=2.10.0")
 require_version("peft>=0.3.0.dev0", "To fix: pip install git+https://github.com/huggingface/peft.git")
+require_version("trl>=0.4.1", "To fix: pip install trl>=0.4.1")
 
 
 def init_adapter(
@@ -96,26 +96,22 @@ def init_adapter(
 
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
-        loaded_in_8bit = getattr(model, "is_loaded_in_8bit", False)
         lastest_checkpoint = None
 
         if model_args.checkpoint_dir is not None:
-            if finetuning_args.resume_lora_training: # continually training on the lora weights
+            if is_trainable and finetuning_args.resume_lora_training: # continually training on the lora weights
                 checkpoints_to_merge, lastest_checkpoint = model_args.checkpoint_dir[:-1], model_args.checkpoint_dir[-1]
             else:
                 checkpoints_to_merge = model_args.checkpoint_dir
 
-            if len(checkpoints_to_merge) != 0 and loaded_in_8bit:
-                raise ValueError("8-bit model does not support merging the LoRA weights.")
+            for checkpoint in checkpoints_to_merge: # https://github.com/huggingface/peft/issues/280#issuecomment-1500805831
+                model = PeftModel.from_pretrained(model, checkpoint)
+                model = model.merge_and_unload()
 
-            checkpoint_merged = merge_lora_weights(model, checkpoints_to_merge)
+            logger.info("Merged {} model checkpoint(s).".format(len(checkpoints_to_merge)))
 
             if lastest_checkpoint is not None: # resume lora training
-                model = PeftModel.from_pretrained(model, lastest_checkpoint, is_trainable=is_trainable)
-                if not is_trainable:
-                    model.merge_and_unload()
-                    checkpoint_merged += 1
-            logger.info("Merged {} model checkpoint(s).".format(checkpoint_merged))
+                model = PeftModel.from_pretrained(model, lastest_checkpoint, is_trainable=True)
 
         if lastest_checkpoint is None: # create new lora weights
             lora_config = LoraConfig(
@@ -178,6 +174,7 @@ def load_pretrained(
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         use_fast=model_args.use_fast_tokenizer,
+        padding_side="left",
         **config_kwargs
     )
 
@@ -222,8 +219,11 @@ def load_pretrained(
     if quantization is not None:
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
-    if stage != "sft":
-        model = AutoModelForCausalLMWithValueHead(model)
+    if stage == "rwd" or stage == "ppo": # add value head
+        model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
+        if stage == "ppo": # load reward model
+            model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
+            load_valuehead_params(model, model_args.reward_model)
 
     print_trainable_params(model)
 
@@ -271,7 +271,7 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
     logger.info(f"Training/evaluation parameters {training_args}")
 
     # Set seed before initializing model.
-    set_seed(training_args.seed)
+    transformers.set_seed(training_args.seed)
 
     return model_args, data_args, training_args, finetuning_args
 
@@ -405,7 +405,7 @@ def preprocess_data(
             inputs.append(prompt)
             targets.append(answer)
         model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, truncation=True, padding=True)
-        labels = tokenizer(text_target=targets, max_length=data_args.max_target_length, truncation=True)
+        labels = tokenizer(text_target=targets, max_length=data_args.max_target_length, truncation=True) # no padding
         if data_args.ignore_pad_token_for_loss:
             labels["input_ids"] = [
                 [(l_id if l_id != tokenizer.pad_token_id else IGNORE_INDEX) for l_id in label] for label in labels["input_ids"]
@@ -414,7 +414,7 @@ def preprocess_data(
         return model_inputs
 
     def preprocess_function_train_pair(examples):
-        # build input pairs with format `X [gMASK] [BOS] Y [EOS]` and `X [gMASK] [BOS] Y [EOS]`
+        # build input pairs with format `X [gMASK] [BOS] Y1 [EOS]` and `X [gMASK] [BOS] Y2 [EOS]`
         model_inputs = {"accept_ids": [], "reject_ids": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
@@ -435,7 +435,20 @@ def preprocess_data(
             model_inputs["reject_ids"].append(reject_ids)
         return model_inputs
 
-    def print_dataset_example(example):
+    def preprocess_function_train_ppo(examples):
+        # build inputs with format `X [gMASK] [BOS]`
+        model_inputs = {"input_ids": []}
+        for prompt, _ in format_example(examples):
+            source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
+
+            if len(source_ids) > data_args.max_source_length - 1: # gmask token
+                source_ids = source_ids[:data_args.max_source_length - 1]
+
+            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids)
+            model_inputs["input_ids"].append(input_ids)
+        return model_inputs
+
+    def print_sft_dataset_example(example):
         print("input_ids:\n{}".format(example["input_ids"]))
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
         print("label_ids:\n{}".format(example["labels"]))
@@ -447,10 +460,16 @@ def preprocess_data(
         print("reject_ids:\n{}".format(example["reject_ids"]))
         print("rejects:\n{}".format(tokenizer.decode(example["reject_ids"])))
 
+    def print_ppo_dataset_example(example):
+        print("input_ids:\n{}".format(example["input_ids"]))
+        print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
+
     if stage == "sft":
         preprocess_function = preprocess_function_train if training_args.do_train else preprocess_function_eval
     elif stage == "rwd":
         preprocess_function = preprocess_function_train_pair
+    elif stage == "ppo":
+        preprocess_function = preprocess_function_train_ppo
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
         dataset = dataset.map(
@@ -463,8 +482,10 @@ def preprocess_data(
         )
 
     if stage == "sft":
-        print_dataset_example(dataset[0])
+        print_sft_dataset_example(dataset[0])
     elif stage == "rwd":
         print_pairwise_dataset_example(dataset[0])
+    elif stage == "ppo":
+        print_ppo_dataset_example(dataset[0])
 
     return dataset

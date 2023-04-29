@@ -13,15 +13,17 @@ Fine-tuning ðŸ¤–[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with ðŸ¤
 
 ## Changelog
 
+[23/04/29] Now we support training ChatGLM with **Reinforcement Learning with Human Feedback (RLHF)** ! We provide several examples to run RLHF training, please refer to the `examples` folder for details. (experimental feature)
+
 [23/04/20] Our repo achieved 100 stars within 12 days! Congratulations!
 
-[23/04/19] Now we support merging the weights of fine-tuned models trained by LoRA! Try `--checkpoint_dir checkpoint1,checkpoint2` argument for continually fine-tuning the models.
+[23/04/19] Now we support **merging the weights** of fine-tuned models trained by LoRA! Try `--checkpoint_dir checkpoint1,checkpoint2` argument for continually fine-tuning the models.
 
-[23/04/18] Now we support training the quantized models using three fine-tuning methods! Try `quantization_bit` argument for training the model in 4/8 bits.
+[23/04/18] Now we support training the **quantized models** using three fine-tuning methods! Try `quantization_bit` argument for training the model in 4/8 bits.
 
-[23/04/12] Now we support training from checkpoints! Use `--checkpoint_dir` argument to specify the checkpoint model to fine-tune from.
+[23/04/12] Now we support **training from checkpoints**! Use `--checkpoint_dir` argument to specify the checkpoint model to fine-tune from.
 
-[23/04/11] Now we support training with combined datasets! Try `--dataset dataset1,dataset2` argument for training with multiple datasets.
+[23/04/11] Now we support training with **combined datasets**! Try `--dataset dataset1,dataset2` argument for training with multiple datasets.
 
 ## Datasets
 
@@ -119,6 +121,43 @@ accelerate launch src/finetune.py # arguments (same as above)
 ```
 
 Note: if you are using LoRA method at fine-tuning, please provide `--ddp_find_unused_parameters False` argument to avoid the runtime error.
+
+### Training Reward Model
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
+    --do_train \
+    --dataset comparison_gpt4_en \
+    --finetuning_type lora \
+    --output_dir path_to_rm_checkpoint \
+    --per_device_train_batch_size 4 \
+    --gradient_accumulation_steps 4 \
+    --lr_scheduler_type cosine \
+    --logging_steps 10 \
+    --save_steps 1000 \
+    --learning_rate 5e-5 \
+    --num_train_epochs 1.0 \
+    --fp16
+```
+
+### Training with RLHF
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
+    --do_train \
+    --dataset alpaca_gpt4_en \
+    --finetuning_type lora \
+    --reward_model path_to_rm_checkpoint \
+    --output_dir path_to_ppo_checkpoint \
+    --per_device_train_batch_size 4 \
+    --gradient_accumulation_steps 4 \
+    --lr_scheduler_type cosine \
+    --logging_steps 10 \
+    --save_steps 1000 \
+    --learning_rate 5e-5 \
+    --num_train_epochs 1.0 \
+    --fp16
+```
 
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
@@ -234,7 +273,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 
 - [ ] Employing [LangChain](https://github.com/hwchase17/langchain) to easily build applications that are capable of leveraging external knowledge upon fine-tuned ChatGLM models.
 - [ ] Implementing the alignment algorithms to align human preferrences.
-  - [ ] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
+  - [x] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
   - [ ] [RRHF](https://github.com/GanjinZero/RRHF)
   - [ ] [RAFT](https://github.com/OptimalScale/LMFlow)
 - [ ] Incorporating [Chinese datasets](https://github.com/brightmart/nlp_chinese_corpus) into the training sets.
@@ -251,7 +290,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 - [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
 - [x] Loading from checkpoint.
 - [x] Fine-tuning the quantized model.
-- [ ] Writing a guidebook about how to fine-tune ChatGLM with this framework.
+- [x] Writing a guidebook about how to fine-tune ChatGLM with this framework.
 - [ ] Combining with state-of-the-art model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
 - [ ] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and alignment.
 - [ ] Incorporating the high quality Chinese instruction dataset [COIG](https://huggingface.co/datasets/BAAI/COIG).

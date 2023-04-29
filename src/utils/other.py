@@ -9,7 +9,7 @@ from transformers import Seq2SeqTrainingArguments
 from transformers.trainer import TRAINER_STATE_NAME
 from transformers.modeling_utils import PreTrainedModel
 
-from peft.utils.other import WEIGHTS_NAME, CONFIG_NAME
+from peft.utils.other import WEIGHTS_NAME
 
 
 IGNORE_INDEX = -100
@@ -58,21 +58,31 @@ def save_trainable_params(save_directory: os.PathLike, model: torch.nn.Module) -
     torch.save(filtered_state_dict, os.path.join(save_directory, WEIGHTS_NAME))
 
 
+def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
+    weights_file = os.path.join(checkpoint_dir, WEIGHTS_NAME)
+    if not os.path.exists(weights_file):
+        raise ValueError(f"Provided path ({checkpoint_dir}) does not contain the pretrained weights")
+    model_state_dict = torch.load(weights_file)
+    model.load_state_dict(model_state_dict, strict=False) # skip missing keys
+
+
 # Inspired by: https://github.com/lvwerra/trl/blob/52fecee8839ad826ad1e6c83a95c99a4116e98d2/trl/models/modeling_value_head.py#L197
 def save_valuehead_params(save_directory: os.PathLike, v_head: torch.nn.Module) -> None:
     if os.path.isfile(save_directory):
         raise ValueError(f"Provided path ({save_directory}) should be a directory, not a file")
     os.makedirs(save_directory, exist_ok=True)
-    state_dict = {}
-    v_head_state_dict = v_head.state_dict()
-    for k, v in v_head_state_dict.items():
-        state_dict[f"v_head.{k}"] = v
-    torch.save(state_dict, os.path.join(save_directory, VALUE_HEAD_FILE_NAME))
+    torch.save(v_head.state_dict(), os.path.join(save_directory, VALUE_HEAD_FILE_NAME))
 
 
-def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
-    model_state_dict = torch.load(os.path.join(checkpoint_dir, WEIGHTS_NAME))
-    model.load_state_dict(model_state_dict, strict=False) # skip missing keys
+def load_valuehead_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
+    valuehead_file = os.path.join(checkpoint_dir, VALUE_HEAD_FILE_NAME)
+    if not os.path.exists(valuehead_file):
+        raise ValueError(f"Provided path ({checkpoint_dir}) does not contain the valuehead weight")
+    valuehead_state_dict = torch.load(valuehead_file)
+    model.register_buffer("reward_head_weight", valuehead_state_dict["summary.weight"])
+    model.register_buffer("reward_head_bias", valuehead_state_dict["summary.bias"])
+    model.register_buffer("default_head_weight", torch.zeros_like(valuehead_state_dict["summary.weight"]))
+    model.register_buffer("default_head_bias", torch.zeros_like(valuehead_state_dict["summary.bias"]))
 
 
 # This function includes: (1) cast the layernorm in fp32 (2) make output embedding layer require grads (3) upcast the lm_head to fp32
@@ -83,6 +93,7 @@ def prepare_model_for_training(
         use_gradient_checkpointing: Optional[bool] = True,
         layer_norm_names: List[str] = ["layernorm"] # for chatglm setting
 ) -> PreTrainedModel:
+
     for name, param in model.named_parameters():
         if param.ndim == 1 and any(layer_norm_name in name for layer_norm_name in layer_norm_names):
             param.data = param.data.to(torch.float32)
@@ -104,35 +115,6 @@ def prepare_model_for_training(
         setattr(model, output_embedding_layer_name, CastOutputToFloat(output_embedding_layer))
 
     return model
-
-
-# This function merges lora weights from multiple checkpoints
-# Inspired by: https://github.com/huggingface/peft/blob/34027fe813756897767b9a6f19ae7f1c4c7b418c/src/peft/tuners/lora.py#L451
-def merge_lora_weights(model: PreTrainedModel, checkpoints_to_merge: List[str]) -> int:
-    checkpoint_merged = 0
-    for checkpoint_dir in checkpoints_to_merge:
-        adapter_config = json.load(open(os.path.join(checkpoint_dir, CONFIG_NAME), "r"))
-        adapter_model = torch.load(os.path.join(checkpoint_dir, WEIGHTS_NAME))
-        scaling = adapter_config["lora_alpha"] / adapter_config["r"]
-        is_merged = False
-        for name, param in model.named_parameters():
-            if "weight" not in name: # skip bias
-                continue
-            lora_a_name = "base_model.model." + ".".join(name.split(".")[:-1]) + ".lora_A.weight"
-            lora_b_name = "base_model.model." + ".".join(name.split(".")[:-1]) + ".lora_B.weight"
-            lora_a_weight, lora_b_weight = None, None
-            for adapter_name, adapter_param in adapter_model.items():
-                if adapter_name == lora_a_name:
-                    lora_a_weight = adapter_param
-                if adapter_name == lora_b_name:
-                    lora_b_weight = adapter_param
-            if lora_a_weight is not None and lora_b_weight is not None:
-                weight_to_merge = lora_b_weight @ lora_a_weight
-                weight_to_merge = weight_to_merge.T if adapter_config["fan_in_fan_out"] else weight_to_merge
-                param.data += weight_to_merge.to(param.device) * scaling
-                is_merged = True
-        checkpoint_merged = checkpoint_merged + 1 if is_merged else checkpoint_merged
-    return checkpoint_merged
 
 
 def plot_loss(training_args: Seq2SeqTrainingArguments) -> None:

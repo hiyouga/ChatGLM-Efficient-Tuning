@@ -13,19 +13,21 @@
 
 ## 更新日志
 
-[23/04/20] 我们新增了一个使用自定义数据集分布式训练的例子，请移步 [ads_generation.md](examples/ads_generation.md) 查阅。
+[23/04/29] 现在我们实现了 **RLHF（基于人类反馈的强化学习）**！我们提供了几个运行 RLHF 的例子，具体内容请移步 `examples` 文件夹。（实验性功能）
+
+[23/04/25] 我们新增了一个使用自定义数据集分布式训练的例子，请移步 [ads_generation.md](examples/ads_generation.md) 查阅。
 
 [23/04/20] 我们的项目在 12 天内获得了 100 个 Star！祝贺！
 
 [23/04/20] 我们新增了一个修改模型自我认知的例子，请移步 [alter_self_cognition.md](examples/alter_self_cognition.md) 查阅。
 
-[23/04/19] 现在我们实现了模型融合！请尝试使用 `--checkpoint_dir checkpoint1,checkpoint2` 参数训练融合 LoRA 权重后的模型。
+[23/04/19] 现在我们实现了**模型融合**！请尝试使用 `--checkpoint_dir checkpoint1,checkpoint2` 参数训练融合 LoRA 权重后的模型。
 
-[23/04/18] 现在可以微调量化版模型了！请尝试使用 `quantization_bit` 参数进行 4 比特或 8 比特量化微调。
+[23/04/18] 现在可以微调**量化模型**了！请尝试使用 `quantization_bit` 参数进行 4 比特或 8 比特量化微调。
 
-[23/04/12] 现在我们加入了断点训练支持！请尝试给定 `--checkpoint_dir` 参数加载指定的模型断点。
+[23/04/12] 现在我们加入了**断点训练支持**！请尝试给定 `--checkpoint_dir` 参数加载指定的模型断点。
 
-[23/04/11] 现在我们实现了数据集组合训练！请尝试使用 `--dataset dataset1,dataset2` 参数进行组合训练。
+[23/04/11] 现在我们实现了**数据集组合训练**！请尝试使用 `--dataset dataset1,dataset2` 参数进行组合训练。
 
 ## 数据集
 
@@ -123,6 +125,43 @@ accelerate launch src/finetune.py # 参数同上
 ```
 
 注意：若您使用 LoRA 方法进行微调，请指定以下参数 `--ddp_find_unused_parameters False` 来避免报错。
+
+### 奖励模型训练
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
+    --do_train \
+    --dataset comparison_gpt4_en \
+    --finetuning_type lora \
+    --output_dir path_to_rm_checkpoint \
+    --per_device_train_batch_size 4 \
+    --gradient_accumulation_steps 4 \
+    --lr_scheduler_type cosine \
+    --logging_steps 10 \
+    --save_steps 1000 \
+    --learning_rate 5e-5 \
+    --num_train_epochs 1.0 \
+    --fp16
+```
+
+### RLHF 训练
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
+    --do_train \
+    --dataset alpaca_gpt4_en \
+    --finetuning_type lora \
+    --reward_model path_to_rm_checkpoint \
+    --output_dir path_to_ppo_checkpoint \
+    --per_device_train_batch_size 4 \
+    --gradient_accumulation_steps 4 \
+    --lr_scheduler_type cosine \
+    --logging_steps 10 \
+    --save_steps 1000 \
+    --learning_rate 5e-5 \
+    --num_train_epochs 1.0 \
+    --fp16
+```
 
 ### 指标评估（BLEU分数和汉语ROUGE分数）
 
@@ -239,7 +278,7 @@ model.eval()
 
 - [ ] 利用 [LangChain](https://github.com/hwchase17/langchain) 实现能够利用外部知识的基于 ChatGLM 微调模型应用的轻松构建。
 - [ ] 实现对齐算法使模型对齐人类意图。
-  - [ ] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
+  - [x] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
   - [ ] [RRHF](https://github.com/GanjinZero/RRHF)
   - [ ] [RAFT](https://github.com/OptimalScale/LMFlow)
 - [ ] 加入更多[中文数据集](https://github.com/brightmart/nlp_chinese_corpus)。
@@ -256,7 +295,7 @@ model.eval()
 - [x] 加入模型评估脚本。（但它可能很慢！增大批处理大小可以显著提升速度）
 - [x] 断点加载。
 - [x] 量化微调。
-- [ ] 撰写基于该框架的 ChatGLM 模型微调指南手册。
+- [x] 撰写基于该框架的 ChatGLM 模型微调指南手册。
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
 - [ ] 加入 [OpenAssistant 对话数据集](https://huggingface.co/datasets/OpenAssistant/oasst1)用于监督微调和意图对齐。
 - [ ] 加入高质量中文开源指令数据集 [COIG](https://huggingface.co/datasets/BAAI/COIG)。

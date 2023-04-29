@@ -1,0 +1,247 @@
+import os
+import sys
+import torch
+import logging
+from typing import Callable, Dict, List, Literal, Optional, Sequence, Tuple
+
+from transformers import DataCollatorWithPadding
+from transformers.trainer import TRAINING_ARGS_NAME
+from transformers.tokenization_utils import PreTrainedTokenizer
+
+from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
+from trl.core import LengthSampler
+from trl.trainer.ppo_trainer import PPODecorators, logprobs_from_logits
+
+from .config import FinetuningArguments
+
+from .other import (
+    save_trainable_params,
+    save_valuehead_params,
+    FINETUNING_ARGS_NAME
+)
+
+
+logger = logging.getLogger(__name__) # setup logging
+logger.setLevel(logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
+
+def replace_model(model: AutoModelForCausalLMWithValueHead, target: Literal["default", "reward"]) -> None:
+    if target == "reward":
+        valuehead_state_dict = model.v_head.state_dict()
+
+        setattr(model, "origin_head_weight", valuehead_state_dict["summary.weight"])
+        setattr(model, "origin_head_bias", valuehead_state_dict["summary.bias"])
+
+    model.pretrained_model.set_adapter(target)
+    model.v_head.load_state_dict({
+        "summary.weight": getattr(model, "{}_head_weight".format(target)),
+        "summary.bias": getattr(model, "{}_head_bias".format(target))
+    })
+
+
+@torch.no_grad()
+def compute_rewards(
+        input_ids: torch.Tensor, # (batch size x seq len) with format `X [gMASK] [BOS] Y [EOS] [PAD] ... [PAD]`
+        model: AutoModelForCausalLMWithValueHead,
+        tokenizer: PreTrainedTokenizer
+) -> torch.Tensor:
+
+    replace_model(model, target="reward")
+
+    _, _, values = model(input_ids=input_ids)
+    values = values.transpose(0, 1)
+
+    rewards = []
+    for i in range(input_ids.size(0)):
+        eos_idx = (input_ids[i] == tokenizer.eos_token_id).nonzero() # Note: checking with eos_token is unsafe
+        if len(eos_idx):
+            eos_idx = eos_idx[0].item()
+        else:
+            eos_idx = input_ids.size(1) - 1
+        rewards.append(values[i][eos_idx])
+    rewards = torch.stack(rewards, dim=0)
+
+    replace_model(model, target="default")
+
+    return rewards
+
+
+def cast_layernorm_dtype(
+        model: AutoModelForCausalLMWithValueHead,
+        layer_norm_names: List[str] = ["layernorm"], # for chatglm setting
+        layer_norm_params: Optional[Dict[str, torch.Tensor]] = None
+) -> Tuple[AutoModelForCausalLMWithValueHead, Dict[str, torch.Tensor]]:
+
+    layer_norm_state_dict = {}
+
+    for name, param in model.named_parameters():
+        if param.ndim == 1 and any(layer_norm_name in name for layer_norm_name in layer_norm_names):
+            if layer_norm_params is not None:
+                param.data = layer_norm_params[name] # restore float32 weights
+            else:
+                layer_norm_state_dict[name] = param.data.detach().clone() # store float32 weights for stability
+                param.data = param.data.to(torch.float16)
+
+    return model, layer_norm_state_dict
+
+
+class PPODataCollatorForChatGLM(DataCollatorWithPadding):
+    r"""
+    Data collator for ChatGLM. It is capable of dynamically padding for batched data.
+
+    Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/65512697dc67779a6e53c267488aba0ec4d7c02a/train.py#L156
+    """
+    def __init__(
+            self,
+            tokenizer: PreTrainedTokenizer,
+            min_input_length: int,
+            max_input_length: int,
+            inference_mode: bool = False,
+    ):
+        super().__init__(tokenizer, padding=True)
+        self.inference_mode = inference_mode
+        if min_input_length < max_input_length:
+            self.input_size = LengthSampler(min_input_length, max_input_length)
+        else:
+            self.input_size = lambda: max_input_length # always use max_input_length
+
+    def __call__(self, features: Sequence[Dict[str, Sequence]]) -> Dict[str, torch.Tensor]:
+        r"""
+        Pads batched data to the longest sequence in the batch. We adopt left-padding for ppo data.
+
+        Equips with a length sampler to generate sequences with variable lengths.
+
+        ChatGLM is able to generate attentions masks and position ids by itself.
+        """
+        if self.inference_mode:
+            raise NotImplementedError
+        input_ids = [torch.tensor(feature["input_ids"][:self.input_size()]).flip(0) for feature in features]
+        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
+        features = {"input_ids": input_ids.flip(-1)}
+        return features
+
+class PPOTrainerForChatGLM(PPOTrainer):
+    r"""
+    Inherits PPOTrainer.
+    """
+
+    def __init__(self, finetuning_args: FinetuningArguments, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.finetuning_args = finetuning_args
+
+    def generate(
+            self,
+            query_tensor: torch.Tensor, # (batch size x seq len)
+            length_sampler: Callable = None,
+            return_prompt: bool = True,
+            **generation_kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Generate response with the model given the query tensor.
+
+        Inspired by: https://github.com/lvwerra/trl/blob/08f550674c553c36c51d1027613c29f14f3676a5/trl/trainer/ppo_trainer.py#L387
+        """
+
+        self.model, layer_norm_params = cast_layernorm_dtype(self.model)
+
+        if length_sampler is not None:
+            generation_kwargs["max_new_tokens"] = length_sampler()
+
+        response = self.accelerator.unwrap_model(self.model).generate(
+            input_ids=query_tensor, **generation_kwargs
+        )
+
+        # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
+        # Inspired by: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/trainer_seq2seq.py#L273
+        if self.model.pretrained_model.generation_config._from_model_config:
+            self.model.pretrained_model.generation_config._from_model_config = False
+
+        self.model, _ = cast_layernorm_dtype(self.model, layer_norm_params)
+
+        if not return_prompt and not self.is_encoder_decoder:
+            return response[:, query_tensor.size(1):]
+        return response
+
+    def prepare_model_inputs(self, queries: torch.Tensor, responses: torch.Tensor):
+        input_ids = []
+        for query, response in zip(queries, responses): # query is left-padded, response is right-padded
+            start = (query != self.tokenizer.pad_token_id).nonzero()[0].item()
+            input_ids.append(torch.cat((query[start:], response, query[:start]))) # change to right-padding
+
+        input_data = self.data_collator([{"input_ids": ids} for ids in input_ids]).to(self.current_device)
+        input_data.pop("labels", None)  # we don't want to compute LM losses
+
+        return input_data
+
+    @PPODecorators.empty_cuda_cache()
+    def batched_forward_pass(
+        self,
+        model: AutoModelForCausalLMWithValueHead,
+        queries: torch.Tensor,
+        responses: torch.Tensor,
+        model_inputs: dict,
+    ):
+        r"""
+        Calculate model outputs in multiple batches.
+
+        Override to inject custom behavior.
+        """
+        bs = len(queries)
+        fbs = self.config.mini_batch_size
+        all_logprobs = []
+        all_logits = []
+        all_masks = []
+        all_values = []
+
+        for i in range(int(bs / fbs)):
+            input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
+
+            input_ids = input_kwargs["input_ids"]
+            logits, _, values = model(input_ids=input_ids) # chatglm only needs input_ids
+            logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
+
+            values = values.transpose(0, 1)
+            masks = torch.zeros_like(input_ids)
+
+            for j in range(fbs):
+                start = (input_ids[j] == self.tokenizer.bos_token_id).nonzero()[0].item()
+                end = (input_ids[j] == self.tokenizer.eos_token_id).nonzero()
+                if len(end):
+                    end = end[0].item()
+                else:
+                    end = masks.size(1)
+                masks[j][start:end] = 1
+
+            all_logits.append(logits)
+            all_values.append(values)
+            all_logprobs.append(logprobs)
+            all_masks.append(masks)
+
+        return (
+            torch.cat(all_logprobs),
+            torch.cat(all_logits)[:, :-1],
+            torch.cat(all_values)[:, :-1],
+            torch.cat(all_masks)[:, :-1],
+        )
+
+    def save_model(self, output_dir: os.PathLike) -> None:
+        r"""
+        Saves trainable parameters as model checkpoints. Use `self.model.pretrained_model` to refer to the backbone model.
+
+        Override to inject custom behavior.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        logger.info(f"Saving model checkpoint to {output_dir}")
+        if hasattr(self.model.pretrained_model, "peft_config"): # LoRA
+            self.model.pretrained_model.save_pretrained(output_dir) # only save peft weights with the built-in method
+        else: # Freeze and P-Tuning
+            save_trainable_params(output_dir, self.model.pretrained_model)
+        if hasattr(self.model, "v_head"):
+            save_valuehead_params(output_dir, self.model.v_head) # save valuehead weights
+        torch.save(self.config, os.path.join(output_dir, TRAINING_ARGS_NAME))
+        torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
