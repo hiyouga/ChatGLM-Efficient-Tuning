@@ -1,11 +1,12 @@
 import os
 import sys
+import json
 import torch
 import logging
-from typing import Callable, Dict, List, Literal, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple
 
-from transformers import DataCollatorWithPadding
-from transformers.trainer import TRAINING_ARGS_NAME
+from transformers import DataCollatorWithPadding, Seq2SeqTrainingArguments
+from transformers.trainer import TRAINING_ARGS_NAME, TRAINER_STATE_NAME
 from transformers.tokenization_utils import PreTrainedTokenizer
 
 from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
@@ -15,6 +16,7 @@ from trl.trainer.ppo_trainer import PPODecorators, logprobs_from_logits
 from .config import FinetuningArguments
 
 from .other import (
+    AverageMeter,
     save_trainable_params,
     save_valuehead_params,
     FINETUNING_ARGS_NAME
@@ -130,8 +132,13 @@ class PPOTrainerForChatGLM(PPOTrainer):
     Inherits PPOTrainer.
     """
 
-    def __init__(self, finetuning_args: FinetuningArguments, *args, **kwargs):
+    def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.steps = 0
+        self.loss_meter = AverageMeter()
+        self.reward_meter = AverageMeter()
+        self.trainer_state = {"log_history": []}
+        self.training_args = training_args
         self.finetuning_args = finetuning_args
 
     def generate(
@@ -229,12 +236,37 @@ class PPOTrainerForChatGLM(PPOTrainer):
             torch.cat(all_masks)[:, :-1],
         )
 
-    def save_model(self, output_dir: os.PathLike) -> None:
+    def update_stats(self, stats: Dict[str, Any], batch: Dict[str, torch.Tensor], rewards: torch.Tensor) -> None:
+        self.steps += 1
+        self.loss_meter.update(stats["ppo/loss/total"])
+        self.reward_meter.update(rewards.sum().item(), n=rewards.size(0))
+        if self.steps % self.training_args.logging_steps == 0:
+            print("{{'loss': {:.4f}, 'reward': {:.4f}, 'learning_rate': {:}}}".format(
+                self.loss_meter.avg, self.reward_meter.avg, stats["ppo/learning_rate"]
+            ))
+            self.trainer_state["log_history"].append({
+                "loss": self.loss_meter.avg,
+                "reward": self.reward_meter.avg,
+                "step": self.steps
+            })
+            self.loss_meter.reset()
+            self.reward_meter.reset()
+
+    def save_state(self, output_dir: Optional[str] = None) -> None:
         r"""
-        Saves trainable parameters as model checkpoints. Use `self.model.pretrained_model` to refer to the backbone model.
+        Saves trainer state.
+        """
+        output_dir = output_dir if output_dir is not None else self.training_args.output_dir
+        os.makedirs(output_dir, exist_ok=True)
+        json.dump(self.trainer_state, open(os.path.join(output_dir, TRAINER_STATE_NAME), "w", encoding="utf-8", newline="\n"))
+
+    def save_model(self, output_dir: Optional[str] = None) -> None:
+        r"""
+        Saves trainable parameters as model checkpoints. We use `self.model.pretrained_model` to refer to the backbone model.
 
         Override to inject custom behavior.
         """
+        output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
         if hasattr(self.model.pretrained_model, "peft_config"): # LoRA
@@ -243,5 +275,5 @@ class PPOTrainerForChatGLM(PPOTrainer):
             save_trainable_params(output_dir, self.model.pretrained_model)
         if hasattr(self.model, "v_head"):
             save_valuehead_params(output_dir, self.model.v_head) # save valuehead weights
-        torch.save(self.config, os.path.join(output_dir, TRAINING_ARGS_NAME))
+        torch.save(self.training_args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))

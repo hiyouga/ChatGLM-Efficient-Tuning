@@ -18,7 +18,8 @@ from utils import (
     preprocess_data,
     PPODataCollatorForChatGLM,
     PPOTrainerForChatGLM,
-    compute_rewards
+    compute_rewards,
+    plot_loss
 )
 
 
@@ -50,6 +51,7 @@ def main():
 
     # Initialize our Trainer
     ppo_trainer = PPOTrainerForChatGLM(
+        training_args=training_args,
         finetuning_args=finetuning_args,
         config=ppo_config,
         model=model,
@@ -70,7 +72,6 @@ def main():
     }
     output_length_sampler = LengthSampler(data_args.max_target_length // 2, data_args.max_target_length)
 
-    step = 0
     for batch in tqdm(ppo_trainer.dataloader):
         queries = batch["input_ids"] # left-padded sequences
 
@@ -80,7 +81,7 @@ def main():
         # Get response from ChatGLM
         responses_with_queries = ppo_trainer.generate(queries, length_sampler=output_length_sampler, **gen_kwargs)
         responses = responses_with_queries[:, queries.size(1):] # right-padded sequences
-        batch["response"] = tokenizer.batch_decode(responses, skip_special_tokens=True)
+        # batch["response"] = tokenizer.batch_decode(responses, skip_special_tokens=True) # avoid error
 
         for i in range(responses_with_queries.size(0)): # change to right-padding
             start = (responses_with_queries[i] != tokenizer.pad_token_id).nonzero()[0].item()
@@ -94,12 +95,14 @@ def main():
         model.config.use_cache = False
         split_into_list = lambda x: [x[i] for i in range(x.size(0))]
         stats = ppo_trainer.step(*map(split_into_list, [queries, responses, rewards]))
-        ppo_trainer.log_stats(stats, batch, rewards)
-        if step % training_args.logging_steps == 0:
-            print("{{'loss': {:.4f}, 'learning_rate': {:}}}".format(stats["ppo/loss/total"], stats["ppo/learning_rate"]))
-        step += 1
 
-    ppo_trainer.save_model(training_args.output_dir)
+        ppo_trainer.log_stats(stats, batch, rewards)
+        ppo_trainer.update_stats(stats, batch, rewards)
+
+    ppo_trainer.save_state() # along with the loss values
+    ppo_trainer.save_model()
+    if finetuning_args.plot_loss:
+        plot_loss(training_args)
 
 
 def _mp_fn(index):
