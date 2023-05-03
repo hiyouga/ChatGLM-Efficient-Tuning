@@ -97,6 +97,17 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
+如果想在windows上开启lora或者freeze的量化, 需要额外装一下bitsandbytes库
+因为bitsandbytes目前不能直接支持windows，所以我们使用了一个预构建好的包，该包目前只支持 cuda11.6和cuda11.7
+```
+pip install https://github.com/acpopescu/bitsandbytes/releases/download/v0.37.2-win.1/bitsandbytes-0.37.2-py3-none-any.whl
+```
+
+如果是linux用户，直接安装即可
+```
+pip install bitsandbytes
+```
+
 ### 单 GPU 微调训练
 
 ```bash
@@ -143,6 +154,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
     --num_train_epochs 1.0 \
     --fp16
 ```
+
+> 目前默认版本使用accpect response 和reject response 的eos token的分数之差作为学习奖励
 
 ### RLHF 训练
 
@@ -228,6 +241,17 @@ model.eval()
 | P-Tuning (p=16)  |     4      | INT4 |  12GB  | 8ex/s |
 | Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
 | Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
+
+| 奖励模型方法          | Batch size | Mode | GRAM | Speed |
+|-----------------|------------| ---- |------|-------|
+| LoRA (r=8) + rm | 1          | INT8 | 11GB | -     |
+| LoRA (r=8) + rm | 4          | FP16 | 22GB | -     |
+
+| RLHF 训练      | Batch size | Mode | GRAM | Speed |
+|------------------|------------| ---- |------|-------|
+| LoRA (r=8) + ppo | 1          | INT8 | 12GB | -     |
+| LoRA (r=8) + ppo | 4          | FP16 | 23GB | -     |
+
 
 > 注：`r` 为LoRA 维数大小，`p` 为前缀词表大小，`l` 为微调层数，`ex/s` 为每秒训练的样本数。`gradient_accumulation_steps` 参数设置为 `1`。上述结果均来自于单个 Tesla V100 GPU，仅供参考。
 
