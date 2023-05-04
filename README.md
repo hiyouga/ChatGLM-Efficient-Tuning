@@ -93,6 +93,17 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
+If you want to enable LoRa or Freeze quantization on Windows, you need to install the Bitsandbytes library additionally.
+Because Bitsandbytes currently cannot directly support Windows, we used a pre-built package that currently only supports CUDA 11.6 and CUDA 11.7
+```
+pip install https://github.com/acpopescu/bitsandbytes/releases/download/v0.37.2-win.1/bitsandbytes-0.37.2-py3-none-any.whl
+```
+
+for linux user, just install directly
+```
+pip install bitsandbytes
+```
+
 ### Fine-tuning with a Single GPU
 
 ```bash
@@ -140,6 +151,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
     --fp16
 ```
 
+> The current default version uses the difference in score between the EOS tokens of the accept response and reject response as the learning reward
 ### Training with RLHF
 
 ```bash
@@ -223,6 +235,16 @@ model.eval()
 | P-Tuning (p=16)  |     4      | INT4 |  12GB  | 8ex/s |
 | Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
 | Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
+
+| Rm method       | Batch size | Mode | GRAM | Speed |
+|-----------------|------------| ---- |------|-------|
+| LoRA (r=8) + rm | 1          | INT8 | 11GB | -     |
+| LoRA (r=8) + rm | 4          | FP16 | 22GB | -     |
+
+| RLHF method      | Batch size | Mode | GRAM | Speed |
+|------------------|------------| ---- |------|-------|
+| LoRA (r=8) + ppo | 1          | INT8 | 12GB | -     |
+| LoRA (r=8) + ppo | 4          | FP16 | 23GB | -     |
 
 > Note: `r` is the lora rank, `p` is the number of prefix tokens, `l` is the number of trainable layers, `ex/s` is the examples per second at training. The `gradient_accumulation_steps` is set to `1`. All are evaluated on a single Tesla V100 (32G) GPU, they are approximated values and may vary in different GPUs.
 

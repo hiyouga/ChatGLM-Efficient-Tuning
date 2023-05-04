@@ -224,7 +224,10 @@ def load_pretrained(
         if stage == "ppo": # load reward model
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
             load_valuehead_params(model, model_args.reward_model)
-
+        # Set the parameter _is_int8_training_enabled for the AutoModelForCausalLMWithValueHead model
+        # To meet the compliance requirements of the transformers library
+        if quantization == "hf" and model_args.quantization_bit == 8:
+            model._is_int8_training_enabled = True
     print_trainable_params(model)
 
     return model, tokenizer
