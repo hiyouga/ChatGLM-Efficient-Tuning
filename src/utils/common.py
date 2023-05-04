@@ -158,7 +158,7 @@ def load_pretrained(
     if model_args.quantization_bit is not None:
         if is_trainable:
             if finetuning_args.finetuning_type != "p_tuning":
-                quantization = "hf" # use huggingface's quantization
+                quantization = "bnb" # use bnb's quantization
             else:
                 quantization = "cpm" # use cpm's quantization
         else:
@@ -190,7 +190,7 @@ def load_pretrained(
         config.prefix_projection = finetuning_args.prefix_projection
 
     # Quantization configurations for Freeze and LoRA in training (using bitsandbytes library).
-    if quantization == "hf":
+    if quantization == "bnb":
         if model_args.quantization_bit != 8:
             raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
         require_version("bitsandbytes>=0.37.0", "bitsandbytes library is required to use this feature.")
@@ -212,9 +212,14 @@ def load_pretrained(
     if quantization == "cpm":
         if model_args.quantization_bit != 4 and model_args.quantization_bit != 8:
             raise ValueError("P-Tuning v2 and inference modes only accept 4-bit or 8-bit quantization.")
+
         if is_trainable and training_args.fp16:
             raise ValueError("FP16 training conflicts with cpm quantization.")
-        model = model.quantize(model_args.quantization_bit).half()
+
+        model = model.quantize(model_args.quantization_bit)
+        for name, param in model.named_parameters():
+            if "prefix_encoder" not in name:
+                param.data = param.data.to(torch.float16) # convert all params in half precision except prefix_encoder
 
     if quantization is not None:
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
@@ -224,10 +229,12 @@ def load_pretrained(
         if stage == "ppo": # load reward model
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
             load_valuehead_params(model, model_args.reward_model)
+
         # Set the parameter _is_int8_training_enabled for the AutoModelForCausalLMWithValueHead model
         # To meet the compliance requirements of the transformers library
-        if quantization == "hf" and model_args.quantization_bit == 8:
+        if quantization == "bnb" and model_args.quantization_bit == 8:
             model._is_int8_training_enabled = True
+
     print_trainable_params(model)
 
     return model, tokenizer

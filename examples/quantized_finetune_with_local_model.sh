@@ -2,6 +2,7 @@
 
 CUDA_VISIBLE_DEVICES=0 python ../src/finetune.py \
     --do_train \
+    --model_name_or_path path_to_chatglm_model \
     --dataset alpaca_gpt4_zh \
     --dataset_dir ../data \
     --finetuning_type lora \
@@ -14,6 +15,5 @@ CUDA_VISIBLE_DEVICES=0 python ../src/finetune.py \
     --save_steps 1000 \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
-    --fp16 \
     --quantization_bit 8 \
-    --model_name_or_path path_to_base_model
+    --fp16 \

@@ -71,8 +71,8 @@ huggingface-cli login
 
 ## 软件依赖
 
-- Python 3.8+, PyTorch 2.0.0
-- 🤗Transformers, Datasets, Accelerate, TRL, PEFT（最低需要 0.3.0.dev0）
+- Python 3.8+, PyTorch 1.13.1
+- 🤗Transformers, Datasets, Accelerate, PEFT, TRL
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk（用于评估）
 - gradio, mdtex2html（用于网页端交互）
@@ -97,15 +97,10 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
-如果想在windows上开启lora或者freeze的量化, 需要额外装一下bitsandbytes库
-因为bitsandbytes目前不能直接支持windows，所以我们使用了一个预构建好的包，该包目前只支持 cuda11.6和cuda11.7
+对于 Windows 用户，若要启用 LoRA 或 Freeze 的量化微调，请下载预构建的 `bitsandbytes` 包，目前仅支持 CUDA 11.6 和 11.7。
+
 ```
 pip install https://github.com/acpopescu/bitsandbytes/releases/download/v0.37.2-win.1/bitsandbytes-0.37.2-py3-none-any.whl
-```
-
-如果是linux用户，直接安装即可
-```
-pip install bitsandbytes
 ```
 
 ### 单 GPU 微调训练
@@ -154,8 +149,6 @@ CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
     --num_train_epochs 1.0 \
     --fp16
 ```
-
-> 目前默认版本使用accpect response 和reject response 的eos token的分数之差作为学习奖励
 
 ### RLHF 训练
 
@@ -242,16 +235,15 @@ model.eval()
 | Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
 | Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
 
-| 奖励模型方法          | Batch size | Mode | GRAM | Speed |
-|-----------------|------------| ---- |------|-------|
-| LoRA (r=8) + rm | 1          | INT8 | 11GB | -     |
-| LoRA (r=8) + rm | 4          | FP16 | 22GB | -     |
+| 奖励模型训练方法 |  批处理大小  | 模式 | GPU显存 | 速度 |
+| --------------- | ----------  | ---- | ------ | ---- |
+| LoRA (r=8) + rm |      4      | FP16 |  22GB  | -    |
+| LoRA (r=8) + rm |      1      | INT8 |  11GB  | -    |
 
-| RLHF 训练      | Batch size | Mode | GRAM | Speed |
-|------------------|------------| ---- |------|-------|
-| LoRA (r=8) + ppo | 1          | INT8 | 12GB | -     |
-| LoRA (r=8) + ppo | 4          | FP16 | 23GB | -     |
-
+|   RLHF 训练方法   |  批处理大小  | 模式 | GPU显存 | 速度 |
+| ---------------- | ----------  | ---- | ------ | ---- |
+| LoRA (r=8) + ppo |      4      | FP16 |  23GB  | -    |
+| LoRA (r=8) + ppo |      1      | INT8 |  12GB  | -    |
 
 > 注：`r` 为LoRA 维数大小，`p` 为前缀词表大小，`l` 为微调层数，`ex/s` 为每秒训练的样本数。`gradient_accumulation_steps` 参数设置为 `1`。上述结果均来自于单个 Tesla V100 GPU，仅供参考。
 
@@ -275,7 +267,7 @@ model.eval()
 | Rouge-l |  26.18   | 28.17 | 26.35 | 28.86 (**+2.68**) |
 | 训练参数 |  /       | 4.35% | 0.06% | 0.06%             |
 
-> FZ：Freeze 微调，PT：P-Tuning V2 微调（为了与 LoRA 公平比较，我们使用了 `pre_seq_len=16`）
+> FZ：Freeze 微调，PT：P-Tuning V2 微调（为了与 LoRA 公平比较，我们使用了 `pre_seq_len=16`），训练参数：可训练参数占全部参数的百分比。
 
 ## 和现有类似项目的比较
 
