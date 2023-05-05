@@ -18,6 +18,7 @@ from utils import (
     preprocess_data,
     PPODataCollatorForChatGLM,
     PPOTrainerForChatGLM,
+    InvalidScoreLogitsProcessor,
     compute_rewards,
     plot_loss
 )
@@ -68,7 +69,8 @@ def main():
         "top_p": 1.0,
         "do_sample": True,
         "pad_token_id": tokenizer.pad_token_id,
-        "eos_token_id": tokenizer.eos_token_id
+        "eos_token_id": tokenizer.eos_token_id,
+        "logits_processor": InvalidScoreLogitsProcessor()
     }
     output_length_sampler = LengthSampler(data_args.max_target_length // 2, data_args.max_target_length)
 

@@ -57,7 +57,7 @@ logging.basicConfig(
 
 check_min_version("4.27.4")
 require_version("datasets>=2.10.0", "To fix: pip install datasets>=2.10.0")
-require_version("peft>=0.3.0.dev0", "To fix: pip install git+https://github.com/huggingface/peft.git")
+require_version("peft>=0.3.0", "To fix: pip install peft>=0.3.0")
 require_version("trl>=0.4.1", "To fix: pip install trl>=0.4.1")
 
 
@@ -378,8 +378,8 @@ def preprocess_data(
                 if examples["history"][i]:
                     prompt = ""
                     history = examples["history"][i]
-                    for i, (old_query, response) in enumerate(history):
-                        prompt += "[Round {}]\n问：{}\n答：{}\n".format(i, old_query, response)
+                    for j, (old_query, response) in enumerate(history):
+                        prompt += "[Round {}]\n问：{}\n答：{}\n".format(j, old_query, response)
                     prompt += "[Round {}]\n问：{}\n答：".format(len(history), query)
                 else:
                     prompt = query
