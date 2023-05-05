@@ -1,8 +1,8 @@
 version: '3.1'
 services:
   chatglmeft:
-    image: chatglmeft_docker:v1
+    image: janglichao/chatglmeft:v1
     container_name: chatglmeft
     stdin_open: true
     volumes:
-      - /home/kidd/projects/llms/ChatGLM-Efficient-Tuning:/home/ChatGLM-Efficient-Tuning/
+      - /Users/kidd/Documents/Projects/llms/fork_chatglmeft:/home/ChatGLM-Efficient-Tuning/
