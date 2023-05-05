@@ -81,7 +81,7 @@ conda activate chatglmeft
 
 ![docker-conda](media/docker-conda.jpg)
 
-最后用户就能自由的在容器内部执行python web_demo.py等命令启动界面并在物理机访问调试、测试了。
+最后用户就能自由的在容器内部执行python web_demo.py等命令启动界面并在物理机访问调试、测试了(注意如果容器内启动可视化界面，在物理机要访问得先配置yml文件的network参数）。
 
 
 
