@@ -24,4 +24,4 @@ from .ppo import (
 
 from .config import ModelArguments
 
-from .other import InvalidScoreLogitsProcessor, plot_loss
+from .other import get_logits_processor, plot_loss

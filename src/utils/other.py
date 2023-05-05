@@ -8,7 +8,9 @@ from typing import Dict, List, Optional
 from transformers import Seq2SeqTrainingArguments
 from transformers.trainer import TRAINER_STATE_NAME
 from transformers.modeling_utils import PreTrainedModel
+from transformers.generation.utils import LogitsProcessorList
 from transformers.generation.logits_process import LogitsProcessor
+
 
 from peft.utils.other import WEIGHTS_NAME
 
@@ -48,6 +50,8 @@ class AverageMeter:
         self.avg = self.sum / self.count
 
 
+# Avoid runtime error in model.generate(do_sample=True).
+# Borrowed from: https://huggingface.co/THUDM/chatglm-6b/blob/658202d88ac4bb782b99e99ac3adff58b4d0b813/modeling_chatglm.py#L54
 class InvalidScoreLogitsProcessor(LogitsProcessor):
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
@@ -55,6 +59,12 @@ class InvalidScoreLogitsProcessor(LogitsProcessor):
             scores.zero_()
             scores[..., 5] = 5e4
         return scores
+
+
+def get_logits_processor():
+    logits_processor = LogitsProcessorList()
+    logits_processor.append(InvalidScoreLogitsProcessor())
+    return logits_processor
 
 
 # Includes: (1) cast the layernorm in fp32 (2) make output embedding layer require grads (3) upcast the lm_head to fp32

@@ -154,6 +154,9 @@ def load_pretrained(
         logger.info("Load fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
         finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir[0], FINETUNING_ARGS_NAME))
 
+    if stage != "sft" and finetuning_args.finetuning_type != "lora":
+        raise ValueError("RM and PPO training can only be performed with LoRA method.")
+
     quantization = None
     if model_args.quantization_bit is not None:
         if is_trainable:
