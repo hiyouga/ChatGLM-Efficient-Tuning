@@ -6,3 +6,10 @@ services:
     stdin_open: true
     volumes:
       - /Users/kidd/Documents/Projects/llms/fork_chatglmeft:/home/ChatGLM-Efficient-Tuning/
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 2
+#              capabilities: [ gpu ]
