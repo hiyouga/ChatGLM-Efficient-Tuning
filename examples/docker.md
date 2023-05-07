@@ -94,6 +94,19 @@ $ conda activate chatglmeft
 
 ![docker-conda](media/docker-conda.jpg)
 
+下载离线模型文件
+在容器内切换到/examples/docker/目录下，执行download_models脚本文件
+```bash
+$ python download_models.py
+```
+使用离线模型有3个原因：
+
+1.在MacOS系统中chatGLM模型只能加载本地模型才能兼容运行(详见chatGLM官方说明)
+
+2.因为docker容器是虚拟化的，如果容器销毁，下载的模型文件如果不物理持久化也会随着容器销毁，所以我们采用docker-compose映射物理机路径的方式持久化离线保存
+
+3.我们尽量不封装模型到容器里面，防止官方模型文件更新，容器更新不及时与代码不兼容，同时也减少了容器的体积。
+
 
 进入容器内部的项目目录就能执行各种脚本与测试，如下执行推理脚本（python infer.py）：
 
@@ -101,6 +114,6 @@ $ conda activate chatglmeft
 
 **关于docker-compose的特别提示**：
 
-[docker-compose.yml](./docker/docker-compose.yml)文件的deploy配置了一些物理机NVIDIA显卡信息，在有NVIDIA显卡的环境可以开启（mac等AMD机器忽略此项），配置项"count：2"意思是复用物理机的2块显卡，如果有n块就写n。
+[docker-compose.yml](./docker/docker-compose.yml)文件的deploy配置了一些物理机NVIDIA显卡信息，在有NVIDIA显卡的环境可以开启（mac等AMD机器忽略此项），配置项"count：2"意思是使用物理机的2块显卡，如果有n块就写n。
 这样做的考虑是，在容器内最灵活的控制使用几块显卡资源，让用户自行决定哪些显卡需要分配哪些容器，docker-compose本身也支持管理多个容器实例化，用户可以起多个容器，实现多个模型并行服务。
 
