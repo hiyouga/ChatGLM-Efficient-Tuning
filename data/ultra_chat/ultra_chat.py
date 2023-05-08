@@ -25,7 +25,7 @@ class BelleMultiturn(datasets.GeneratorBasedBuilder):
 
     VERSION = datasets.Version("0.0.0")
 
-    def _info(self):
+    def _info(self) -> datasets.DatasetInfo:
         features = datasets.Features({
             "instruction": datasets.Value("string"),
             "output": datasets.Value("string"),
@@ -64,9 +64,11 @@ class BelleMultiturn(datasets.GeneratorBasedBuilder):
                         content.pop(-1)
                     if len(content) < 2:
                         continue
+
                     query = content[-2]
                     response = content[-1]
                     history = [[content[2*i], content[2*i+1]] for i in range(len(content) // 2 - 1)]
+
                     yield key, {
                         "instruction": query,
                         "output": response,

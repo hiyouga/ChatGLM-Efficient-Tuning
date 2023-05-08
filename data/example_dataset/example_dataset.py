@@ -1,5 +1,6 @@
 import json
 import datasets
+from typing import Any, Dict, List
 
 
 _DESCRIPTION = "An example of dataset for ChatGLM."
@@ -13,7 +14,7 @@ class ExampleDataset(datasets.GeneratorBasedBuilder):
 
     VERSION = datasets.Version("0.0.0")
 
-    def _info(self):
+    def _info(self) -> datasets.DatasetInfo:
         features = datasets.Features({
             "instruction": datasets.Value("string"),
             "input": datasets.Value("string"),
@@ -28,7 +29,7 @@ class ExampleDataset(datasets.GeneratorBasedBuilder):
             citation=_CITATION
         )
 
-    def _split_generators(self, dl_manager):
+    def _split_generators(self, dl_manager: datasets.DownloadManager) -> List[datasets.SplitGenerator]:
         file_path = dl_manager.download(_URL)
         return [
             datasets.SplitGenerator(
@@ -39,7 +40,7 @@ class ExampleDataset(datasets.GeneratorBasedBuilder):
             )
         ]
 
-    def _generate_examples(self, filepath):
+    def _generate_examples(self, filepath: str) -> Dict[int, Dict[str, Any]]:
         example_dataset = json.load(open(filepath, "r", encoding="utf-8"))
         for key, example in enumerate(example_dataset):
             yield key, example

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from transformers import Seq2SeqTrainer, DataCollatorForSeq2Seq
 from transformers.trainer import PredictionOutput, TRAINING_ARGS_NAME
 from transformers.deepspeed import is_deepspeed_zero3_enabled
-from transformers.modeling_utils import PreTrainedModel
+from transformers.modeling_utils import PreTrainedModel, unwrap_model
 from transformers.tokenization_utils import PreTrainedTokenizer
 
 import jieba
@@ -107,6 +107,7 @@ class ComputeMetrics:
 
             for k, v in result.items():
                 score_dict[k].append(round(v["f"] * 100, 4))
+
             bleu_score = sentence_bleu([list(label)], list(pred), smoothing_function=SmoothingFunction().method3)
             score_dict["bleu-4"].append(round(bleu_score * 100, 4))
 
@@ -126,15 +127,21 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
         r"""
         Saves trainable parameters as model checkpoints.
 
+        This function will only be executed at the process zero.
+
         Override to inject custom behavior.
         """
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
+
+        model_to_save = unwrap_model(self.model)
+
         if hasattr(self.model, "peft_config"): # peft methods
-            self.model.save_pretrained(output_dir) # save lora weights
+            model_to_save.save_pretrained(output_dir) # save lora weights
         else: # non-peft methods
-            save_trainable_params(output_dir, self.model)
+            save_trainable_params(output_dir, model_to_save)
+
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
 
@@ -147,6 +154,8 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
     ) -> Tuple[Optional[float], Optional[torch.Tensor], Optional[torch.Tensor]]:
         r"""
         Performs an evaluation step on `model` using `inputs` for ChatGLM.
+
+        Now it only supports single GPU (without Accelerate).
 
         Override to inject custom behavior. It is not directly used by external scripts.
         """
@@ -224,16 +233,20 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
 
         A custom behavior that not contained in Seq2SeqTrainer.
         """
-        if self.is_world_process_zero():
-            if self.args.predict_with_generate:
-                predictions = tokenizer.batch_decode(predict_results.predictions, skip_special_tokens=True)
-                predictions = [pred.strip() for pred in predictions]
-                labels = tokenizer.batch_decode(predict_results.label_ids, skip_special_tokens=True)
-                labels = [label.strip() for label in labels]
-                output_prediction_file = os.path.join(self.args.output_dir, PREDICTION_FILE_NAME)
-                logger.info(f"Saving prediction results to {output_prediction_file}")
-                with open(output_prediction_file, "w", encoding="utf-8") as writer:
-                    res = []
-                    for pred, label in zip(predictions, labels):
-                        res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
-                    writer.write("\n".join(res))
+        if not self.is_world_process_zero():
+            return
+        if not self.args.predict_with_generate:
+            raise ValueError("Please enable `predict_with_generate` for saving model predictions.")
+
+        predictions = tokenizer.batch_decode(predict_results.predictions, skip_special_tokens=True)
+        predictions = [pred.strip() for pred in predictions]
+        labels = tokenizer.batch_decode(predict_results.label_ids, skip_special_tokens=True)
+        labels = [label.strip() for label in labels]
+
+        output_prediction_file = os.path.join(self.args.output_dir, PREDICTION_FILE_NAME)
+        logger.info(f"Saving prediction results to {output_prediction_file}")
+        with open(output_prediction_file, "w", encoding="utf-8") as writer:
+            res = []
+            for pred, label in zip(predictions, labels):
+                res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
+            writer.write("\n".join(res))

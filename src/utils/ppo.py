@@ -158,14 +158,16 @@ class PPOTrainerForChatGLM(PPOTrainer):
         if length_sampler is not None:
             generation_kwargs["max_new_tokens"] = length_sampler()
 
-        response = self.accelerator.unwrap_model(self.model).generate(
+        unwrapped_model = self.accelerator.unwrap_model(self.model)
+
+        response = unwrapped_model.generate(
             input_ids=query_tensor, **generation_kwargs
         )
 
         # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
         # Inspired by: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/trainer_seq2seq.py#L273
-        if self.model.pretrained_model.generation_config._from_model_config:
-            self.model.pretrained_model.generation_config._from_model_config = False
+        if unwrapped_model.pretrained_model.generation_config._from_model_config:
+            unwrapped_model.pretrained_model.generation_config._from_model_config = False
 
         self.model, _ = cast_layernorm_dtype(self.model, layer_norm_params)
 
@@ -179,8 +181,9 @@ class PPOTrainerForChatGLM(PPOTrainer):
             start = (query != self.tokenizer.pad_token_id).nonzero()[0].item()
             input_ids.append(torch.cat((query[start:], response, query[:start]))) # change to right-padding
 
-        input_data = {"input_ids": torch.stack(input_ids, dim=0).to(self.current_device)}
-        return input_data
+        model_inputs =  {"input_ids": torch.stack(input_ids, dim=0).to(self.current_device)} # already padded to equal length
+        model_inputs["attention_mask"] = torch.ones_like(model_inputs["input_ids"]) # unused indeed, avoid distributed error
+        return model_inputs
 
     @PPODecorators.empty_cuda_cache()
     def batched_forward_pass(
@@ -253,10 +256,20 @@ class PPOTrainerForChatGLM(PPOTrainer):
         if self.steps % self.training_args.save_steps == 0: # save checkpoint
             self.save_model(os.path.join(self.training_args.output_dir, f"checkpoint-{self.steps}"))
 
+    def is_world_process_zero(self) -> bool:
+        r"""
+        Whether or not this process is the global main process (when training in a distributed fashion on several
+        machines, this is only going to be `True` for one process).
+        """
+        return self.training_args.process_index == 0
+
     def save_state(self, output_dir: Optional[str] = None) -> None:
         r"""
         Saves trainer state.
         """
+        if not self.is_world_process_zero():
+            return
+
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         json.dump(self.trainer_state, open(os.path.join(output_dir, TRAINER_STATE_NAME), "w", encoding="utf-8", newline="\n"), indent=2)
@@ -267,14 +280,22 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
         Override to inject custom behavior.
         """
+        if not self.is_world_process_zero():
+            return
+
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        if hasattr(self.model.pretrained_model, "peft_config"): # peft methods
-            self.model.pretrained_model.save_pretrained(output_dir) # save lora weights
+
+        unwrapped_model = self.accelerator.unwrap_model(self.model)
+
+        if hasattr(unwrapped_model.pretrained_model, "peft_config"): # peft methods
+            unwrapped_model.pretrained_model.save_pretrained(output_dir) # save lora weights
         else: # non-peft methods
-            save_trainable_params(output_dir, self.model.pretrained_model)
-        if hasattr(self.model, "v_head"):
-            save_valuehead_params(output_dir, self.model.v_head) # save valuehead weights
+            save_trainable_params(output_dir, unwrapped_model.pretrained_model)
+
+        if hasattr(unwrapped_model, "v_head"):
+            save_valuehead_params(output_dir, unwrapped_model.v_head) # save valuehead weights
+
         torch.save(self.training_args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
