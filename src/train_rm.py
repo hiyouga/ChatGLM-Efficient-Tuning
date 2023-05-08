@@ -27,6 +27,8 @@ def main():
         inference_mode=(not training_args.do_train)
     )
 
+    training_args.remove_unused_columns = False # Important for pairwise dataset
+
     # Initialize our Trainer
     trainer = PairwiseTrainerForChatGLM(
         finetuning_args=finetuning_args,
