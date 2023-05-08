@@ -95,8 +95,6 @@ def cast_layernorm_dtype(
 class PPODataCollatorForChatGLM(DataCollatorWithPadding):
     r"""
     Data collator for ChatGLM. It is capable of dynamically padding for batched data.
-
-    Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/65512697dc67779a6e53c267488aba0ec4d7c02a/train.py#L156
     """
     def __init__(
             self,
@@ -126,6 +124,7 @@ class PPODataCollatorForChatGLM(DataCollatorWithPadding):
         input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
         features = {"input_ids": input_ids.flip(-1)}
         return features
+
 
 class PPOTrainerForChatGLM(PPOTrainer):
     r"""
@@ -180,9 +179,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
             start = (query != self.tokenizer.pad_token_id).nonzero()[0].item()
             input_ids.append(torch.cat((query[start:], response, query[:start]))) # change to right-padding
 
-        input_data = self.data_collator([{"input_ids": ids} for ids in input_ids]).to(self.current_device)
-        input_data.pop("labels", None)  # we don't want to compute LM losses
-
+        input_data = {"input_ids": torch.stack(input_ids, dim=0).to(self.current_device)}
         return input_data
 
     @PPODecorators.empty_cuda_cache()
@@ -240,7 +237,8 @@ class PPOTrainerForChatGLM(PPOTrainer):
         self.steps += 1
         self.loss_meter.update(stats["ppo/loss/total"])
         self.reward_meter.update(rewards.sum().item(), n=rewards.size(0))
-        if self.steps % self.training_args.logging_steps == 0:
+
+        if self.steps % self.training_args.logging_steps == 0: # log stats
             print("{{'loss': {:.4f}, 'reward': {:.4f}, 'learning_rate': {:}}}".format(
                 self.loss_meter.avg, self.reward_meter.avg, stats["ppo/learning_rate"]
             ))
@@ -252,13 +250,16 @@ class PPOTrainerForChatGLM(PPOTrainer):
             self.loss_meter.reset()
             self.reward_meter.reset()
 
+        if self.steps % self.training_args.save_steps == 0: # save checkpoint
+            self.save_model(os.path.join(self.training_args.output_dir, f"checkpoint-{self.steps}"))
+
     def save_state(self, output_dir: Optional[str] = None) -> None:
         r"""
         Saves trainer state.
         """
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
-        json.dump(self.trainer_state, open(os.path.join(output_dir, TRAINER_STATE_NAME), "w", encoding="utf-8", newline="\n"))
+        json.dump(self.trainer_state, open(os.path.join(output_dir, TRAINER_STATE_NAME), "w", encoding="utf-8", newline="\n"), indent=2)
 
     def save_model(self, output_dir: Optional[str] = None) -> None:
         r"""
@@ -269,9 +270,9 @@ class PPOTrainerForChatGLM(PPOTrainer):
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        if hasattr(self.model.pretrained_model, "peft_config"): # LoRA
-            self.model.pretrained_model.save_pretrained(output_dir) # only save peft weights with the built-in method
-        else: # Freeze and P-Tuning
+        if hasattr(self.model.pretrained_model, "peft_config"): # peft methods
+            self.model.pretrained_model.save_pretrained(output_dir) # save lora weights
+        else: # non-peft methods
             save_trainable_params(output_dir, self.model.pretrained_model)
         if hasattr(self.model, "v_head"):
             save_valuehead_params(output_dir, self.model.v_head) # save valuehead weights

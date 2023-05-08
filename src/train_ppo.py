@@ -95,6 +95,7 @@ def main():
         # Run PPO step
         model.gradient_checkpointing_enable()
         model.config.use_cache = False
+
         split_into_list = lambda x: [x[i] for i in range(x.size(0))]
         stats = ppo_trainer.step(*map(split_into_list, [queries, responses, rewards]))
 

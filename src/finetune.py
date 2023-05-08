@@ -29,7 +29,7 @@ def main():
         inference_mode=(not training_args.do_train)
     )
 
-    # Override the decoding parameters of Trainer
+    # Override the decoding parameters of Seq2SeqTrainer
     training_args.generation_max_length = training_args.generation_max_length if \
                 training_args.generation_max_length is not None else data_args.max_target_length
     training_args.generation_num_beams = data_args.num_beams if \
@@ -60,9 +60,9 @@ def main():
         train_result = trainer.train()
         trainer.log_metrics("train", train_result.metrics)
         trainer.save_metrics("train", train_result.metrics)
-        trainer.save_state() # along with the loss values
+        trainer.save_state()
         trainer.save_model()
-        if finetuning_args.plot_loss:
+        if trainer.is_world_process_zero() and finetuning_args.plot_loss:
             plot_loss(training_args)
 
     # Evaluation

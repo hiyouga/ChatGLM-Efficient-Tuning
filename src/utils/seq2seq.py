@@ -131,10 +131,10 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        if hasattr(self.model, "peft_config"): # LoRA
-            self.model.save_pretrained(output_dir) # only save peft weights with the built-in method
-        else:
-            save_trainable_params(output_dir, self.model) # Freeze and P-Tuning
+        if hasattr(self.model, "peft_config"): # peft methods
+            self.model.save_pretrained(output_dir) # save lora weights
+        else: # non-peft methods
+            save_trainable_params(output_dir, self.model)
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
 

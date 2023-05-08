@@ -67,10 +67,7 @@ class PairwiseTrainerForChatGLM(Trainer):
         r"""
         Computes pairwise loss.
 
-        There are two different implmentations:
-        [1] https://github.com/lvwerra/trl/blob/52fecee8839ad826ad1e6c83a95c99a4116e98d2/examples/summarization/scripts/reward_summarization.py#L181
-        [2] https://github.com/microsoft/DeepSpeedExamples/blob/f4ad1d5721630185a9088565f9201929a8b1ffdf/applications/DeepSpeed-Chat/training/utils/model/reward_model.py#L37
-        Now we adopt the first implementation. We will consider adopting the second implementation later.
+        We use score on the EOS token to represent reward of the whole sentence.
         """
         _, _, r_accept = model(input_ids=inputs["accept_ids"])
         _, _, r_reject = model(input_ids=inputs["reject_ids"])
@@ -90,9 +87,9 @@ class PairwiseTrainerForChatGLM(Trainer):
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        if hasattr(self.model.pretrained_model, "peft_config"): # LoRA
-            self.model.pretrained_model.save_pretrained(output_dir) # only save peft weights with the built-in method
-        else: # Freeze and P-Tuning
+        if hasattr(self.model.pretrained_model, "peft_config"): # peft methods
+            self.model.pretrained_model.save_pretrained(output_dir) # save lora weights
+        else: # non-peft methods
             save_trainable_params(output_dir, self.model.pretrained_model)
         if hasattr(self.model, "v_head"):
             save_valuehead_params(output_dir, self.model.v_head) # save valuehead weights
