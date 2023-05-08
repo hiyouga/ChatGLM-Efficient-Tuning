@@ -145,10 +145,10 @@ class DataTrainingArguments:
                 )
 
             if "columns" in dataset_info[name]:
-                dataset_attr.prompt_column = dataset_info[name]["columns"]["prompt"]
-                dataset_attr.query_column = dataset_info[name]["columns"]["query"]
-                dataset_attr.response_column = dataset_info[name]["columns"]["response"]
-                dataset_attr.history_column = dataset_info[name]["columns"]["history"]
+                dataset_attr.prompt_column = dataset_info[name]["columns"].get("prompt", None)
+                dataset_attr.query_column = dataset_info[name]["columns"].get("query", None)
+                dataset_attr.response_column = dataset_info[name]["columns"].get("response", None)
+                dataset_attr.history_column = dataset_info[name]["columns"].get("history", None)
 
             self.dataset_list.append(dataset_attr)
 
@@ -215,5 +215,5 @@ class FinetuningArguments:
         elif self.name_module_trainable == "qkv":
             self.trainable_layers = ["layers.{:d}.attention.query_key_value".format(idx) for idx in trainable_layer_ids]
 
-        if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora"]:
+        if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora", "full"]:
             raise NotImplementedError("Invalid fine-tuning method.")

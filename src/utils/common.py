@@ -76,6 +76,13 @@ def init_adapter(
     if finetuning_args.finetuning_type == "none" and is_trainable:
         raise ValueError("You cannot use finetuning_type=none while training.")
 
+    if finetuning_args.finetuning_type == "full":
+        logger.info("Fine-tuning method: Full")
+        model = model.float()
+
+        if model_args.checkpoint_dir is not None:
+            load_trainable_params(model, model_args.checkpoint_dir[0])
+
     if finetuning_args.finetuning_type == "freeze":
         logger.info("Fine-tuning method: Freeze")
         for name, param in model.named_parameters():
@@ -84,14 +91,14 @@ def init_adapter(
             else:
                 param.data = param.data.to(torch.float32)
 
-        if model_args.checkpoint_dir is not None: # freeze only accepts a single checkpoint
+        if model_args.checkpoint_dir is not None:
             load_trainable_params(model, model_args.checkpoint_dir[0])
 
     if finetuning_args.finetuning_type == "p_tuning":
         logger.info("Fine-tuning method: P-Tuning v2")
         model.transformer.prefix_encoder.float() # other parameters are already fixed
 
-        if model_args.checkpoint_dir is not None: # p-tuning v2 only accepts a single checkpoint
+        if model_args.checkpoint_dir is not None:
             load_trainable_params(model, model_args.checkpoint_dir[0])
 
     if finetuning_args.finetuning_type == "lora":
@@ -153,6 +160,8 @@ def load_pretrained(
                 raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
         logger.info("Load fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
         finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir[0], FINETUNING_ARGS_NAME))
+        if finetuning_args.finetuning_type != "lora" and len(model_args.checkpoint_dir) > 1:
+            logger.warning("Only LoRA tuning accepts multiple checkpoints.")
 
     if stage != "sft" and finetuning_args.finetuning_type != "lora":
         raise ValueError("RM and PPO training can only be performed with LoRA method.")
@@ -192,16 +201,18 @@ def load_pretrained(
         config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
         config.prefix_projection = finetuning_args.prefix_projection
 
-    # Quantization configurations for Freeze and LoRA in training (using bitsandbytes library).
+    # Quantization configurations for Full, Freeze and LoRA in training (using bitsandbytes library).
     if quantization == "bnb":
         if model_args.quantization_bit != 8:
             raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
+
         require_version("bitsandbytes>=0.37.0", "bitsandbytes library is required to use this feature.")
         from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
         cuda = get_cuda_lib_handle()
         cc = get_compute_capability(cuda)
         if not is_cublasLt_compatible(cc):
             raise ValueError("The current GPU(s) is incompatible with quantization.")
+
         config_kwargs["load_in_8bit"] = True
         config_kwargs["device_map"] = "auto" # it should not be specified outside of load_in_8bit
 
