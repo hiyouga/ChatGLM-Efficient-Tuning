@@ -407,10 +407,10 @@ def preprocess_data(
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
             target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
 
-            if len(source_ids) > data_args.max_source_length - 1: # gmask token
-                source_ids = source_ids[:data_args.max_source_length - 1]
-            if len(target_ids) > data_args.max_target_length - 2: # bos and eos tokens
-                target_ids = target_ids[:data_args.max_target_length - 2]
+            if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
+                source_ids = source_ids[:data_args.max_source_length - 2]
+            if len(target_ids) > data_args.max_target_length - 1: # eos token
+                target_ids = target_ids[:data_args.max_target_length - 1]
 
             input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
 
@@ -445,12 +445,12 @@ def preprocess_data(
             accept_ids = tokenizer.encode(text=answer[0], add_special_tokens=False)
             reject_ids = tokenizer.encode(text=answer[1], add_special_tokens=False)
 
-            if len(source_ids) > data_args.max_source_length - 1:
-                source_ids = source_ids[:data_args.max_source_length - 1]
-            if len(accept_ids) > data_args.max_target_length - 2:
-                accept_ids = accept_ids[:data_args.max_target_length - 2]
-            if len(reject_ids) > data_args.max_target_length - 2:
-                reject_ids = reject_ids[:data_args.max_target_length - 2]
+            if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
+                source_ids = source_ids[:data_args.max_source_length - 2]
+            if len(accept_ids) > data_args.max_target_length - 1: # eos token
+                accept_ids = accept_ids[:data_args.max_target_length - 1]
+            if len(reject_ids) > data_args.max_target_length - 1: # eos token
+                reject_ids = reject_ids[:data_args.max_target_length - 1]
 
             accept_ids = tokenizer.build_inputs_with_special_tokens(source_ids, accept_ids)
             reject_ids = tokenizer.build_inputs_with_special_tokens(source_ids, reject_ids)
@@ -465,8 +465,8 @@ def preprocess_data(
         for prompt, _ in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
 
-            if len(source_ids) > data_args.max_source_length - 1: # gmask token
-                source_ids = source_ids[:data_args.max_source_length - 1]
+            if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
+                source_ids = source_ids[:data_args.max_source_length - 2]
 
             input_ids = tokenizer.build_inputs_with_special_tokens(source_ids)
             model_inputs["input_ids"].append(input_ids)
