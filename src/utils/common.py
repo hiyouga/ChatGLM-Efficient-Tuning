@@ -111,7 +111,7 @@ def init_adapter(
             else:
                 checkpoints_to_merge = model_args.checkpoint_dir
 
-            for checkpoint in checkpoints_to_merge: # https://github.com/huggingface/peft/issues/280#issuecomment-1500805831
+            for checkpoint in checkpoints_to_merge:
                 model = PeftModel.from_pretrained(model, checkpoint)
                 model = model.merge_and_unload()
 
@@ -134,7 +134,8 @@ def init_adapter(
     if not is_trainable:
         for param in model.parameters():
             param.requires_grad_(False) # fix all params
-            param.data = param.data.to(torch.float16) # cast all params to float16
+
+        model = model.half() # cast all params to float16
 
     return model
 
@@ -163,16 +164,17 @@ def load_pretrained(
         if finetuning_args.finetuning_type != "lora" and len(model_args.checkpoint_dir) > 1:
             logger.warning("Only LoRA tuning accepts multiple checkpoints.")
 
-    if stage != "sft" and finetuning_args.finetuning_type != "lora":
-        raise ValueError("RM and PPO training can only be performed with LoRA method.")
+    assert stage == "sft" or finetuning_args.finetuning_type == "lora", "RM and PPO training can only be performed with LoRA method."
 
     quantization = None
     if model_args.quantization_bit is not None:
         if is_trainable:
-            if finetuning_args.finetuning_type != "p_tuning":
-                quantization = "bnb" # use bnb's quantization
-            else:
+            if finetuning_args.finetuning_type == "full":
+                raise ValueError("Full parameter fine-tuning does not support quantization.")
+            elif finetuning_args.finetuning_type == "p_tuning":
                 quantization = "cpm" # use cpm's quantization
+            else:
+                quantization = "bnb" # use bnb's quantization
         else:
             quantization = "cpm"
 
@@ -203,15 +205,13 @@ def load_pretrained(
 
     # Quantization configurations for Full, Freeze and LoRA in training (using bitsandbytes library).
     if quantization == "bnb":
-        if model_args.quantization_bit != 8:
-            raise ValueError("Freeze and LoRA fine-tuning only accept 8-bit quantization.")
+        assert model_args.quantization_bit == 8, "Freeze and LoRA fine-tuning only accept 8-bit quantization."
 
         require_version("bitsandbytes>=0.37.0", "bitsandbytes library is required to use this feature.")
         from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
         cuda = get_cuda_lib_handle()
         cc = get_compute_capability(cuda)
-        if not is_cublasLt_compatible(cc):
-            raise ValueError("The current GPU(s) is incompatible with quantization.")
+        assert is_cublasLt_compatible(cc), "The current GPU(s) is incompatible with quantization."
 
         config_kwargs["load_in_8bit"] = True
         config_kwargs["device_map"] = "auto" # it should not be specified outside of load_in_8bit
@@ -224,11 +224,8 @@ def load_pretrained(
     # Quantization with the built-in method for P-Tuning v2 training or evaluation.
     # Model parameters should be cast to float16 in quantized P-Tuning setting.
     if quantization == "cpm":
-        if model_args.quantization_bit != 4 and model_args.quantization_bit != 8:
-            raise ValueError("P-Tuning v2 and inference modes only accept 4-bit or 8-bit quantization.")
-
-        if is_trainable and training_args.fp16:
-            raise ValueError("FP16 training conflicts with cpm quantization.")
+        assert model_args.quantization_bit in [4, 8], "P-Tuning v2 and inference mode only accept 4-bit or 8-bit quantization."
+        assert not (is_trainable and training_args.fp16), "FP16 training conflicts with cpm quantization."
 
         model = model.quantize(model_args.quantization_bit)
         for name, param in model.named_parameters():
@@ -239,6 +236,8 @@ def load_pretrained(
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
     if stage == "rwd" or stage == "ppo": # add value head
+        assert is_trainable, "Reward model and PPO model cannot be loaded at evaluation."
+
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
         if stage == "ppo": # load reward model
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
@@ -246,7 +245,7 @@ def load_pretrained(
 
         # Set the parameter _is_int8_training_enabled for the AutoModelForCausalLMWithValueHead model
         # To meet the compliance requirements of the transformers library
-        if quantization == "bnb" and model_args.quantization_bit == 8:
+        if quantization == "bnb":
             model._is_int8_training_enabled = True
 
     print_trainable_params(model)

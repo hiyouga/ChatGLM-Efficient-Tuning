@@ -82,7 +82,9 @@ class HhRlhfEn(datasets.GeneratorBasedBuilder):
                         assist_idx = prompt.rfind("\n\nAssistant: ")
                         human_idx = prompt.rfind("\n\nHuman: ")
                         if human_idx != -1:
-                            history.insert(0, (prompt[human_idx+9:assist_idx].strip(), prompt[assist_idx+13:].strip()))
+                            old_query = prompt[human_idx+9:assist_idx].strip()
+                            old_resp = prompt[assist_idx+13:].strip()
+                            history.insert(0, (old_query, old_resp))
                         else:
                             break
                         prompt = prompt[:human_idx]

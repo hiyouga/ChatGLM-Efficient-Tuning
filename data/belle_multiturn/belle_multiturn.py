@@ -56,7 +56,9 @@ class BelleMultiturn(datasets.GeneratorBasedBuilder):
                     assist_idx = prompt.rfind("Assistant:")
                     human_idx = prompt.rfind("Human:")
                     if human_idx != -1:
-                        history.insert(0, (prompt[human_idx+6:assist_idx].strip(), prompt[assist_idx+10:].strip()))
+                        old_query = prompt[human_idx+6:assist_idx].strip()
+                        old_resp = prompt[assist_idx+10:].strip()
+                        history.insert(0, (old_query, old_resp))
                     else:
                         break
                     prompt = prompt[:human_idx].strip()
