@@ -60,7 +60,7 @@ def compute_rewards(
 
     rewards = []
     for i in range(input_ids.size(0)):
-        eos_idx = (input_ids[i] == tokenizer.eos_token_id).nonzero() # Note: checking with eos_token is unsafe
+        eos_idx = (input_ids[i] == tokenizer.eos_token_id).nonzero() # Note: checking with [EOS] token is unsafe
         if len(eos_idx):
             eos_idx = eos_idx[0].item()
         else:
@@ -105,6 +105,7 @@ class PPODataCollatorForChatGLM(DataCollatorWithPadding):
     ):
         super().__init__(tokenizer, padding=True)
         self.inference_mode = inference_mode
+
         if min_input_length < max_input_length:
             self.input_size = LengthSampler(min_input_length, max_input_length)
         else:
@@ -120,6 +121,7 @@ class PPODataCollatorForChatGLM(DataCollatorWithPadding):
         """
         if self.inference_mode:
             raise NotImplementedError
+
         input_ids = [torch.tensor(feature["input_ids"][:self.input_size()]).flip(0) for feature in features]
         input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
         features = {"input_ids": input_ids.flip(-1)}
@@ -217,14 +219,14 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
             for j in range(fbs):
                 start = (input_ids[j] == self.tokenizer.bos_token_id).nonzero()[0].item() # always contain a [BOS] token
-                end = (input_ids[j] == self.tokenizer.eos_token_id).nonzero() #check with [EOS] token is unsafe
+                end = (input_ids[j] == self.tokenizer.eos_token_id).nonzero() # Note: checking with [EOS] token is unsafe
                 if len(end):
                     end = end[0].item()
                 else:
                     end = masks.size(1)
                 masks[j][start:end] = 1
                 if end - start < 2:
-                    raise ValueError("Response too short.")
+                    raise ValueError("Responses are too short. Make sure they are at least 4 tokens long.")
 
             all_logits.append(logits)
             all_values.append(values)
