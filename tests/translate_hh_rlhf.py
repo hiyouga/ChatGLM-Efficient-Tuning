@@ -11,9 +11,11 @@ def main():
     split = "train"
 
     translator = Translator()
-    def translate(text):
+    def translate(text: str) -> str:
         if len(text) == 0:
             return ""
+        if text.startswith("http"):
+            return text
 
         local_patience = 0
         while local_patience < 5:
@@ -23,9 +25,9 @@ def main():
                 time.sleep(1)
                 return result.text
             except Exception:
-                print("Error occurred, retrying...")
+                print(f"Error occurred while translating {text}, retrying...")
                 local_patience += 1
-                time.sleep(5)
+                time.sleep(10)
 
         raise Exception
 
@@ -57,7 +59,7 @@ def main():
         except Exception:
             print(f"Error occurred at {i}-th data, retrying...")
             global_patience += 1
-            time.sleep(100)
+            time.sleep(50)
 
         if global_patience > 10:
             print("Stop")

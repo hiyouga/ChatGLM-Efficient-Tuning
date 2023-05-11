@@ -216,13 +216,15 @@ class PPOTrainerForChatGLM(PPOTrainer):
             masks = torch.zeros_like(input_ids)
 
             for j in range(fbs):
-                start = (input_ids[j] == self.tokenizer.bos_token_id).nonzero()[0].item()
-                end = (input_ids[j] == self.tokenizer.eos_token_id).nonzero()
+                start = (input_ids[j] == self.tokenizer.bos_token_id).nonzero()[0].item() # always contain a [BOS] token
+                end = (input_ids[j] == self.tokenizer.eos_token_id).nonzero() #check with [EOS] token is unsafe
                 if len(end):
                     end = end[0].item()
                 else:
                     end = masks.size(1)
                 masks[j][start:end] = 1
+                if end - start < 2:
+                    raise ValueError("Response too short.")
 
             all_logits.append(logits)
             all_values.append(values)

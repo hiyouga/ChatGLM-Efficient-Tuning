@@ -44,7 +44,7 @@ def main():
         mini_batch_size=max(training_args.per_device_train_batch_size // 4, 1),
         batch_size=training_args.per_device_train_batch_size,
         gradient_accumulation_steps=training_args.gradient_accumulation_steps,
-        ppo_epochs=int(training_args.num_train_epochs),
+        ppo_epochs=1,
         max_grad_norm=training_args.max_grad_norm
     )
 
@@ -74,7 +74,11 @@ def main():
     }
     output_length_sampler = LengthSampler(data_args.max_target_length // 2, data_args.max_target_length)
 
-    for batch in tqdm(ppo_trainer.dataloader):
+    n_batches = len(ppo_trainer.dataloader)
+    dataloader = iter(ppo_trainer.dataloader)
+    for step in tqdm(range(int(training_args.num_train_epochs) * n_batches)):
+
+        batch = next(dataloader)
         queries = batch["input_ids"] # left-padded sequences
 
         model.gradient_checkpointing_disable()
@@ -82,8 +86,8 @@ def main():
 
         # Get response from ChatGLM
         responses_with_queries = ppo_trainer.generate(queries, length_sampler=output_length_sampler, **gen_kwargs)
-        responses = responses_with_queries[:, queries.size(1):] # right-padded sequences
-        # batch["response"] = tokenizer.batch_decode(responses, skip_special_tokens=True) # avoid error
+        responses = responses_with_queries[:, queries.size(1):].clone().detach() # right-padded sequences (remember to clone!!!)
+        # batch["response"] = tokenizer.batch_decode(responses, skip_special_tokens=True) # comment to avoid decode error
 
         for i in range(responses_with_queries.size(0)): # change to right-padding
             start = (responses_with_queries[i] != tokenizer.pad_token_id).nonzero()[0].item()
@@ -101,6 +105,9 @@ def main():
 
         ppo_trainer.log_stats(stats, batch, rewards)
         ppo_trainer.update_stats(stats, batch, rewards)
+
+        if (step+1) % n_batches == 0:
+            dataloader = iter(ppo_trainer.dataloader)
 
     ppo_trainer.save_state() # along with the loss values
     ppo_trainer.save_model()

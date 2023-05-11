@@ -16,4 +16,4 @@ CUDA_VISIBLE_DEVICES=0 python ../src/finetune.py \
     --learning_rate 5e-5 \
     --num_train_epochs 1.0 \
     --quantization_bit 8 \
-    --fp16 \
+    --fp16
