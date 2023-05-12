@@ -187,10 +187,11 @@ def plot_loss(training_args: Seq2SeqTrainingArguments, keys: Optional[List[str]]
         smoothed_value = smooth(metrics)
 
         plt.figure()
-        plt.plot(steps, metrics, alpha=0.4)
-        plt.plot(steps, smoothed_value)
+        plt.plot(steps, metrics, alpha=0.4, label="original")
+        plt.plot(steps, smoothed_value, label="smoothed")
         plt.title("training {} of {}".format(key, training_args.output_dir))
         plt.xlabel("step")
         plt.ylabel(key)
+        plt.legend()
         plt.savefig(os.path.join(training_args.output_dir, "training_{}.jpg".format(key)), format="jpg", dpi=100)
         print("Figure saved:", os.path.join(training_args.output_dir, "training_{}.jpg".format(key)))
