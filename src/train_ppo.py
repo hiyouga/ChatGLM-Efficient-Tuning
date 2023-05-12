@@ -3,13 +3,12 @@
 # This code is inspired by:
 # https://github.com/lvwerra/trl/blob/main/examples/sentiment/scripts/gpt-neox-20b_peft/gpt-neo-20b_sentiment_peft.py
 
-from tqdm import tqdm
+import math
 
-import torch
 from torch.optim import AdamW
 
+from transformers.optimization import get_scheduler
 from trl import PPOConfig
-from trl.core import LengthSampler
 
 from utils import (
     prepare_args,
@@ -18,8 +17,6 @@ from utils import (
     preprocess_data,
     PPODataCollatorForChatGLM,
     PPOTrainerForChatGLM,
-    compute_rewards,
-    get_logits_processor,
     plot_loss
 )
 
@@ -41,7 +38,7 @@ def main():
     ppo_config = PPOConfig(
         model_name=model_args.model_name_or_path,
         learning_rate=training_args.learning_rate,
-        mini_batch_size=max(training_args.per_device_train_batch_size // 4, 1),
+        mini_batch_size=training_args.per_device_train_batch_size,
         batch_size=training_args.per_device_train_batch_size,
         gradient_accumulation_steps=training_args.gradient_accumulation_steps,
         ppo_epochs=1,
@@ -49,6 +46,14 @@ def main():
     )
 
     optimizer = AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=ppo_config.learning_rate)
+    total_train_batch_size = \
+        training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps * training_args.world_size
+    lr_scheduler = get_scheduler(
+        training_args.lr_scheduler_type,
+        optimizer=optimizer,
+        num_warmup_steps=training_args.warmup_steps,
+        num_training_steps=(training_args.num_train_epochs * math.ceil(len(dataset) / total_train_batch_size))
+    )
 
     # Initialize our Trainer
     ppo_trainer = PPOTrainerForChatGLM(
@@ -60,59 +65,15 @@ def main():
         tokenizer=tokenizer,
         dataset=dataset,
         data_collator=data_collator,
-        optimizer=optimizer
+        optimizer=optimizer,
+        lr_scheduler=lr_scheduler
     )
 
-    # Keyword arguments for `model.generate`
-    gen_kwargs = {
-        "top_k": 0.0,
-        "top_p": 1.0,
-        "do_sample": True,
-        "pad_token_id": tokenizer.pad_token_id,
-        "eos_token_id": tokenizer.eos_token_id,
-        "logits_processor": get_logits_processor()
-    }
-    output_length_sampler = LengthSampler(data_args.max_target_length // 2, data_args.max_target_length)
-
-    n_batches = len(ppo_trainer.dataloader)
-    dataloader = iter(ppo_trainer.dataloader)
-    for step in tqdm(range(int(training_args.num_train_epochs) * n_batches)):
-
-        batch = next(dataloader)
-        queries = batch["input_ids"] # left-padded sequences
-
-        model.gradient_checkpointing_disable()
-        model.config.use_cache = True
-
-        # Get response from ChatGLM
-        responses_with_queries = ppo_trainer.generate(queries, length_sampler=output_length_sampler, **gen_kwargs)
-        responses = responses_with_queries[:, queries.size(1):].clone().detach() # right-padded sequences (remember to clone!!!)
-        # batch["response"] = tokenizer.batch_decode(responses, skip_special_tokens=True) # comment to avoid decode error
-
-        for i in range(responses_with_queries.size(0)): # change to right-padding
-            start = (responses_with_queries[i] != tokenizer.pad_token_id).nonzero()[0].item()
-            responses_with_queries[i] = torch.cat((responses_with_queries[i][start:], responses_with_queries[i][:start]))
-
-        # Compute rewards
-        rewards = compute_rewards(responses_with_queries, model, tokenizer)
-
-        # Run PPO step
-        model.gradient_checkpointing_enable()
-        model.config.use_cache = False
-
-        split_into_list = lambda x: [x[i] for i in range(x.size(0))]
-        stats = ppo_trainer.step(*map(split_into_list, [queries, responses, rewards]))
-
-        ppo_trainer.log_stats(stats, batch, rewards)
-        ppo_trainer.update_stats(stats, batch, rewards)
-
-        if (step+1) % n_batches == 0:
-            dataloader = iter(ppo_trainer.dataloader)
-
-    ppo_trainer.save_state() # along with the loss values
+    ppo_trainer.ppo_train(max_target_length=data_args.max_target_length)
+    ppo_trainer.save_state()
     ppo_trainer.save_model()
-    if finetuning_args.plot_loss:
-        plot_loss(training_args)
+    if ppo_trainer.is_world_process_zero() and finetuning_args.plot_loss:
+        plot_loss(training_args, keys=["loss", "reward"])
 
 
 def _mp_fn(index):

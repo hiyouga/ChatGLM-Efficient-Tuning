@@ -1,8 +1,6 @@
 import os
-import sys
 import json
 import torch
-import logging
 import numpy as np
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -20,6 +18,7 @@ from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from .config import FinetuningArguments
 
 from .other import (
+    get_logger,
     save_trainable_params,
     IGNORE_INDEX,
     FINETUNING_ARGS_NAME,
@@ -27,13 +26,7 @@ from .other import (
 )
 
 
-logger = logging.getLogger(__name__) # setup logging
-logger.setLevel(logging.INFO)
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    datefmt="%m/%d/%Y %H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+logger = get_logger(__name__)
 
 
 # Note: The ChatGLM tokenizer assigns False on token to be attended in attention mask. In general settings, it should be True.

@@ -2,7 +2,6 @@ import os
 import sys
 import torch
 import hashlib
-import logging
 from typing import Literal, Optional, Tuple
 
 import transformers
@@ -37,6 +36,7 @@ from .config import (
 )
 
 from .other import (
+    get_logger,
     load_trainable_params,
     load_valuehead_params,
     print_trainable_params,
@@ -46,13 +46,7 @@ from .other import (
 )
 
 
-logger = logging.getLogger(__name__) # setup logging
-logger.setLevel(logging.INFO)
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    datefmt="%m/%d/%Y %H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+logger = get_logger(__name__)
 
 
 check_min_version("4.27.4")
@@ -66,7 +60,7 @@ def init_adapter(
         model_args: ModelArguments,
         finetuning_args: FinetuningArguments,
         is_trainable: bool
-) -> None:
+) -> PreTrainedModel:
     r"""
     Initializes the adapters.
 
@@ -95,8 +89,7 @@ def init_adapter(
             load_trainable_params(model, model_args.checkpoint_dir[0])
 
     if finetuning_args.finetuning_type == "p_tuning":
-        logger.info("Fine-tuning method: P-Tuning v2")
-        model.transformer.prefix_encoder.float() # other parameters are already fixed
+        logger.info("Fine-tuning method: P-Tuning v2") # nothing to do
 
         if model_args.checkpoint_dir is not None:
             load_trainable_params(model, model_args.checkpoint_dir[0])
@@ -130,12 +123,6 @@ def init_adapter(
                 target_modules=finetuning_args.lora_target
             )
             model = get_peft_model(model, lora_config)
-
-    if not is_trainable:
-        for param in model.parameters():
-            param.requires_grad_(False) # fix all params
-
-        model = model.half() # cast all params to float16
 
     return model
 
@@ -221,13 +208,18 @@ def load_pretrained(
     model = prepare_model_for_training(model) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
+    if not is_trainable:
+        model.requires_grad_(False) # fix all params
+        model = model.half() # cast all params to float16
+
     # Quantization with the built-in method for P-Tuning v2 training or evaluation.
     # Model parameters should be cast to float16 in quantized P-Tuning setting.
     if quantization == "cpm":
         assert model_args.quantization_bit in [4, 8], "P-Tuning v2 and inference mode only accept 4-bit or 8-bit quantization."
         assert not (is_trainable and training_args.fp16), "FP16 training conflicts with cpm quantization."
 
-        model = model.quantize(model_args.quantization_bit)
+        model.quantize(model_args.quantization_bit) # in-place method
+
         for name, param in model.named_parameters():
             if "prefix_encoder" not in name:
                 param.data = param.data.to(torch.float16) # convert all params in half precision except prefix_encoder
@@ -236,9 +228,10 @@ def load_pretrained(
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
     if stage == "rwd" or stage == "ppo": # add value head
-        assert is_trainable, "Reward model and PPO model cannot be loaded at evaluation."
+        assert is_trainable, "Reward and PPO stages cannot be performed at evaluation."
 
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
+
         if stage == "ppo": # load reward model
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
             load_valuehead_params(model, model_args.reward_model)
@@ -256,35 +249,34 @@ def load_pretrained(
 def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments]:
 
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments))
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        # Provide arguments with a json file.
+
+    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"): # Provide arguments with a json file.
         model_args, data_args, training_args, finetuning_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
         model_args, data_args, training_args, finetuning_args = parser.parse_args_into_dataclasses()
 
-    # Check arguments (do not check finetuning_args since it may be loaded from checkpoints)
-    if int(training_args.do_train) + int(training_args.do_eval) + int(training_args.do_predict) != 1:
-        raise ValueError("We must perform single operation among do_train, do_eval and do_predict.")
-
-    if model_args.quantization_bit is not None and training_args.do_train == False:
-        logger.warning("We do not recommend to evaluaute model in 4/8-bit mode.")
-
-    if not training_args.fp16:
-        logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")
-
-    training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
-
-    # Set logger
+    # Setup logging
     if training_args.should_log:
         # The default of training_args.log_level is passive, so we set log level at info here to have that default.
         transformers.utils.logging.set_verbosity_info()
 
     log_level = training_args.get_process_log_level()
-    logger.setLevel(log_level)
     datasets.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()
+
+    # Check arguments (do not check finetuning_args since it may be loaded from checkpoints)
+    if int(training_args.do_train) + int(training_args.do_eval) + int(training_args.do_predict) != 1:
+        raise ValueError("We must perform a single operation among do_train, do_eval and do_predict.")
+
+    if model_args.quantization_bit is not None and training_args.do_train == False:
+        logger.warning("We do not recommend to evaluaute model in 4/8-bit mode.")
+
+    if training_args.do_train and (not training_args.fp16):
+        logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")
+
+    training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
 
     # Log on each process the small summary:
     logger.warning(

@@ -1,7 +1,5 @@
 import os
-import sys
 import torch
-import logging
 from typing import Dict, Optional, Sequence
 
 from transformers import Trainer, DataCollatorWithPadding
@@ -12,19 +10,14 @@ from transformers.tokenization_utils import PreTrainedTokenizer
 from .config import FinetuningArguments
 
 from .other import (
+    get_logger,
     save_trainable_params,
     save_valuehead_params,
     FINETUNING_ARGS_NAME
 )
 
 
-logger = logging.getLogger(__name__) # setup logging
-logger.setLevel(logging.INFO)
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    datefmt="%m/%d/%Y %H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+logger = get_logger(__name__)
 
 
 class PairwiseDataCollatorForChatGLM(DataCollatorWithPadding):

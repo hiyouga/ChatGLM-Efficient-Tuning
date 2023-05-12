@@ -1,9 +1,9 @@
 import os
-import sys
 import json
+import math
 import torch
-import logging
-from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple
+from tqdm import tqdm
+from typing import Callable, Dict, List, Literal, Optional, Sequence, Tuple
 
 from transformers import DataCollatorWithPadding, Seq2SeqTrainingArguments
 from transformers.trainer import TRAINING_ARGS_NAME, TRAINER_STATE_NAME
@@ -17,19 +17,15 @@ from .config import FinetuningArguments
 
 from .other import (
     AverageMeter,
+    get_logger,
     save_trainable_params,
     save_valuehead_params,
+    get_logits_processor,
     FINETUNING_ARGS_NAME
 )
 
 
-logger = logging.getLogger(__name__) # setup logging
-logger.setLevel(logging.INFO)
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    datefmt="%m/%d/%Y %H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
+logger = get_logger(__name__)
 
 
 def replace_model(model: AutoModelForCausalLMWithValueHead, target: Literal["default", "reward"]) -> None:
@@ -135,10 +131,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
     def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.steps = 0
-        self.loss_meter = AverageMeter()
-        self.reward_meter = AverageMeter()
-        self.trainer_state = {"log_history": []}
+        self.state = {"log_history": []}
         self.training_args = training_args
         self.finetuning_args = finetuning_args
 
@@ -240,25 +233,94 @@ class PPOTrainerForChatGLM(PPOTrainer):
             torch.cat(all_masks)[:, :-1],
         )
 
-    def update_stats(self, stats: Dict[str, Any], batch: Dict[str, torch.Tensor], rewards: torch.Tensor) -> None:
-        self.steps += 1
-        self.loss_meter.update(stats["ppo/loss/total"])
-        self.reward_meter.update(rewards.sum().item(), n=rewards.size(0))
+    def ppo_train(self, max_target_length: int) -> None:
 
-        if self.steps % self.training_args.logging_steps == 0: # log stats
-            print("{{'loss': {:.4f}, 'reward': {:.4f}, 'learning_rate': {:}}}".format(
-                self.loss_meter.avg, self.reward_meter.avg, stats["ppo/learning_rate"]
-            ))
-            self.trainer_state["log_history"].append({
-                "loss": self.loss_meter.avg,
-                "reward": self.reward_meter.avg,
-                "step": self.steps
-            })
-            self.loss_meter.reset()
-            self.reward_meter.reset()
+        total_train_batch_size = self.config.batch_size * self.config.gradient_accumulation_steps * self.training_args.world_size
+        len_dataloader = len(self.dataloader)
+        num_steps_per_epoch = max(len_dataloader // self.config.gradient_accumulation_steps, 1)
+        num_examples = len(self.dataset)
+        num_train_epochs = self.training_args.num_train_epochs
+        max_steps = math.ceil(num_train_epochs * num_steps_per_epoch)
 
-        if self.steps % self.training_args.save_steps == 0: # save checkpoint
-            self.save_model(os.path.join(self.training_args.output_dir, f"checkpoint-{self.steps}"))
+        if self.is_world_process_zero():
+            logger.info("***** Running training *****")
+            logger.info(f"  Num examples = {num_examples}")
+            logger.info(f"  Num Epochs = {num_train_epochs}")
+            logger.info(f"  Instantaneous batch size per device = {self.config.batch_size}")
+            logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_train_batch_size}")
+            logger.info(f"  Gradient Accumulation steps = {self.config.gradient_accumulation_steps}")
+            logger.info(f"  Total optimization steps = {max_steps}")
+            logger.info(f"  Number of trainable parameters = {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
+
+        # Keyword arguments for `model.generate`
+        gen_kwargs = {
+            "top_k": 0.0,
+            "top_p": 1.0,
+            "do_sample": True,
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "eos_token_id": self.tokenizer.eos_token_id,
+            "logits_processor": get_logits_processor()
+        }
+        output_length_sampler = LengthSampler(max_target_length // 2, max_target_length)
+        unwrapped_model = self.accelerator.unwrap_model(self.model)
+
+        dataiter = iter(self.dataloader)
+        steps_trained = 0
+        loss_meter = AverageMeter()
+        reward_meter = AverageMeter()
+
+        for step in tqdm(range(max_steps)):
+
+            for _ in range(self.config.gradient_accumulation_steps):
+
+                batch = next(dataiter)
+                steps_trained += 1
+                queries = batch["input_ids"] # left-padded sequences
+
+                unwrapped_model.gradient_checkpointing_disable()
+                unwrapped_model.config.use_cache = True
+
+                # Get response from ChatGLM
+                responses_with_queries = self.generate(queries, length_sampler=output_length_sampler, **gen_kwargs)
+                responses = responses_with_queries[:, queries.size(1):].clone().detach() # right-padded sequences (remember to clone!!!)
+                # batch["response"] = tokenizer.batch_decode(responses, skip_special_tokens=True) # comment to avoid decode error
+
+                for i in range(responses_with_queries.size(0)): # change to right-padding
+                    start = (responses_with_queries[i] != self.tokenizer.pad_token_id).nonzero()[0].item()
+                    responses_with_queries[i] = torch.cat((responses_with_queries[i][start:], responses_with_queries[i][:start]))
+
+                # Compute rewards
+                rewards = compute_rewards(responses_with_queries, unwrapped_model, self.tokenizer)
+
+                # Run PPO step
+                unwrapped_model.gradient_checkpointing_enable()
+                unwrapped_model.config.use_cache = False
+
+                split_into_list = lambda x: [x[i] for i in range(x.size(0))]
+                stats = self.step(*map(split_into_list, [queries, responses, rewards]))
+
+                loss_meter.update(stats["ppo/loss/total"])
+                reward_meter.update(rewards.sum().item(), n=rewards.size(0))
+
+                if steps_trained == len_dataloader:
+                    dataiter = iter(self.dataloader)
+                    steps_trained = 0
+
+            if self.is_world_process_zero() and (step+1) % self.training_args.logging_steps == 0:
+                logs = {
+                    "loss": round(loss_meter.avg, 4),
+                    "reward": round(reward_meter.avg, 4),
+                    "learning_rate": stats["ppo/learning_rate"],
+                    "epoch": round(step / num_steps_per_epoch, 2)
+                }
+                print(logs)
+                logs["step"] = step
+                self.state["log_history"].append(logs)
+                loss_meter.reset()
+                reward_meter.reset()
+
+            if (step+1) % self.training_args.save_steps == 0: # save checkpoint
+                self.save_model(os.path.join(self.training_args.output_dir, f"checkpoint-{step+1}"))
 
     def is_world_process_zero(self) -> bool:
         r"""
@@ -276,7 +338,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
-        json.dump(self.trainer_state, open(os.path.join(output_dir, TRAINER_STATE_NAME), "w", encoding="utf-8", newline="\n"), indent=2)
+        json.dump(self.state, open(os.path.join(output_dir, TRAINER_STATE_NAME), "w", encoding="utf-8", newline="\n"), indent=2)
 
     def save_model(self, output_dir: Optional[str] = None) -> None:
         r"""

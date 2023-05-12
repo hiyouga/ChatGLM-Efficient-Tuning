@@ -21,13 +21,17 @@ FINETUNING_ARGS_NAME = "finetuning_args.bin"
 PREDICTION_FILE_NAME = "generated_predictions.txt"
 
 
-logger = logging.getLogger(__name__) # setup logging
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     datefmt="%m/%d/%Y %H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
+    level=logging.INFO,
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
+
+
+def get_logger(name: str) -> logging.Logger:
+    return logging.getLogger(name)
 
 
 class AverageMeter:
@@ -61,7 +65,7 @@ class InvalidScoreLogitsProcessor(LogitsProcessor):
         return scores
 
 
-def get_logits_processor():
+def get_logits_processor() -> LogitsProcessorList:
     logits_processor = LogitsProcessorList()
     logits_processor.append(InvalidScoreLogitsProcessor())
     return logits_processor
@@ -73,7 +77,7 @@ def prepare_model_for_training(
         model: PreTrainedModel,
         output_embedding_layer_name: Optional[str] = "lm_head",
         use_gradient_checkpointing: Optional[bool] = True,
-        layer_norm_names: List[str] = ["layernorm"] # for chatglm setting
+        layer_norm_names: Optional[List[str]] = ["layernorm"] # for chatglm setting
 ) -> PreTrainedModel:
 
     for name, param in model.named_parameters():
@@ -156,18 +160,37 @@ def load_valuehead_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -
     model.register_buffer("default_head_bias", torch.zeros_like(valuehead_state_dict["summary.bias"]))
 
 
-def plot_loss(training_args: Seq2SeqTrainingArguments) -> None:
+def smooth(scalars: List[float], weight: Optional[float] = 0.95) -> List[float]:
+    """
+    EMA implementation according to TensorBoard.
+    """
+    last = scalars[0]
+    smoothed = list()
+    for next_val in scalars:
+        smoothed_val = last * weight + (1 - weight) * next_val
+        smoothed.append(smoothed_val)
+        last = smoothed_val
+    return smoothed
+
+
+def plot_loss(training_args: Seq2SeqTrainingArguments, keys: Optional[List[str]] = ["loss"]) -> None:
     import matplotlib.pyplot as plt
-    FIGURE_NAME = "trainer_state.png"
     data = json.load(open(os.path.join(training_args.output_dir, TRAINER_STATE_NAME), "r"))
-    train_steps, train_losses = [], []
-    for i in range(len(data["log_history"]) - 1):
-        train_steps.append(data["log_history"][i]["step"])
-        train_losses.append(data["log_history"][i]["loss"])
-    plt.figure()
-    plt.plot(train_steps, train_losses)
-    plt.title("training loss of {}".format(training_args.output_dir))
-    plt.xlabel("step")
-    plt.ylabel("training loss")
-    plt.savefig(os.path.join(training_args.output_dir, FIGURE_NAME), format="png", transparent=True, dpi=300)
-    print("Figure saved: {}".format(os.path.join(training_args.output_dir, FIGURE_NAME)))
+
+    for key in keys:
+        steps, metrics = [], []
+
+        for i in range(len(data["log_history"])):
+            if key in data["log_history"][i]:
+                steps.append(data["log_history"][i]["step"])
+                metrics.append(data["log_history"][i][key])
+        smoothed_value = smooth(metrics)
+
+        plt.figure()
+        plt.plot(steps, metrics, alpha=0.4)
+        plt.plot(steps, smoothed_value)
+        plt.title("training {} of {}".format(key, training_args.output_dir))
+        plt.xlabel("step")
+        plt.ylabel(key)
+        plt.savefig(os.path.join(training_args.output_dir, "training_{}.jpg".format(key)), format="jpg", dpi=100)
+        print("Figure saved:", os.path.join(training_args.output_dir, "training_{}.jpg".format(key)))

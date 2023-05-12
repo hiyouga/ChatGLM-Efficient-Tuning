@@ -18,10 +18,9 @@ from .pairwise import (
 
 from .ppo import (
     PPODataCollatorForChatGLM,
-    PPOTrainerForChatGLM,
-    compute_rewards
+    PPOTrainerForChatGLM
 )
 
 from .config import ModelArguments
 
-from .other import get_logits_processor, plot_loss
+from .other import plot_loss
