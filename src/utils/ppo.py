@@ -135,6 +135,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
         self.training_args = training_args
         self.finetuning_args = finetuning_args
 
+    @torch.no_grad()
     def generate(
             self,
             query_tensor: torch.Tensor, # (batch size x seq len)

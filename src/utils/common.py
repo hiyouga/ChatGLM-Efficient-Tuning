@@ -233,6 +233,7 @@ def load_pretrained(
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
 
         if stage == "ppo": # load reward model
+            assert model_args.reward_model is not None, "Reward model is necessary for PPO training."
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
             load_valuehead_params(model, model_args.reward_model)
 
