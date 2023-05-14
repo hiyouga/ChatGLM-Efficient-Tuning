@@ -443,8 +443,8 @@ def preprocess_data(
             if len(reject_ids) > data_args.max_target_length - 1: # eos token
                 reject_ids = reject_ids[:data_args.max_target_length - 1]
 
-            accept_ids = tokenizer.build_inputs_with_special_tokens(source_ids, accept_ids)
-            reject_ids = tokenizer.build_inputs_with_special_tokens(source_ids, reject_ids)
+            accept_ids = tokenizer.build_inputs_with_special_tokens(source_ids[:], accept_ids) # avoid copying error
+            reject_ids = tokenizer.build_inputs_with_special_tokens(source_ids[:], reject_ids)
 
             model_inputs["accept_ids"].append(accept_ids)
             model_inputs["reject_ids"].append(reject_ids)

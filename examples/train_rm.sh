@@ -2,7 +2,7 @@
 
 CUDA_VISIBLE_DEVICES=0 python ../src/train_rm.py \
     --do_train \
-    --dataset comparison_gpt4_en \
+    --dataset comparison_gpt4_zh \
     --dataset_dir ../data \
     --finetuning_type lora \
     --output_dir path_to_rm_checkpoint \
@@ -12,6 +12,6 @@ CUDA_VISIBLE_DEVICES=0 python ../src/train_rm.py \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --learning_rate 5e-5 \
+    --learning_rate 1e-5 \
     --num_train_epochs 1.0 \
     --fp16

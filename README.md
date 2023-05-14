@@ -104,16 +104,16 @@ pip install https://github.com/acpopescu/bitsandbytes/releases/download/v0.37.2-
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_train \
-    --dataset alpaca_gpt4_zh \
+    --dataset alpaca_gpt4_en \
     --finetuning_type lora \
-    --output_dir path_to_checkpoint \
+    --output_dir path_to_sft_checkpoint \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
     --learning_rate 5e-5 \
-    --num_train_epochs 1.0 \
+    --num_train_epochs 3.0 \
     --fp16
 ```
 
@@ -141,7 +141,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --learning_rate 5e-5 \
+    --learning_rate 1e-5 \
     --num_train_epochs 1.0 \
     --fp16
 ```
@@ -153,14 +153,15 @@ CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
     --do_train \
     --dataset alpaca_gpt4_en \
     --finetuning_type lora \
+    --checkpoint_dir path_to_sft_checkpoint \
     --reward_model path_to_rm_checkpoint \
     --output_dir path_to_ppo_checkpoint \
-    --per_device_train_batch_size 4 \
+    --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 4 \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 1000 \
-    --learning_rate 5e-5 \
+    --learning_rate 1e-5 \
     --num_train_epochs 1.0 \
     --fp16
 ```
@@ -170,7 +171,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_eval \
-    --dataset alpaca_gpt4_zh \
+    --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_eval_result \
     --per_device_eval_batch_size 8 \
@@ -182,7 +183,7 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
     --do_predict \
-    --dataset alpaca_gpt4_zh \
+    --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_predict_result \
     --per_device_eval_batch_size 8 \
