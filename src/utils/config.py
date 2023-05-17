@@ -1,11 +1,11 @@
 import os
 import json
-from typing import Optional
+from typing import List, Literal, Optional
 from dataclasses import dataclass, field
 
 
 CHATGLM_REPO_NAME = "THUDM/chatglm-6b"
-CHATGLM_LASTEST_HASH = "a8ede826cf1b62bd3c78bdfb3625c7c5d2048fbd"
+CHATGLM_VERSION = "a8ede826cf1b62bd3c78bdfb3625c7c5d2048fbd"
 
 
 @dataclass
@@ -49,7 +49,7 @@ class ModelArguments:
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."}
     )
     model_revision: Optional[str] = field(
-        default=CHATGLM_LASTEST_HASH,
+        default=CHATGLM_VERSION,
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."}
     )
     use_auth_token: Optional[bool] = field(
@@ -128,7 +128,7 @@ class DataTrainingArguments:
         dataset_names = [ds.strip() for ds in self.dataset.split(",")]
         dataset_info = json.load(open(os.path.join(self.dataset_dir, "dataset_info.json"), "r"))
 
-        self.dataset_list = []
+        self.dataset_list: List[DatasetAttr] = []
         for name in dataset_names:
             if name not in dataset_info:
                 raise ValueError("Undefined dataset {} in dataset_info.json.".format(name))
@@ -158,7 +158,7 @@ class FinetuningArguments:
     """
     Arguments pertaining to which techniques we are going to fine-tuning with.
     """
-    finetuning_type: Optional[str] = field(
+    finetuning_type: Optional[Literal["none", "freeze", "p_tuning", "lora", "full"]] = field(
         default="lora",
         metadata={"help": "Which fine-tuning method to use."}
     )
@@ -166,7 +166,7 @@ class FinetuningArguments:
         default=3,
         metadata={"help": "Number of trainable layers for Freeze fine-tuning."}
     )
-    name_module_trainable: Optional[str] = field(
+    name_module_trainable: Optional[Literal["mlp", "qkv"]] = field(
         default="mlp",
         metadata={"help": "Name of trainable modules for Freeze fine-tuning."}
     )
@@ -210,10 +210,10 @@ class FinetuningArguments:
             trainable_layer_ids = [27-k for k in range(self.num_layer_trainable)]
         else: # fine-tuning the first n layers if num_layer_trainable < 0
             trainable_layer_ids = [k for k in range(-self.num_layer_trainable)]
+
         if self.name_module_trainable == "mlp":
             self.trainable_layers = ["layers.{:d}.mlp".format(idx) for idx in trainable_layer_ids]
         elif self.name_module_trainable == "qkv":
             self.trainable_layers = ["layers.{:d}.attention.query_key_value".format(idx) for idx in trainable_layer_ids]
 
-        if self.finetuning_type not in ["none", "freeze", "p_tuning", "lora", "full"]:
-            raise NotImplementedError("Invalid fine-tuning method.")
+        assert self.finetuning_type in ["none", "freeze", "p_tuning", "lora", "full"], "Invalid fine-tuning method."

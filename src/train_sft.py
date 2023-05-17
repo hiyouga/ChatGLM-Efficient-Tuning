@@ -8,10 +8,11 @@ from utils import (
     prepare_args,
     prepare_data,
     preprocess_data,
-    plot_loss,
-    Seq2SeqDataCollatorForChatGLM,
+    DataCollatorForChatGLM,
+    Seq2SeqTrainerForChatGLM,
     ComputeMetrics,
-    Seq2SeqTrainerForChatGLM
+    get_logits_processor,
+    plot_loss
 )
 
 
@@ -22,12 +23,7 @@ def main():
     dataset = prepare_data(model_args, data_args)
     model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, training_args.do_train, stage="sft")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="sft")
-    data_collator = Seq2SeqDataCollatorForChatGLM(
-        tokenizer=tokenizer,
-        model=model,
-        ignore_pad_token_for_loss=data_args.ignore_pad_token_for_loss,
-        inference_mode=(not training_args.do_train)
-    )
+    data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss)
 
     # Override the decoding parameters of Seq2SeqTrainer
     training_args.generation_max_length = training_args.generation_max_length if \
@@ -51,8 +47,9 @@ def main():
     gen_kwargs = {
         "do_sample": True,
         "top_p": 0.7,
-        "max_length": 768,
-        "temperature": 0.95
+        "max_length": data_args.max_source_length + data_args.max_target_length + 1,
+        "temperature": 0.95,
+        "logits_processor": get_logits_processor()
     }
 
     # Training

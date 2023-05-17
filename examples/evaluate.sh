@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CUDA_VISIBLE_DEVICES=0 python ../src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python ../src/train_sft.py \
     --do_eval \
     --dataset alpaca_gpt4_zh \
     --dataset_dir ../data \

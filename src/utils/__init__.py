@@ -5,22 +5,11 @@ from .common import (
     preprocess_data
 )
 
-from .seq2seq import (
-    Seq2SeqDataCollatorForChatGLM,
-    ComputeMetrics,
-    Seq2SeqTrainerForChatGLM
-)
+from .data_collator import DataCollatorForChatGLM
 
-from .pairwise import (
-    PairwiseDataCollatorForChatGLM,
-    PairwiseTrainerForChatGLM
-)
-
-from .ppo import (
-    PPODataCollatorForChatGLM,
-    PPOTrainerForChatGLM
-)
+from .seq2seq import ComputeMetrics, Seq2SeqTrainerForChatGLM
+from .pairwise import PairwiseDataCollatorForChatGLM, PairwiseTrainerForChatGLM
+from .ppo import PPOTrainerForChatGLM
 
 from .config import ModelArguments
-
-from .other import plot_loss
+from .other import get_logits_processor, plot_loss

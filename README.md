@@ -102,7 +102,7 @@ pip install https://github.com/acpopescu/bitsandbytes/releases/download/v0.37.2-
 ### Fine-tuning with a Single GPU
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_train \
     --dataset alpaca_gpt4_en \
     --finetuning_type lora \
@@ -123,7 +123,7 @@ Please refer to our [Wiki](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/w
 
 ```bash
 accelerate config # configure the environment
-accelerate launch src/finetune.py # arguments (same as above)
+accelerate launch src/train_sft.py # arguments (same as above)
 ```
 
 Note: if you are using LoRA method at fine-tuning, please provide `--ddp_find_unused_parameters False` argument to avoid the runtime error.
@@ -169,7 +169,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_eval \
     --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \
@@ -181,7 +181,7 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
 
 ### Predict
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_predict \
     --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \

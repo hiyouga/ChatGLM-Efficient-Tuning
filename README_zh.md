@@ -106,7 +106,7 @@ pip install https://github.com/acpopescu/bitsandbytes/releases/download/v0.37.2-
 ### 单 GPU 微调训练
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
@@ -127,7 +127,7 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
 
 ```bash
 accelerate config # 首先配置分布式环境
-accelerate launch src/finetune.py # 参数同上
+accelerate launch src/train_sft.py # 参数同上
 ```
 
 注意：若您使用 LoRA 方法进行微调，请指定以下参数 `--ddp_find_unused_parameters False` 来避免报错。
@@ -173,7 +173,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
 ### 指标评估（BLEU分数和汉语ROUGE分数）
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_eval \
     --dataset alpaca_gpt4_zh \
     --checkpoint_dir path_to_checkpoint \
@@ -185,7 +185,7 @@ CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
 
 ### 模型预测
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_predict \
     --dataset alpaca_gpt4_zh \
     --checkpoint_dir path_to_checkpoint \

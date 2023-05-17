@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from transformers import Seq2SeqTrainingArguments
 from transformers.trainer import TRAINER_STATE_NAME
-from transformers.modeling_utils import PreTrainedModel
+from transformers.modeling_utils import PreTrainedModel, unwrap_model
 from transformers.generation.utils import LogitsProcessorList
 from transformers.generation.logits_process import LogitsProcessor
 
@@ -120,40 +120,42 @@ def print_trainable_params(model: torch.nn.Module) -> None:
 def filter_model_params(model: torch.nn.Module) -> Dict[str, torch.Tensor]: # filter out freezed parameters
     state_dict = model.state_dict()
     filtered_state_dict = {}
+
     for k, v in model.named_parameters():
         if v.requires_grad:
-            filtered_state_dict[k] = state_dict[k]
+            filtered_state_dict[k] = state_dict[k].cpu().clone().detach()
+
     return filtered_state_dict
 
 
 def save_trainable_params(save_directory: os.PathLike, model: torch.nn.Module) -> None:
-    if os.path.isfile(save_directory):
-        raise ValueError(f"Provided path ({save_directory}) should be a directory, not a file.")
-    os.makedirs(save_directory, exist_ok=True)
-    filtered_state_dict = filter_model_params(model)
-    torch.save(filtered_state_dict, os.path.join(save_directory, WEIGHTS_NAME))
+    model_to_save = unwrap_model(model)
+
+    if hasattr(model_to_save, "pretrained_model"): # for language model with valuehead
+        backbone_model = model_to_save.pretrained_model
+    else:
+        backbone_model = model_to_save
+
+    if hasattr(backbone_model, "peft_config"): # peft methods
+        backbone_model.save_pretrained(save_directory, state_dict=filter_model_params(backbone_model)) # save lora weights
+    else: # non-peft methods
+        torch.save(filter_model_params(backbone_model), os.path.join(save_directory, WEIGHTS_NAME)) # save trainable weights
+
+    if hasattr(model_to_save, "v_head"): # save valuehead weights
+        torch.save(filter_model_params(model_to_save.v_head), os.path.join(save_directory, VALUE_HEAD_FILE_NAME))
 
 
 def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
     weights_file = os.path.join(checkpoint_dir, WEIGHTS_NAME)
-    if not os.path.exists(weights_file):
-        raise ValueError(f"Provided path ({checkpoint_dir}) does not contain the pretrained weights.")
-    model_state_dict = torch.load(weights_file)
+    assert os.path.exists(weights_file), f"Provided path ({checkpoint_dir}) does not contain the pretrained weights."
+    model_state_dict = torch.load(weights_file, map_location="cpu")
     model.load_state_dict(model_state_dict, strict=False) # skip missing keys
-
-
-def save_valuehead_params(save_directory: os.PathLike, v_head: torch.nn.Module) -> None:
-    if os.path.isfile(save_directory):
-        raise ValueError(f"Provided path ({save_directory}) should be a directory, not a file.")
-    os.makedirs(save_directory, exist_ok=True)
-    torch.save(v_head.state_dict(), os.path.join(save_directory, VALUE_HEAD_FILE_NAME))
 
 
 def load_valuehead_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
     valuehead_file = os.path.join(checkpoint_dir, VALUE_HEAD_FILE_NAME)
-    if not os.path.exists(valuehead_file):
-        raise ValueError(f"Provided path ({checkpoint_dir}) does not contain the valuehead weights.")
-    valuehead_state_dict = torch.load(valuehead_file)
+    assert os.path.exists(valuehead_file), f"Provided path ({checkpoint_dir}) does not contain the valuehead weights."
+    valuehead_state_dict = torch.load(valuehead_file, map_location="cpu")
     model.register_buffer("reward_head_weight", valuehead_state_dict["summary.weight"])
     model.register_buffer("reward_head_bias", valuehead_state_dict["summary.bias"])
     model.register_buffer("default_head_weight", torch.zeros_like(valuehead_state_dict["summary.weight"]))
@@ -179,19 +181,21 @@ def plot_loss(training_args: Seq2SeqTrainingArguments, keys: Optional[List[str]]
 
     for key in keys:
         steps, metrics = [], []
-
         for i in range(len(data["log_history"])):
             if key in data["log_history"][i]:
                 steps.append(data["log_history"][i]["step"])
                 metrics.append(data["log_history"][i][key])
-        smoothed_value = smooth(metrics)
+
+        if len(metrics) == 0:
+            logger.warning("No metrics to plot.")
+            return
 
         plt.figure()
         plt.plot(steps, metrics, alpha=0.4, label="original")
-        plt.plot(steps, smoothed_value, label="smoothed")
+        plt.plot(steps, smooth(metrics), label="smoothed")
         plt.title("training {} of {}".format(key, training_args.output_dir))
         plt.xlabel("step")
         plt.ylabel(key)
         plt.legend()
-        plt.savefig(os.path.join(training_args.output_dir, "training_{}.jpg".format(key)), format="jpg", dpi=100)
-        print("Figure saved:", os.path.join(training_args.output_dir, "training_{}.jpg".format(key)))
+        plt.savefig(os.path.join(training_args.output_dir, "training_{}.png".format(key)), format="png", dpi=100)
+        print("Figure saved:", os.path.join(training_args.output_dir, "training_{}.png".format(key)))

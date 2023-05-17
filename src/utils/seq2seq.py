@@ -5,10 +5,9 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-from transformers import Seq2SeqTrainer, DataCollatorForSeq2Seq
+from transformers import Seq2SeqTrainer
 from transformers.trainer import PredictionOutput, TRAINING_ARGS_NAME
 from transformers.deepspeed import is_deepspeed_zero3_enabled
-from transformers.modeling_utils import PreTrainedModel, unwrap_model
 from transformers.tokenization_utils import PreTrainedTokenizer
 
 import jieba
@@ -29,41 +28,6 @@ from .other import (
 logger = get_logger(__name__)
 
 
-# Note: The ChatGLM tokenizer assigns False on token to be attended in attention mask. In general settings, it should be True.
-# Refer to: https://huggingface.co/THUDM/chatglm-6b/blob/6650ae3a53c28fc176d06762ca80b05d5ab3792b/tokenization_chatglm.py#L401
-class Seq2SeqDataCollatorForChatGLM(DataCollatorForSeq2Seq):
-    r"""
-    Data collator for ChatGLM. It is capable of dynamically padding for batched data.
-
-    Inspired by: https://github.com/tatsu-lab/stanford_alpaca/blob/65512697dc67779a6e53c267488aba0ec4d7c02a/train.py#L156
-    """
-    def __init__(
-            self,
-            tokenizer: PreTrainedTokenizer,
-            model: PreTrainedModel,
-            ignore_pad_token_for_loss: bool,
-            inference_mode: bool = False
-    ):
-        label_pad_token_id = IGNORE_INDEX if ignore_pad_token_for_loss else tokenizer.pad_token_id
-        super().__init__(tokenizer, model=model, label_pad_token_id=label_pad_token_id, padding=True)
-        self.label_pad_token_id = label_pad_token_id
-        self.inference_mode = inference_mode
-
-    def __call__(self, features: Sequence[Dict[str, Sequence]]) -> Dict[str, torch.Tensor]:
-        r"""
-        Pads batched data to the longest sequence in the batch.
-
-        ChatGLM is able to generate attentions masks and position ids by itself.
-        """
-        if self.inference_mode: # evaluation set adopts left-padding while training set adopts right-padding
-            return super().__call__(features)
-        input_ids, labels = [[torch.tensor(feature[key]) for feature in features] for key in ("input_ids", "labels")]
-        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=self.label_pad_token_id)
-        features = {"input_ids": input_ids, "labels": labels}
-        return features
-
-
 @dataclass
 class ComputeMetrics:
     r"""
@@ -81,15 +45,14 @@ class ComputeMetrics:
         preds, labels = eval_preds
         if isinstance(preds, tuple):
             preds = preds[0]
-        decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
         # Replace IGNORE_INDEX in the labels with pad_token_id as we cannot decode them if ignore_pad_token_for_loss=True.
+        preds = np.where(preds != IGNORE_INDEX, preds, self.tokenizer.pad_token_id)
         labels = np.where(labels != IGNORE_INDEX, labels, self.tokenizer.pad_token_id)
-        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
 
         score_dict = {"rouge-1": [], "rouge-2": [], "rouge-l": [], "bleu-4": []}
-        for pred, label in zip(decoded_preds, decoded_labels):
-            hypothesis = list(jieba.cut(pred))
-            reference = list(jieba.cut(label))
+        for pred, label in zip(preds, labels):
+            hypothesis = list(jieba.cut(self.tokenizer.decode(pred, skip_special_tokens=True)))
+            reference = list(jieba.cut(self.tokenizer.decode(label, skip_special_tokens=True)))
 
             if len(" ".join(hypothesis).split()) == 0:
                 result = {"rouge-1": {"f": 0.0}, "rouge-2": {"f": 0.0}, "rouge-l": {"f": 0.0}}
@@ -122,19 +85,12 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
 
         This function will only be executed at the process zero.
 
-        Override to inject custom behavior.
+        Subclass and override to inject custom behavior. It should not be directly used by external scripts.
         """
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-
-        model_to_save = unwrap_model(self.model)
-
-        if hasattr(self.model, "peft_config"): # peft methods
-            model_to_save.save_pretrained(output_dir) # save lora weights
-        else: # non-peft methods
-            save_trainable_params(output_dir, model_to_save)
-
+        save_trainable_params(output_dir, self.model)
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
 
@@ -150,9 +106,8 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
 
         Now it only supports single GPU (without Accelerate).
 
-        Override to inject custom behavior. It is not directly used by external scripts.
+        Subclass and override to inject custom behavior. It should not be directly used by external scripts.
         """
-        # Override to inject custom bevavior.
         if not self.args.predict_with_generate or prediction_loss_only:
             return super().prediction_step(
                 model, inputs, prediction_loss_only=prediction_loss_only, ignore_keys=ignore_keys
@@ -170,22 +125,8 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
         gen_kwargs["synced_gpus"] = gen_kwargs["synced_gpus"] \
                     if gen_kwargs.get("synced_gpus") is not None else default_synced_gpus
 
-        if "attention_mask" in inputs:
-            gen_kwargs["attention_mask"] = inputs.get("attention_mask", None)
-        if "position_ids" in inputs:
-            gen_kwargs["position_ids"] = inputs.get("position_ids", None)
-        if "global_attention_mask" in inputs:
-            gen_kwargs["global_attention_mask"] = inputs.get("global_attention_mask", None)
-
-        # prepare generation inputs
-        if hasattr(self.model, "encoder") and self.model.encoder.main_input_name != self.model.main_input_name:
-            generation_inputs = inputs[self.model.encoder.main_input_name]
-        else:
-            generation_inputs = inputs[self.model.main_input_name]
-
-        gen_kwargs["input_ids"] = generation_inputs
-        generated_tokens = self.model.generate(**gen_kwargs)
-        generated_tokens = generated_tokens[:, generation_inputs.size()[-1]:] # important for ChatGLM
+        generated_tokens = self.model.generate(**inputs, **gen_kwargs)
+        generated_tokens = generated_tokens[:, inputs["input_ids"].size(-1):] # important for ChatGLM
 
         # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
         # Inspired by: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/trainer_seq2seq.py#L273
@@ -228,18 +169,17 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
         """
         if not self.is_world_process_zero():
             return
-        if not self.args.predict_with_generate:
-            raise ValueError("Please enable `predict_with_generate` for saving model predictions.")
+        assert self.args.predict_with_generate, "Please enable `predict_with_generate` for saving model predictions."
+        preds = np.where(predict_results.predictions != IGNORE_INDEX, predict_results.predictions, self.tokenizer.pad_token_id)
+        labels = np.where(predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids, self.tokenizer.pad_token_id)
 
-        predictions = tokenizer.batch_decode(predict_results.predictions, skip_special_tokens=True)
-        predictions = [pred.strip() for pred in predictions]
-        labels = tokenizer.batch_decode(predict_results.label_ids, skip_special_tokens=True)
-        labels = [label.strip() for label in labels]
+        preds = [tokenizer.decode(pred, skip_special_tokens=True).strip() for pred in preds]
+        labels = [tokenizer.decode(label, skip_special_tokens=True).strip() for label in labels]
 
         output_prediction_file = os.path.join(self.args.output_dir, PREDICTION_FILE_NAME)
         logger.info(f"Saving prediction results to {output_prediction_file}")
         with open(output_prediction_file, "w", encoding="utf-8") as writer:
-            res = []
-            for pred, label in zip(predictions, labels):
+            res: List[str] = []
+            for pred, label in zip(preds, labels):
                 res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
             writer.write("\n".join(res))

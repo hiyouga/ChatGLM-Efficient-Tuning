@@ -93,7 +93,7 @@ data/
 运行下述命令进行分布式训练。我们使用 `adgen_train` 数据集，采用秩为 `32` 的 `lora` 微调方法，微调后的模型保存在 `adgen_lora` 文件夹中。为了保证模型微调成功，我们采用 0.001 的学习率，在数据集上训练 2 个 epoch。为了缓解模型拟合困难的问题，我们在每个输入样本的前面加一个统一的 prompt：`你现在是一名销售员，根据以下商品标签生成一段有吸引力的商品广告词。`
 
 ```bash
-accelerate launch src/finetune.py \
+accelerate launch src/train_sft.py \
     --do_train \
     --dataset adgen_train \
     --finetuning_type lora \
@@ -126,7 +126,7 @@ accelerate launch src/finetune.py \
 我们使用 `adgen_dev` 数据集，使用单个 GPU 评估模型微调后的 BLEU 和 ROUGE 分数。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_eval \
     --dataset adgen_dev \
     --checkpoint_dir adgen_lora \

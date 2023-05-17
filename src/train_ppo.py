@@ -1,5 +1,5 @@
 # coding=utf-8
-# Implements parameter-efficient ppo training of fine-tuned ChatGLM.
+# Implements parameter-efficient PPO training of fine-tuned ChatGLM.
 # This code is inspired by:
 # https://github.com/lvwerra/trl/blob/main/examples/sentiment/scripts/gpt-neox-20b_peft/gpt-neo-20b_sentiment_peft.py
 
@@ -15,7 +15,7 @@ from utils import (
     prepare_data,
     load_pretrained,
     preprocess_data,
-    PPODataCollatorForChatGLM,
+    DataCollatorForChatGLM,
     PPOTrainerForChatGLM,
     plot_loss
 )
@@ -28,12 +28,7 @@ def main():
     dataset = prepare_data(model_args, data_args)
     model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, training_args.do_train, stage="ppo")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="ppo")
-    data_collator = PPODataCollatorForChatGLM(
-        tokenizer=tokenizer,
-        min_input_length=data_args.max_source_length, # avoid truncating input sequences
-        max_input_length=data_args.max_source_length,
-        inference_mode=(not training_args.do_train)
-    )
+    data_collator = DataCollatorForChatGLM(tokenizer, model.pretrained_model)
 
     ppo_config = PPOConfig(
         model_name=model_args.model_name_or_path,

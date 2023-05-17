@@ -2,7 +2,7 @@ import os
 import sys
 import torch
 import hashlib
-from typing import Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 
 import transformers
 from transformers import (
@@ -45,14 +45,13 @@ from .other import (
     FINETUNING_ARGS_NAME
 )
 
-
-logger = get_logger(__name__)
-
-
 check_min_version("4.27.4")
 require_version("datasets>=2.10.0", "To fix: pip install datasets>=2.10.0")
 require_version("peft>=0.3.0", "To fix: pip install peft>=0.3.0")
 require_version("trl>=0.4.1", "To fix: pip install trl>=0.4.1")
+
+
+logger = get_logger(__name__)
 
 
 def init_adapter(
@@ -64,6 +63,8 @@ def init_adapter(
     r"""
     Initializes the adapters.
 
+    Support full-parameter, freeze, P-Tuning v2 and LoRA training.
+
     Note that the trainable parameters must be cast to float32.
     """
 
@@ -74,9 +75,6 @@ def init_adapter(
         logger.info("Fine-tuning method: Full")
         model = model.float()
 
-        if model_args.checkpoint_dir is not None:
-            load_trainable_params(model, model_args.checkpoint_dir[0])
-
     if finetuning_args.finetuning_type == "freeze":
         logger.info("Fine-tuning method: Freeze")
         for name, param in model.named_parameters():
@@ -85,21 +83,18 @@ def init_adapter(
             else:
                 param.data = param.data.to(torch.float32)
 
-        if model_args.checkpoint_dir is not None:
-            load_trainable_params(model, model_args.checkpoint_dir[0])
-
     if finetuning_args.finetuning_type == "p_tuning":
         logger.info("Fine-tuning method: P-Tuning v2") # nothing to do
 
-        if model_args.checkpoint_dir is not None:
-            load_trainable_params(model, model_args.checkpoint_dir[0])
+    if finetuning_args.finetuning_type != "lora" and model_args.checkpoint_dir is not None:
+        load_trainable_params(model, model_args.checkpoint_dir[0]) # load model checkpoints for non-peft methods
 
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
         lastest_checkpoint = None
 
         if model_args.checkpoint_dir is not None:
-            if is_trainable and finetuning_args.resume_lora_training: # continually training on the lora weights
+            if is_trainable and finetuning_args.resume_lora_training: # continually train on the lora weights
                 checkpoints_to_merge, lastest_checkpoint = model_args.checkpoint_dir[:-1], model_args.checkpoint_dir[-1]
             else:
                 checkpoints_to_merge = model_args.checkpoint_dir
@@ -108,14 +103,15 @@ def init_adapter(
                 model = PeftModel.from_pretrained(model, checkpoint)
                 model = model.merge_and_unload()
 
-            logger.info("Merged {} model checkpoint(s).".format(len(checkpoints_to_merge)))
+            if len(checkpoints_to_merge) > 0:
+                logger.info("Merged {} model checkpoint(s).".format(len(checkpoints_to_merge)))
 
             if lastest_checkpoint is not None: # resume lora training
                 model = PeftModel.from_pretrained(model, lastest_checkpoint, is_trainable=True)
 
-        if lastest_checkpoint is None: # create new lora weights
+        if is_trainable and lastest_checkpoint is None: # create new lora weights while training
             lora_config = LoraConfig(
-                task_type=TaskType.CAUSAL_LM,
+                task_type=TaskType.CAUSAL_LM, # we should regard ChatGLM as a causal LM
                 inference_mode=False,
                 r=finetuning_args.lora_rank,
                 lora_alpha=finetuning_args.lora_alpha,
@@ -132,10 +128,12 @@ def load_pretrained(
         training_args: Optional[Seq2SeqTrainingArguments] = None,
         finetuning_args: Optional[FinetuningArguments] = None,
         is_trainable: Optional[bool] = False,
-        stage: Optional[Literal["sft", "rwd", "ppo"]] = "sft"
+        stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     r"""
-    Load pretrained model and tokenizer.
+    Loads pretrained model and tokenizer.
+
+    Support both training and inference.
     """
 
     if (not is_trainable) and (model_args.checkpoint_dir is None):
@@ -147,7 +145,7 @@ def load_pretrained(
             if not os.path.isfile(os.path.join(checkpoint_dir, FINETUNING_ARGS_NAME)):
                 raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
         logger.info("Load fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
-        finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir[0], FINETUNING_ARGS_NAME))
+        finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir[-1], FINETUNING_ARGS_NAME))
         if finetuning_args.finetuning_type != "lora" and len(model_args.checkpoint_dir) > 1:
             logger.warning("Only LoRA tuning accepts multiple checkpoints.")
 
@@ -157,7 +155,7 @@ def load_pretrained(
     if model_args.quantization_bit is not None:
         if is_trainable:
             if finetuning_args.finetuning_type == "full":
-                raise ValueError("Full parameter fine-tuning does not support quantization.")
+                raise ValueError("Full-parameter fine-tuning does not support quantization.")
             elif finetuning_args.finetuning_type == "p_tuning":
                 quantization = "cpm" # use cpm's quantization
             else:
@@ -218,22 +216,22 @@ def load_pretrained(
         assert model_args.quantization_bit in [4, 8], "P-Tuning v2 and inference mode only accept 4-bit or 8-bit quantization."
         assert not (is_trainable and training_args.fp16), "FP16 training conflicts with cpm quantization."
 
-        model.quantize(model_args.quantization_bit) # in-place method
-
         for name, param in model.named_parameters():
             if "prefix_encoder" not in name:
-                param.data = param.data.to(torch.float16) # convert all params in half precision except prefix_encoder
+                param.data = param.data.to(torch.float16) # convert all params into half precision except prefix_encoder
+        model.quantize(model_args.quantization_bit) # in-place method
 
     if quantization is not None:
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
-    if stage == "rwd" or stage == "ppo": # add value head
+    if stage == "rm" or stage == "ppo": # add value head
         assert is_trainable, "Reward and PPO stages cannot be performed at evaluation."
 
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
 
         if stage == "ppo": # load reward model
             assert model_args.reward_model is not None, "Reward model is necessary for PPO training."
+            logger.info("Load reward model from {}".format(model_args.reward_model))
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
             load_valuehead_params(model, model_args.reward_model)
 
@@ -305,27 +303,27 @@ def prepare_data(
             logger.warning("Checksum failed for {}. It may vary depending on the platform.".format(file_path))
 
     max_samples = data_args.max_samples
-    all_datasets = [] # support multiple datasets
+    all_datasets: List[Dataset] = [] # support multiple datasets
 
-    for dataset_info in data_args.dataset_list:
+    for dataset_attr in data_args.dataset_list:
 
-        logger.info("Loading dataset {}...".format(dataset_info))
+        logger.info("Loading dataset {}...".format(dataset_attr))
 
-        if dataset_info.load_from == "hf_hub":
-            raw_datasets = load_dataset(dataset_info.dataset_name, cache_dir=model_args.cache_dir)
-        elif dataset_info.load_from == "script":
+        if dataset_attr.load_from == "hf_hub":
+            raw_datasets = load_dataset(dataset_attr.dataset_name, cache_dir=model_args.cache_dir)
+        elif dataset_attr.load_from == "script":
             raw_datasets = load_dataset(
-                os.path.join(data_args.dataset_dir, dataset_info.dataset_name),
+                os.path.join(data_args.dataset_dir, dataset_attr.dataset_name),
                 cache_dir=model_args.cache_dir
             )
-        elif dataset_info.load_from == "file":
-            data_file = os.path.join(data_args.dataset_dir, dataset_info.file_name) # support json, jsonl and csv
-            extension = dataset_info.file_name.split(".")[-1]
+        elif dataset_attr.load_from == "file":
+            data_file = os.path.join(data_args.dataset_dir, dataset_attr.file_name) # support json, jsonl and csv
+            extension = dataset_attr.file_name.split(".")[-1]
 
-            if dataset_info.file_sha1 is not None:
-                checksum(data_file, dataset_info.file_sha1)
+            if dataset_attr.file_sha1 is not None:
+                checksum(data_file, dataset_attr.file_sha1)
             else:
-                logger.warning("Checksum failed: missing SHA-1 hash value in dataset_info.")
+                logger.warning("Checksum failed: missing SHA-1 hash value in dataset_info.json.")
 
             raw_datasets = load_dataset(
                 extension,
@@ -343,17 +341,17 @@ def prepare_data(
             dataset = dataset.select(range(max_samples_temp))
 
         dummy_data = [None] * len(dataset)
-        for column, column_name in [
+        for column_name, target_name in [
             ("prompt_column", "prompt"),
             ("query_column", "query"),
             ("response_column", "response"),
             ("history_column", "history")
         ]: # every dataset will have 4 columns same as each other
-            if getattr(dataset_info, column) != column_name:
-                if getattr(dataset_info, column):
-                    dataset = dataset.rename_column(getattr(dataset_info, column), column_name)
+            if getattr(dataset_attr, column_name) != target_name:
+                if getattr(dataset_attr, column_name):
+                    dataset = dataset.rename_column(getattr(dataset_attr, column_name), target_name)
                 else: # None or empty string
-                    dataset = dataset.add_column(column_name, dummy_data)
+                    dataset = dataset.add_column(target_name, dummy_data)
         all_datasets.append(dataset)
 
     if len(data_args.dataset_list) == 1:
@@ -369,7 +367,7 @@ def preprocess_data(
         tokenizer: PreTrainedTokenizer,
         data_args: DataTrainingArguments,
         training_args: Seq2SeqTrainingArguments,
-        stage: Optional[Literal["sft", "rwd", "ppo"]] = "sft"
+        stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
 ) -> Dataset:
 
     column_names = list(dataset.column_names)
@@ -392,7 +390,7 @@ def preprocess_data(
                 prompt = prefix + prompt
                 yield prompt, answer
 
-    def preprocess_function_train(examples):
+    def preprocess_supervised_dataset(examples):
         # build inputs with format `X [gMASK] [BOS] Y [EOS]` and labels with format `[IGNORE] ... [IGNORE] [BOS] Y [EOS]`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
@@ -413,23 +411,26 @@ def preprocess_data(
             model_inputs["labels"].append(labels)
         return model_inputs
 
-    def preprocess_function_eval(examples):
-        # build inputs with format `[PAD] ... [PAD] X [gMASK] [BOS]` and labels with format `Y [gMASK] [BOS]`
-        # left-padding is needed for prediction, use the built-in function of the tokenizer
-        inputs, targets = [], []
+    def preprocess_evaluation_dataset(examples):
+        # build inputs with format `X [gMASK] [BOS]` and labels with format `Y [gMASK] [BOS]`
+        model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
-            inputs.append(prompt)
-            targets.append(answer)
-        model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, truncation=True, padding=True)
-        labels = tokenizer(text_target=targets, max_length=data_args.max_target_length, truncation=True) # no padding
-        if data_args.ignore_pad_token_for_loss:
-            labels["input_ids"] = [
-                [(l_id if l_id != tokenizer.pad_token_id else IGNORE_INDEX) for l_id in label] for label in labels["input_ids"]
-            ]
-        model_inputs["labels"] = labels["input_ids"]
+            source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
+            target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
+
+            if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
+                source_ids = source_ids[:data_args.max_source_length - 2]
+            if len(target_ids) > data_args.max_target_length - 2: # gmask and bos tokens
+                target_ids = target_ids[:data_args.max_target_length - 2]
+
+            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids)
+            labels = tokenizer.build_inputs_with_special_tokens(target_ids)
+
+            model_inputs["input_ids"].append(input_ids)
+            model_inputs["labels"].append(labels)
         return model_inputs
 
-    def preprocess_function_train_pair(examples):
+    def preprocess_pairwise_dataset(examples):
         # build input pairs with format `X [gMASK] [BOS] Y1 [EOS]` and `X [gMASK] [BOS] Y2 [EOS]`
         model_inputs = {"accept_ids": [], "reject_ids": []}
         for prompt, answer in format_example(examples):
@@ -451,19 +452,6 @@ def preprocess_data(
             model_inputs["reject_ids"].append(reject_ids)
         return model_inputs
 
-    def preprocess_function_train_ppo(examples):
-        # build inputs with format `X [gMASK] [BOS]`
-        model_inputs = {"input_ids": []}
-        for prompt, _ in format_example(examples):
-            source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
-
-            if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
-                source_ids = source_ids[:data_args.max_source_length - 2]
-
-            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids)
-            model_inputs["input_ids"].append(input_ids)
-        return model_inputs
-
     def print_sft_dataset_example(example):
         print("input_ids:\n{}".format(example["input_ids"]))
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
@@ -481,11 +469,14 @@ def preprocess_data(
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
 
     if stage == "sft":
-        preprocess_function = preprocess_function_train if training_args.do_train else preprocess_function_eval
-    elif stage == "rwd":
-        preprocess_function = preprocess_function_train_pair
+        if training_args.do_train:
+            preprocess_function = preprocess_supervised_dataset
+        else:
+            preprocess_function = preprocess_evaluation_dataset
+    elif stage == "rm":
+        preprocess_function = preprocess_pairwise_dataset
     elif stage == "ppo":
-        preprocess_function = preprocess_function_train_ppo
+        preprocess_function = preprocess_evaluation_dataset
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
         dataset = dataset.map(
@@ -499,7 +490,7 @@ def preprocess_data(
 
     if stage == "sft":
         print_sft_dataset_example(dataset[0])
-    elif stage == "rwd":
+    elif stage == "rm":
         print_pairwise_dataset_example(dataset[0])
     elif stage == "ppo":
         print_ppo_dataset_example(dataset[0])

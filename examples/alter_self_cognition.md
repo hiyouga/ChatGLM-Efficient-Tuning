@@ -61,7 +61,7 @@ git clone https://huggingface.co/THUDM/chatglm-6b
 运行以下命令在单个 GPU 上进行模型监督微调。我们使用 `self_cognition` 数据集，采用 `lora` 微调方法，微调后的模型保存在 `cognition` 文件夹中。为了保证模型微调成功，我们采用 0.001 的学习率，在数据集上训练 10 个 epoch。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/finetune.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_train \
     --dataset self_cognition \
     --finetuning_type lora \

@@ -14,7 +14,7 @@ def main():
     def translate(text: str) -> str:
         if len(text) == 0:
             return ""
-        if text.startswith("http") or text.startswith("Reddit.com"):
+        if text.startswith("http") or text.startswith("www.") or text.startswith("Reddit.com"):
             return text
 
         local_patience = 0

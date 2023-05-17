@@ -3,11 +3,11 @@ import json
 import math
 import torch
 from tqdm import tqdm
-from typing import Callable, Dict, List, Literal, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Literal, Optional, Tuple
 
-from transformers import DataCollatorWithPadding, Seq2SeqTrainingArguments
+from transformers import Seq2SeqTrainingArguments
 from transformers.trainer import TRAINING_ARGS_NAME, TRAINER_STATE_NAME
-from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.modeling_utils import PreTrainedModel
 
 from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
 from trl.core import LengthSampler
@@ -19,7 +19,6 @@ from .other import (
     AverageMeter,
     get_logger,
     save_trainable_params,
-    save_valuehead_params,
     get_logits_processor,
     FINETUNING_ARGS_NAME
 )
@@ -42,33 +41,6 @@ def replace_model(model: AutoModelForCausalLMWithValueHead, target: Literal["def
     })
 
 
-@torch.no_grad()
-def compute_rewards(
-        input_ids: torch.Tensor, # (batch size x seq len) with format `X [gMASK] [BOS] Y [EOS] [PAD] ... [PAD]`
-        model: AutoModelForCausalLMWithValueHead,
-        tokenizer: PreTrainedTokenizer
-) -> torch.Tensor:
-
-    replace_model(model, target="reward")
-
-    _, _, values = model(input_ids=input_ids)
-    values = values.transpose(0, 1)
-
-    rewards = []
-    for i in range(input_ids.size(0)):
-        eos_idx = (input_ids[i] == tokenizer.eos_token_id).nonzero() # Note: checking with [EOS] token is unsafe
-        if len(eos_idx):
-            eos_idx = eos_idx[0].item()
-        else:
-            eos_idx = input_ids.size(1) - 1
-        rewards.append(values[i][eos_idx])
-    rewards = torch.stack(rewards, dim=0)
-
-    replace_model(model, target="default")
-
-    return rewards
-
-
 def cast_layernorm_dtype(
         model: AutoModelForCausalLMWithValueHead,
         layer_norm_names: List[str] = ["layernorm"], # for chatglm setting
@@ -88,42 +60,6 @@ def cast_layernorm_dtype(
     return model, layer_norm_state_dict
 
 
-class PPODataCollatorForChatGLM(DataCollatorWithPadding):
-    r"""
-    Data collator for ChatGLM. It is capable of dynamically padding for batched data.
-    """
-    def __init__(
-            self,
-            tokenizer: PreTrainedTokenizer,
-            min_input_length: int,
-            max_input_length: int,
-            inference_mode: bool = False,
-    ):
-        super().__init__(tokenizer, padding=True)
-        self.inference_mode = inference_mode
-
-        if min_input_length < max_input_length:
-            self.input_size = LengthSampler(min_input_length, max_input_length)
-        else:
-            self.input_size = lambda: max_input_length # always use max_input_length
-
-    def __call__(self, features: Sequence[Dict[str, Sequence]]) -> Dict[str, torch.Tensor]:
-        r"""
-        Pads batched data to the longest sequence in the batch. We adopt left-padding for ppo data.
-
-        Equips with a length sampler to generate sequences with variable lengths.
-
-        ChatGLM is able to generate attentions masks and position ids by itself.
-        """
-        if self.inference_mode:
-            raise NotImplementedError
-
-        input_ids = [torch.tensor(feature["input_ids"][:self.input_size()]).flip(0) for feature in features]
-        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id)
-        features = {"input_ids": input_ids.flip(-1)}
-        return features
-
-
 class PPOTrainerForChatGLM(PPOTrainer):
     r"""
     Inherits PPOTrainer.
@@ -131,6 +67,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
     def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.data_collator = kwargs["data_collator"]
         self.state = {"log_history": []}
         self.training_args = training_args
         self.finetuning_args = finetuning_args
@@ -138,7 +75,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
     @torch.no_grad()
     def generate(
             self,
-            query_tensor: torch.Tensor, # (batch size x seq len)
+            inputs: Dict[str, torch.Tensor],
             length_sampler: Callable = None,
             return_prompt: bool = True,
             **generation_kwargs,
@@ -154,11 +91,9 @@ class PPOTrainerForChatGLM(PPOTrainer):
         if length_sampler is not None:
             generation_kwargs["max_new_tokens"] = length_sampler()
 
-        unwrapped_model = self.accelerator.unwrap_model(self.model)
+        unwrapped_model: AutoModelForCausalLMWithValueHead = self.accelerator.unwrap_model(self.model)
 
-        response = unwrapped_model.generate(
-            input_ids=query_tensor, **generation_kwargs
-        )
+        response = unwrapped_model.generate(**inputs, **generation_kwargs)
 
         # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
         # Inspired by: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/trainer_seq2seq.py#L273
@@ -168,71 +103,8 @@ class PPOTrainerForChatGLM(PPOTrainer):
         self.model, _ = cast_layernorm_dtype(self.model, layer_norm_params)
 
         if not return_prompt and not self.is_encoder_decoder:
-            return response[:, query_tensor.size(1):]
+            return response[:, inputs["input_ids"].size(1):]
         return response
-
-    def prepare_model_inputs(self, queries: torch.Tensor, responses: torch.Tensor):
-        input_ids = []
-        for query, response in zip(queries, responses): # query is left-padded, response is right-padded
-            start = (query != self.tokenizer.pad_token_id).nonzero()[0].item()
-            input_ids.append(torch.cat((query[start:], response, query[:start]))) # change to right-padding
-
-        model_inputs =  {"input_ids": torch.stack(input_ids, dim=0).to(self.current_device)} # already padded to equal length
-        model_inputs["attention_mask"] = torch.ones_like(model_inputs["input_ids"]) # unused indeed, avoid distributed error
-        return model_inputs
-
-    @PPODecorators.empty_cuda_cache()
-    def batched_forward_pass(
-        self,
-        model: AutoModelForCausalLMWithValueHead,
-        queries: torch.Tensor,
-        responses: torch.Tensor,
-        model_inputs: dict,
-    ):
-        r"""
-        Calculate model outputs in multiple batches.
-
-        Override to inject custom behavior.
-        """
-        bs = len(queries)
-        fbs = self.config.mini_batch_size
-        all_logprobs = []
-        all_logits = []
-        all_masks = []
-        all_values = []
-
-        for i in range(int(bs / fbs)):
-            input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
-
-            input_ids = input_kwargs["input_ids"]
-            logits, _, values = model(input_ids=input_ids) # chatglm only needs input_ids
-            logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
-
-            values = values.transpose(0, 1)
-            masks = torch.zeros_like(input_ids)
-
-            for j in range(fbs):
-                start = (input_ids[j] == self.tokenizer.bos_token_id).nonzero()[0].item() # always contain a [BOS] token
-                end = (input_ids[j] == self.tokenizer.eos_token_id).nonzero() # Note: checking with [EOS] token is unsafe
-                if len(end):
-                    end = end[0].item()
-                else:
-                    end = masks.size(1)
-                masks[j][start:end] = 1
-                if end - start < 2:
-                    raise ValueError("Responses are too short. Make sure they are at least 4 tokens long.")
-
-            all_logits.append(logits)
-            all_values.append(values)
-            all_logprobs.append(logprobs)
-            all_masks.append(masks)
-
-        return (
-            torch.cat(all_logprobs),
-            torch.cat(all_logits)[:, :-1],
-            torch.cat(all_values)[:, :-1],
-            torch.cat(all_masks)[:, :-1],
-        )
 
     def ppo_train(self, max_target_length: int) -> None:
 
@@ -263,7 +135,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
             "logits_processor": get_logits_processor()
         }
         output_length_sampler = LengthSampler(max_target_length // 2, max_target_length)
-        unwrapped_model = self.accelerator.unwrap_model(self.model)
+        unwrapped_model: PreTrainedModel = self.accelerator.unwrap_model(self.model)
 
         dataiter = iter(self.dataloader)
         steps_trained = 0
@@ -276,32 +148,38 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
                 batch = next(dataiter)
                 steps_trained += 1
-                queries = batch["input_ids"] # left-padded sequences
 
                 unwrapped_model.gradient_checkpointing_disable()
                 unwrapped_model.config.use_cache = True
 
                 # Get response from ChatGLM
-                responses_with_queries = self.generate(queries, length_sampler=output_length_sampler, **gen_kwargs)
-                responses = responses_with_queries[:, queries.size(1):].clone().detach() # right-padded sequences (remember to clone!!!)
-                # batch["response"] = tokenizer.batch_decode(responses, skip_special_tokens=True) # comment to avoid decode error
+                query_tensors: torch.Tensor = batch["input_ids"]
+                response_tensors = self.generate(batch, length_sampler=output_length_sampler, return_prompt=False, **gen_kwargs)
 
-                for i in range(responses_with_queries.size(0)): # change to right-padding
-                    start = (responses_with_queries[i] != self.tokenizer.pad_token_id).nonzero()[0].item()
-                    responses_with_queries[i] = torch.cat((responses_with_queries[i][start:], responses_with_queries[i][:start]))
+                queries: List[torch.Tensor] = []
+                responses: List[torch.Tensor] = []
+                for i in range(len(query_tensors)):
+                    query_length = (query_tensors[i] != self.tokenizer.pad_token_id).nonzero()[0]
+                    response_length = (response_tensors[i] != self.tokenizer.pad_token_id).nonzero()[-1] + 1
+                    if response_length < 2:
+                        continue
+                    queries.append(query_tensors[i, query_length:]) # remove padding from left
+                    responses.append(response_tensors[i, :response_length]) # remove padding from right
 
                 # Compute rewards
-                rewards = compute_rewards(responses_with_queries, unwrapped_model, self.tokenizer)
+                replace_model(unwrapped_model, target="reward")
+                _, _, values = unwrapped_model(**self.prepare_model_inputs(queries, responses))
+                rewards = [reward for reward in values[-1]]
+                replace_model(unwrapped_model, target="default")
 
                 # Run PPO step
                 unwrapped_model.gradient_checkpointing_enable()
                 unwrapped_model.config.use_cache = False
 
-                split_into_list = lambda x: [x[i] for i in range(x.size(0))]
-                stats = self.step(*map(split_into_list, [queries, responses, rewards]))
+                stats = self.step(queries, responses, rewards)
 
                 loss_meter.update(stats["ppo/loss/total"])
-                reward_meter.update(rewards.sum().item(), n=rewards.size(0))
+                reward_meter.update(torch.tensor(rewards).sum().item(), n=len(rewards))
 
                 if steps_trained == len_dataloader:
                     dataiter = iter(self.dataloader)
@@ -322,6 +200,60 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
             if (step+1) % self.training_args.save_steps == 0: # save checkpoint
                 self.save_model(os.path.join(self.training_args.output_dir, f"checkpoint-{step+1}"))
+
+    def prepare_model_inputs(self, queries: torch.Tensor, responses: torch.Tensor):
+        input_ids = [torch.cat([q, r]) for q, r in zip(queries, responses)]
+        input_data = self.data_collator([{"input_ids": ids} for ids in input_ids])
+        input_data = {k: v.to(self.current_device) for k, v in input_data.items() if v is not None}
+        input_data.pop("labels", None)  # we don't want to compute LM losses
+        return input_data
+
+    @PPODecorators.empty_cuda_cache()
+    def batched_forward_pass(
+        self,
+        model: AutoModelForCausalLMWithValueHead,
+        queries: torch.Tensor,
+        responses: torch.Tensor,
+        model_inputs: dict,
+    ):
+        r"""
+        Calculate model outputs in multiple batches.
+
+        Override to inject custom behavior.
+        """
+        bs = len(model_inputs["input_ids"])
+        fbs = self.config.mini_batch_size
+        all_logprobs = []
+        all_logits = []
+        all_masks = []
+        all_values = []
+
+        for i in range(int(bs / fbs)):
+            input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
+            input_ids: torch.Tensor = input_kwargs["input_ids"] # left-padded sequences
+            logits, _, values = model(**input_kwargs)
+            logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
+
+            values = values.transpose(0, 1)
+            masks = torch.zeros_like(input_ids)
+
+            for j in range(fbs):
+                start = (input_ids[j] == self.tokenizer.bos_token_id).nonzero()[0].item()
+                masks[j][start:] = 1
+                if len(masks[j][start:]) < 2:
+                    raise ValueError("Responses are too short. Make sure they are at least 4 tokens long.")
+
+            all_logits.append(logits)
+            all_values.append(values)
+            all_logprobs.append(logprobs)
+            all_masks.append(masks)
+
+        return (
+            torch.cat(all_logprobs),
+            torch.cat(all_logits)[:, :-1],
+            torch.cat(all_values)[:, :-1],
+            torch.cat(all_masks)[:, :-1],
+        )
 
     def is_world_process_zero(self) -> bool:
         r"""
@@ -353,16 +285,6 @@ class PPOTrainerForChatGLM(PPOTrainer):
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-
-        unwrapped_model = self.accelerator.unwrap_model(self.model)
-
-        if hasattr(unwrapped_model.pretrained_model, "peft_config"): # peft methods
-            unwrapped_model.pretrained_model.save_pretrained(output_dir) # save lora weights
-        else: # non-peft methods
-            save_trainable_params(output_dir, unwrapped_model.pretrained_model)
-
-        if hasattr(unwrapped_model, "v_head"):
-            save_valuehead_params(output_dir, unwrapped_model.v_head) # save valuehead weights
-
+        save_trainable_params(output_dir, self.model)
         torch.save(self.training_args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
