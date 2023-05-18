@@ -67,44 +67,10 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
     def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.data_collator = kwargs["data_collator"]
+        self.data_collator = self.accelerator.prepare(kwargs["data_collator"])
         self.state = {"log_history": []}
         self.training_args = training_args
         self.finetuning_args = finetuning_args
-
-    @torch.no_grad()
-    def generate(
-            self,
-            inputs: Dict[str, torch.Tensor],
-            length_sampler: Callable = None,
-            return_prompt: bool = True,
-            **generation_kwargs,
-    ) -> torch.Tensor:
-        r"""
-        Generate response with the model given the query tensor.
-
-        Inspired by: https://github.com/lvwerra/trl/blob/08f550674c553c36c51d1027613c29f14f3676a5/trl/trainer/ppo_trainer.py#L387
-        """
-
-        self.model, layer_norm_params = cast_layernorm_dtype(self.model)
-
-        if length_sampler is not None:
-            generation_kwargs["max_new_tokens"] = length_sampler()
-
-        unwrapped_model: AutoModelForCausalLMWithValueHead = self.accelerator.unwrap_model(self.model)
-
-        response = unwrapped_model.generate(**inputs, **generation_kwargs)
-
-        # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
-        # Inspired by: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/trainer_seq2seq.py#L273
-        if unwrapped_model.pretrained_model.generation_config._from_model_config:
-            unwrapped_model.pretrained_model.generation_config._from_model_config = False
-
-        self.model, _ = cast_layernorm_dtype(self.model, layer_norm_params)
-
-        if not return_prompt and not self.is_encoder_decoder:
-            return response[:, inputs["input_ids"].size(1):]
-        return response
 
     def ppo_train(self, max_target_length: int) -> None:
 
@@ -161,14 +127,15 @@ class PPOTrainerForChatGLM(PPOTrainer):
                 for i in range(len(query_tensors)):
                     query_length = (query_tensors[i] != self.tokenizer.pad_token_id).nonzero()[0]
                     response_length = (response_tensors[i] != self.tokenizer.pad_token_id).nonzero()[-1] + 1
-                    if response_length < 2:
-                        continue
                     queries.append(query_tensors[i, query_length:]) # remove padding from left
-                    responses.append(response_tensors[i, :response_length]) # remove padding from right
+                    if response_length < 2: # make response have at least 2 tokens
+                        responses.append(response_tensors.new_empty(2).fill_(self.tokenizer.eos_token_id))
+                    else:
+                        responses.append(response_tensors[i, :response_length]) # remove padding from right
 
                 # Compute rewards
                 replace_model(unwrapped_model, target="reward")
-                _, _, values = unwrapped_model(**self.prepare_model_inputs(queries, responses))
+                _, _, values = self.model(**self.prepare_model_inputs(queries, responses))
                 rewards = [reward for reward in values[-1]]
                 replace_model(unwrapped_model, target="default")
 
@@ -201,7 +168,41 @@ class PPOTrainerForChatGLM(PPOTrainer):
             if (step+1) % self.training_args.save_steps == 0: # save checkpoint
                 self.save_model(os.path.join(self.training_args.output_dir, f"checkpoint-{step+1}"))
 
-    def prepare_model_inputs(self, queries: torch.Tensor, responses: torch.Tensor):
+    @torch.no_grad()
+    def generate(
+            self,
+            inputs: Dict[str, torch.Tensor],
+            length_sampler: Callable = None,
+            return_prompt: bool = True,
+            **generation_kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Generate response with the model given the query tensor.
+
+        Inspired by: https://github.com/lvwerra/trl/blob/08f550674c553c36c51d1027613c29f14f3676a5/trl/trainer/ppo_trainer.py#L387
+        """
+
+        self.model, layer_norm_params = cast_layernorm_dtype(self.model)
+
+        if length_sampler is not None:
+            generation_kwargs["max_new_tokens"] = length_sampler()
+
+        unwrapped_model: AutoModelForCausalLMWithValueHead = self.accelerator.unwrap_model(self.model)
+
+        response = unwrapped_model.generate(**inputs, **generation_kwargs)
+
+        # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
+        # Inspired by: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/trainer_seq2seq.py#L273
+        if unwrapped_model.pretrained_model.generation_config._from_model_config:
+            unwrapped_model.pretrained_model.generation_config._from_model_config = False
+
+        self.model, _ = cast_layernorm_dtype(self.model, layer_norm_params)
+
+        if not return_prompt and not self.is_encoder_decoder:
+            return response[:, inputs["input_ids"].size(1):]
+        return response
+
+    def prepare_model_inputs(self, queries: List[torch.Tensor], responses: List[torch.Tensor]) -> Dict[str, torch.Tensor]:
         input_ids = [torch.cat([q, r]) for q, r in zip(queries, responses)]
         input_data = self.data_collator([{"input_ids": ids} for ids in input_ids])
         input_data = {k: v.to(self.current_device) for k, v in input_data.items() if v is not None}
@@ -229,8 +230,11 @@ class PPOTrainerForChatGLM(PPOTrainer):
         all_values = []
 
         for i in range(int(bs / fbs)):
-            input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
+            input_kwargs = {k: v[i * fbs : (i + 1) * fbs] for k, v in model_inputs.items()}
             input_ids: torch.Tensor = input_kwargs["input_ids"] # left-padded sequences
+            if self.is_distributed: # re-generate them to adapt padded inputs
+                input_kwargs["attention_mask"] = self.data_collator.get_attention_masks(input_ids, device=self.current_device)
+                input_kwargs["position_ids"] = self.data_collator.get_position_ids(input_ids, device=self.current_device)
             logits, _, values = model(**input_kwargs)
             logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
 
