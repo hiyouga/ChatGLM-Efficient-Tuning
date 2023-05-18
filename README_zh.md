@@ -209,19 +209,6 @@ CUDA_VISIBLE_DEVICES=0 python src/web_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### 模型部署
-
-```python
-import sys
-sys.path.append("src")
-from src import load_pretrained, ModelArguments
-model_args = ModelArguments(checkpoint_dir=path_to_checkpoint)
-model, tokenizer = load_pretrained(model_args)
-model = model.cuda()
-model.eval()
-# model.generate, model.chat()...
-```
-
 ### 硬件需求
 
 |     微调方法     |  批处理大小  | 模式 | GPU显存 | 速度 |

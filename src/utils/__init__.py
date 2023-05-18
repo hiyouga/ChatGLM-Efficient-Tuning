@@ -12,4 +12,4 @@ from .pairwise import PairwiseDataCollatorForChatGLM, PairwiseTrainerForChatGLM
 from .ppo import PPOTrainerForChatGLM
 
 from .config import ModelArguments
-from .other import get_logits_processor, plot_loss
+from .other import auto_configure_device_map, get_logits_processor, plot_loss

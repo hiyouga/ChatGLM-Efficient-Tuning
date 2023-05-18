@@ -4,10 +4,11 @@
 
 
 import os
+import torch
 import signal
 import platform
 
-from utils import ModelArguments, load_pretrained
+from utils import ModelArguments, auto_configure_device_map, load_pretrained
 from transformers import HfArgumentParser
 
 
@@ -36,7 +37,12 @@ def main():
     parser = HfArgumentParser(ModelArguments)
     model_args, = parser.parse_args_into_dataclasses()
     model, tokenizer = load_pretrained(model_args)
-    model = model.cuda()
+    if torch.cuda.device_count() > 1:
+        from accelerate import dispatch_model
+        device_map = auto_configure_device_map(torch.cuda.device_count())
+        model = dispatch_model(model, device_map)
+    else:
+        model = model.cuda()
     model.eval()
 
     history = []

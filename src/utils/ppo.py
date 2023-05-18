@@ -108,7 +108,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
         loss_meter = AverageMeter()
         reward_meter = AverageMeter()
 
-        for step in tqdm(range(max_steps)):
+        for step in tqdm(range(max_steps), disable=not self.is_world_process_zero()):
 
             for _ in range(self.config.gradient_accumulation_steps):
 
@@ -289,6 +289,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
+        self.accelerator.wait_for_everyone()
         save_trainable_params(output_dir, self.model)
         torch.save(self.training_args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))

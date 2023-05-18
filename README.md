@@ -204,19 +204,6 @@ CUDA_VISIBLE_DEVICES=0 python src/web_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### Deploy the Fine-tuned Model
-
-```python
-import sys
-sys.path.append("src")
-from src import load_pretrained, ModelArguments
-model_args = ModelArguments(checkpoint_dir=path_to_checkpoint)
-model, tokenizer = load_pretrained(model_args)
-model = model.cuda()
-model.eval()
-# model.generate, model.chat()...
-```
-
 ### Hardware Requirements
 
 | Fine-tune method | Batch size | Mode |  GRAM  | Speed |

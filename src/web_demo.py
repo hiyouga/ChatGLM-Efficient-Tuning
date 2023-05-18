@@ -3,17 +3,23 @@
 # This code is largely borrowed from https://github.com/THUDM/ChatGLM-6B/blob/main/web_demo.py
 
 
-import gradio as gr
+import torch
 import mdtex2html
+import gradio as gr
 
-from utils import ModelArguments, load_pretrained
+from utils import ModelArguments, auto_configure_device_map, load_pretrained
 from transformers import HfArgumentParser
 
 
 parser = HfArgumentParser(ModelArguments)
 model_args, = parser.parse_args_into_dataclasses()
 model, tokenizer = load_pretrained(model_args)
-model = model.cuda()
+if torch.cuda.device_count() > 1:
+    from accelerate import dispatch_model
+    device_map = auto_configure_device_map(torch.cuda.device_count())
+    model = dispatch_model(model, device_map)
+else:
+    model = model.cuda()
 model.eval()
 
 
