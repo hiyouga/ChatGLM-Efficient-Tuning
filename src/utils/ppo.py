@@ -279,9 +279,9 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
     def save_model(self, output_dir: Optional[str] = None) -> None:
         r"""
-        Saves trainable parameters as model checkpoints. We use `self.model.pretrained_model` to refer to the backbone model.
+        Saves trainable parameters as model checkpoint.
 
-        Override to inject custom behavior.
+        Subclass and override to inject custom behavior.
         """
         self.accelerator.wait_for_everyone() # must be executed before is_world_process_zero()
         if not self.is_world_process_zero():

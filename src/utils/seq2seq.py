@@ -19,6 +19,7 @@ from .config import FinetuningArguments
 from .other import (
     get_logger,
     save_trainable_params,
+    load_trainable_params,
     IGNORE_INDEX,
     FINETUNING_ARGS_NAME,
     PREDICTION_FILE_NAME
@@ -81,7 +82,7 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
 
     def _save(self, output_dir: Optional[str] = None, state_dict: Optional[Dict[str, torch.Tensor]] = None) -> None:
         r"""
-        Saves trainable parameters as model checkpoints.
+        Saves trainable parameters as model checkpoint.
 
         This function will only be executed at the process zero.
 
@@ -93,6 +94,15 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
         save_trainable_params(output_dir, self.model)
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
+
+    def _load_best_model(self):
+        r"""
+        Loads trainable parameters from model checkpoint.
+
+        Subclass and override to inject custom behavior. It should not be directly used by external scripts.
+        """
+        logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
+        load_trainable_params(self.model, self.state.best_model_checkpoint)
 
     def prediction_step(
             self,

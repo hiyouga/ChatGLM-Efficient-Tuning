@@ -146,6 +146,8 @@ def save_trainable_params(save_directory: os.PathLike, model: torch.nn.Module) -
 
 
 def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
+    model = unwrap_model(model)
+
     weights_file = os.path.join(checkpoint_dir, WEIGHTS_NAME)
     assert os.path.exists(weights_file), f"Provided path ({checkpoint_dir}) does not contain the pretrained weights."
     model_state_dict = torch.load(weights_file, map_location="cpu")
@@ -153,6 +155,8 @@ def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -
 
 
 def load_valuehead_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
+    model = unwrap_model(model)
+
     valuehead_file = os.path.join(checkpoint_dir, VALUE_HEAD_FILE_NAME)
     assert os.path.exists(valuehead_file), f"Provided path ({checkpoint_dir}) does not contain the valuehead weights."
     valuehead_state_dict = torch.load(valuehead_file, map_location="cpu")

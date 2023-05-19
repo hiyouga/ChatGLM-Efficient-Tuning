@@ -12,6 +12,8 @@ from .data_collator import DataCollatorForChatGLM
 from .other import (
     get_logger,
     save_trainable_params,
+    load_trainable_params,
+    load_valuehead_params,
     FINETUNING_ARGS_NAME
 )
 
@@ -49,6 +51,8 @@ class PairwiseTrainerForChatGLM(Trainer):
         Computes pairwise loss. The first n examples are chosen and the last n examples are rejected.
 
         We use score on the EOS token to represent reward of the whole sentence.
+
+        Subclass and override to inject custom behavior. It should not be directly used by external scripts.
         """
         batch_size = inputs["input_ids"].size(0) // 2
         _, _, values = model(**inputs)
@@ -60,7 +64,7 @@ class PairwiseTrainerForChatGLM(Trainer):
 
     def _save(self, output_dir: Optional[str] = None, state_dict: Optional[Dict[str, torch.Tensor]] = None) -> None:
         r"""
-        Saves trainable parameters as model checkpoints.
+        Saves trainable parameters as model checkpoint.
 
         This function will only be executed at the process zero.
 
@@ -72,3 +76,13 @@ class PairwiseTrainerForChatGLM(Trainer):
         save_trainable_params(output_dir, self.model)
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
+
+    def _load_best_model(self):
+        r"""
+        Loads trainable parameters from model checkpoint.
+
+        Subclass and override to inject custom behavior. It should not be directly used by external scripts.
+        """
+        logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
+        load_trainable_params(self.model, self.state.best_model_checkpoint)
+        load_valuehead_params(self.model, self.state.best_model_checkpoint)
