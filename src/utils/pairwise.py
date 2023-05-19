@@ -1,6 +1,6 @@
 import os
 import torch
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional, Sequence, Union
 
 from transformers import Trainer
 from transformers.trainer import TRAINING_ARGS_NAME
@@ -24,21 +24,16 @@ class PairwiseDataCollatorForChatGLM(DataCollatorForChatGLM):
     Data collator for pairwise data.
     """
 
-    def __call__(self, features: Sequence[Dict[str, Sequence[int]]]) -> Dict[str, torch.Tensor]:
+    def __call__(self, features: Sequence[Dict[str, Union[torch.Tensor, Sequence[int]]]]) -> Dict[str, torch.Tensor]:
         r"""
         Pads batched data to the longest sequence in the batch.
 
         We generate 2 * n examples where the first n examples represent chosen examples and
         the last n examples represent rejected examples.
         """
-        accept_ids, reject_ids = [[torch.tensor(feature[key]).flip(0) for feature in features] for key in ("accept_ids", "reject_ids")]
-        input_ids = accept_ids + reject_ids
-        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id).flip(-1)
-        return {
-            "input_ids": input_ids,
-            "attention_mask": self.get_attention_masks(input_ids),
-            "position_ids": self.get_position_ids(input_ids)
-        }
+        features = [{"input_ids": feature[key]} for feature in features for key in ("accept_ids", "reject_ids")]
+        return super().__call__(features)
+
 
 class PairwiseTrainerForChatGLM(Trainer):
     r"""
