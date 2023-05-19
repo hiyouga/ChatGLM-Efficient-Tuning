@@ -283,13 +283,13 @@ class PPOTrainerForChatGLM(PPOTrainer):
 
         Override to inject custom behavior.
         """
+        self.accelerator.wait_for_everyone() # must be executed before is_world_process_zero()
         if not self.is_world_process_zero():
             return
 
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        self.accelerator.wait_for_everyone()
         save_trainable_params(output_dir, self.model)
         torch.save(self.training_args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
