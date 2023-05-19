@@ -1,6 +1,7 @@
 # coding=utf-8
-# Implement stream chat in command line for ChatGLM fine-tuned with PEFT.
+# Implements stream chat in command line for ChatGLM fine-tuned with PEFT.
 # This code is largely borrowed from https://github.com/THUDM/ChatGLM-6B/blob/main/cli_demo.py
+# Usage: python cli_demo.py --checkpoint_dir path_to_checkpoints [--quantization_bit 4]
 
 
 import os

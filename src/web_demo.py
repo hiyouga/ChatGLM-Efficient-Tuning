@@ -1,6 +1,7 @@
 # coding=utf-8
-# Implement user interface in browser for ChatGLM fine-tuned with PEFT.
+# Implements user interface in browser for ChatGLM fine-tuned with PEFT.
 # This code is largely borrowed from https://github.com/THUDM/ChatGLM-6B/blob/main/web_demo.py
+# Usage: python web_demo.py --checkpoint_dir path_to_checkpoints [--quantization_bit 4]
 
 
 import torch
