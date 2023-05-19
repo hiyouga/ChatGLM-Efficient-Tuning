@@ -187,7 +187,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
         if length_sampler is not None:
             generation_kwargs["max_new_tokens"] = length_sampler()
 
-        unwrapped_model: AutoModelForCausalLMWithValueHead = self.accelerator.unwrap_model(self.model)
+        unwrapped_model = self.accelerator.unwrap_model(self.model)
 
         response = unwrapped_model.generate(**inputs, **generation_kwargs)
 

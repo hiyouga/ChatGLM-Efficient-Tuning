@@ -31,16 +31,25 @@ def main():
     training_args.generation_num_beams = data_args.num_beams if \
                 data_args.num_beams is not None else training_args.generation_num_beams
 
+    # Split the dataset
+    if training_args.do_train:
+        if data_args.dev_ratio > 1e-6:
+            dataset = dataset.train_test_split(test_size=data_args.dev_ratio)
+            trainer_kwargs = {"train_dataset": dataset["train"], "eval_dataset": dataset["test"]}
+        else:
+            trainer_kwargs = {"train_dataset": dataset}
+    else: # do_eval or do_predict
+        trainer_kwargs = {"eval_dataset": dataset}
+
     # Initialize our Trainer
     trainer = Seq2SeqTrainerForChatGLM(
         finetuning_args=finetuning_args,
         model=model,
         args=training_args,
-        train_dataset=dataset if training_args.do_train else None,
-        eval_dataset=dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        compute_metrics=ComputeMetrics(tokenizer) if training_args.predict_with_generate else None
+        compute_metrics=ComputeMetrics(tokenizer) if training_args.predict_with_generate else None,
+        **trainer_kwargs
     )
 
     # Keyword arguments for `model.generate`

@@ -14,4 +14,5 @@ CUDA_VISIBLE_DEVICES=0 python ../src/train_sft.py \
     --save_steps 1000 \
     --learning_rate 5e-5 \
     --num_train_epochs 3.0 \
+    --plot_loss \
     --fp16

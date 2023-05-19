@@ -26,15 +26,24 @@ def main():
 
     training_args.remove_unused_columns = False # Important for pairwise dataset
 
+    # Split the dataset
+    if training_args.do_train:
+        if data_args.dev_ratio > 1e-6:
+            dataset = dataset.train_test_split(test_size=data_args.dev_ratio)
+            trainer_kwargs = {"train_dataset": dataset["train"], "eval_dataset": dataset["test"]}
+        else:
+            trainer_kwargs = {"train_dataset": dataset}
+    else: # do_eval or do_predict
+        trainer_kwargs = {"eval_dataset": dataset}
+
     # Initialize our Trainer
     trainer = PairwiseTrainerForChatGLM(
         finetuning_args=finetuning_args,
         model=model,
         args=training_args,
-        train_dataset=dataset if training_args.do_train else None,
-        eval_dataset=dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
-        data_collator=data_collator
+        data_collator=data_collator,
+        **trainer_kwargs
     )
 
     # Training
@@ -46,6 +55,12 @@ def main():
         trainer.save_model()
         if trainer.is_world_process_zero() and finetuning_args.plot_loss:
             plot_loss(training_args)
+
+    # Evaluation
+    if training_args.do_eval:
+        metrics = trainer.evaluate(metric_key_prefix="eval")
+        trainer.log_metrics("eval", metrics)
+        trainer.save_metrics("eval", metrics)
 
 
 def _mp_fn(index):

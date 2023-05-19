@@ -266,8 +266,8 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
     transformers.utils.logging.enable_explicit_format()
 
     # Check arguments (do not check finetuning_args since it may be loaded from checkpoints)
-    if int(training_args.do_train) + int(training_args.do_eval) + int(training_args.do_predict) != 1:
-        raise ValueError("We must perform a single operation among do_train, do_eval and do_predict.")
+    if training_args.do_train and training_args.predict_with_generate:
+        raise ValueError("`predict_with_generate` cannot be set to True while training.")
 
     if model_args.quantization_bit is not None and training_args.do_train == False:
         logger.warning("We do not recommend to evaluaute model in 4/8-bit mode.")
@@ -469,10 +469,10 @@ def preprocess_data(
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
 
     if stage == "sft":
-        if training_args.do_train:
-            preprocess_function = preprocess_supervised_dataset
-        else:
+        if (not training_args.do_train) and training_args.predict_with_generate:
             preprocess_function = preprocess_evaluation_dataset
+        else:
+            preprocess_function = preprocess_supervised_dataset
     elif stage == "rm":
         preprocess_function = preprocess_pairwise_dataset
     elif stage == "ppo":

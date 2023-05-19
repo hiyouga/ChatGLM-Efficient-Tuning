@@ -123,6 +123,10 @@ class DataTrainingArguments:
         default=None,
         metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
     )
+    dev_ratio: Optional[float] = field(
+        default=0,
+        metadata={"help": "Proportion of the dataset to include in the development set, should be between 0.0 and 1.0."}
+    )
 
     def __post_init__(self): # support mixing multiple datasets
         dataset_names = [ds.strip() for ds in self.dataset.split(",")]
