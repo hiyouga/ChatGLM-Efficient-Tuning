@@ -1,6 +1,6 @@
 # coding=utf-8
 # Exports the fine-tuned ChatGLM-6B model.
-# Usage: python export_model.py --checkpoint_dir path_to_checkpoints --output_dir path_to_save_model
+# Usage: python export_model.py --checkpoint_dir path_to_checkpoint --output_dir path_to_save_model
 
 
 from transformers import HfArgumentParser, TrainingArguments

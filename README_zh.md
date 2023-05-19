@@ -200,15 +200,23 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
 ### 命令行测试
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/infer.py \
+python src/cli_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
 ### 浏览器测试
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/web_demo.py \
+python src/web_demo.py \
     --checkpoint_dir path_to_checkpoint
+```
+
+### 导出微调模型
+
+```bash
+python src/export_model.py \
+    --checkpoint_dir path_to_checkpoint \
+    --output_dir path_to_export
 ```
 
 ### 硬件需求

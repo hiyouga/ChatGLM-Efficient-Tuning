@@ -193,17 +193,25 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --predict_with_generate
 ```
 
-### Inference
+### CLI Demo
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/infer.py \
+python src/cli_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
 ### Web Demo
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/web_demo.py \
+python src/web_demo.py \
     --checkpoint_dir path_to_checkpoint
+```
+
+### Export model
+
+```bash
+python src/export_model.py \
+    --checkpoint_dir path_to_checkpoint \
+    --output_dir path_to_export
 ```
 
 ### Hardware Requirements
