@@ -214,8 +214,8 @@ def plot_loss(training_args: Seq2SeqTrainingArguments, keys: Optional[List[str]]
                 metrics.append(data["log_history"][i][key])
 
         if len(metrics) == 0:
-            logger.warning("No metric to plot.")
-            return
+            logger.warning(f"No metric {key} to plot.")
+            continue
 
         plt.figure()
         plt.plot(steps, metrics, alpha=0.4, label="original")

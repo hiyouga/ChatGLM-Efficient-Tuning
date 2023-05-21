@@ -44,6 +44,7 @@ class PairwiseTrainerForChatGLM(Trainer):
 
     def __init__(self, finetuning_args: FinetuningArguments, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.can_return_loss = True # override property to return eval_loss
         self.finetuning_args = finetuning_args
 
     def compute_loss(self, model, inputs, return_outputs=False):
@@ -58,9 +59,8 @@ class PairwiseTrainerForChatGLM(Trainer):
         _, _, values = model(**inputs)
         r_accept, r_reject = values[-1].split(batch_size, dim=0)
         loss = -torch.log(torch.sigmoid(r_accept - r_reject)).mean()
-        if return_outputs:
-            return loss, {"r_accept": r_accept, "r_reject": r_reject}
-        return loss
+        outputs = {"r_accept": r_accept, "r_reject": r_reject}
+        return (loss, outputs) if return_outputs else loss
 
     def _save(self, output_dir: Optional[str] = None, state_dict: Optional[Dict[str, torch.Tensor]] = None) -> None:
         r"""

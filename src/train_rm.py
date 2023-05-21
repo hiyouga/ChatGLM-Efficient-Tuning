@@ -54,7 +54,7 @@ def main():
         trainer.save_state()
         trainer.save_model()
         if trainer.is_world_process_zero() and finetuning_args.plot_loss:
-            plot_loss(training_args)
+            plot_loss(training_args, keys=["loss", "eval_loss"])
 
     # Evaluation
     if training_args.do_eval:
