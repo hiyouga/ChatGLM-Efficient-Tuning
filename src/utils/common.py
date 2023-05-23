@@ -225,11 +225,10 @@ def load_pretrained(
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
 
     if stage == "rm" or stage == "ppo": # add value head
-        assert is_trainable, "Reward and PPO stages cannot be performed at evaluation."
-
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
 
         if stage == "ppo": # load reward model
+            assert is_trainable, "PPO stage cannot be performed at evaluation."
             assert model_args.reward_model is not None, "Reward model is necessary for PPO training."
             logger.info("Load reward model from {}".format(model_args.reward_model))
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
