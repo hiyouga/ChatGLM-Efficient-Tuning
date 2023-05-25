@@ -1,27 +1,25 @@
 import os
-import json
 import math
 import torch
 from tqdm import tqdm
 from typing import Callable, Dict, List, Literal, Optional, Tuple
 
 from transformers import Seq2SeqTrainingArguments
-from transformers.trainer import TRAINING_ARGS_NAME, TRAINER_STATE_NAME
+from transformers.trainer import TrainerState
 from transformers.modeling_utils import PreTrainedModel
 
 from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
 from trl.core import LengthSampler
 from trl.trainer.ppo_trainer import PPODecorators, logprobs_from_logits
 
+from .peft_trainer import PeftTrainer
+
 from .config import FinetuningArguments
 
 from .other import (
     AverageMeter,
     get_logger,
-    get_state_dict,
-    get_logits_processor,
-    FINETUNING_ARGS_NAME,
-    VALUE_HEAD_FILE_NAME
+    get_logits_processor
 )
 
 
@@ -61,25 +59,27 @@ def cast_layernorm_dtype(
     return model, layer_norm_state_dict
 
 
-class PPOTrainerForChatGLM(PPOTrainer):
+class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
     r"""
     Inherits PPOTrainer.
     """
 
     def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, **kwargs):
-        super().__init__(**kwargs)
-        self.data_collator = self.accelerator.prepare(kwargs["data_collator"])
-        self.state = {"log_history": []}
-        self.training_args = training_args
+        PPOTrainer.__init__(self, **kwargs)
+        self.args = training_args
         self.finetuning_args = finetuning_args
+        self.state = TrainerState()
+        self.data_collator = self.accelerator.prepare(kwargs["data_collator"])
 
     def ppo_train(self, max_target_length: int) -> None:
-
-        total_train_batch_size = self.config.batch_size * self.config.gradient_accumulation_steps * self.training_args.world_size
+        r"""
+        Implements training loop for the PPO stage, like _inner_training_loop() in Huggingface's Trainer.
+        """
+        total_train_batch_size = self.config.batch_size * self.config.gradient_accumulation_steps * self.args.world_size
         len_dataloader = len(self.dataloader)
         num_steps_per_epoch = max(len_dataloader // self.config.gradient_accumulation_steps, 1)
         num_examples = len(self.dataset)
-        num_train_epochs = self.training_args.num_train_epochs
+        num_train_epochs = self.args.num_train_epochs
         max_steps = math.ceil(num_train_epochs * num_steps_per_epoch)
 
         if self.is_world_process_zero():
@@ -153,7 +153,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
                     dataiter = iter(self.dataloader)
                     steps_trained = 0
 
-            if self.is_world_process_zero() and (step+1) % self.training_args.logging_steps == 0:
+            if self.is_world_process_zero() and (step+1) % self.args.logging_steps == 0:
                 logs = {
                     "loss": round(loss_meter.avg, 4),
                     "reward": round(reward_meter.avg, 4),
@@ -162,12 +162,12 @@ class PPOTrainerForChatGLM(PPOTrainer):
                 }
                 print(logs)
                 logs["step"] = step
-                self.state["log_history"].append(logs)
+                self.state.log_history.append(logs)
                 loss_meter.reset()
                 reward_meter.reset()
 
-            if (step+1) % self.training_args.save_steps == 0: # save checkpoint
-                self.save_model(os.path.join(self.training_args.output_dir, f"checkpoint-{step+1}"))
+            if (step+1) % self.args.save_steps == 0: # save checkpoint
+                self.save_model(os.path.join(self.args.output_dir, f"checkpoint-{step+1}"))
 
     @torch.no_grad()
     def generate(
@@ -178,11 +178,10 @@ class PPOTrainerForChatGLM(PPOTrainer):
             **generation_kwargs,
     ) -> torch.Tensor:
         r"""
-        Generate response with the model given the query tensor.
+        Generates model's responses given queries.
 
-        Inspired by: https://github.com/lvwerra/trl/blob/08f550674c553c36c51d1027613c29f14f3676a5/trl/trainer/ppo_trainer.py#L387
+        Subclass and override to inject custom behavior.
         """
-
         self.model, layer_norm_params = cast_layernorm_dtype(self.model)
 
         if length_sampler is not None:
@@ -219,9 +218,9 @@ class PPOTrainerForChatGLM(PPOTrainer):
         model_inputs: dict,
     ):
         r"""
-        Calculate model outputs in multiple batches.
+        Calculates model outputs in multiple batches.
 
-        Override to inject custom behavior.
+        Subclass and override to inject custom behavior.
         """
         bs = len(model_inputs["input_ids"])
         fbs = self.config.mini_batch_size
@@ -260,39 +259,11 @@ class PPOTrainerForChatGLM(PPOTrainer):
             torch.cat(all_masks)[:, :-1],
         )
 
-    def is_world_process_zero(self) -> bool:
-        r"""
-        Whether or not this process is the global main process (when training in a distributed fashion on several
-        machines, this is only going to be `True` for one process).
-        """
-        return self.training_args.process_index == 0
-
-    def save_state(self, output_dir: Optional[str] = None) -> None:
-        r"""
-        Saves trainer state.
-        """
-        if not self.is_world_process_zero():
-            return
-
-        output_dir = output_dir if output_dir is not None else self.training_args.output_dir
-        os.makedirs(output_dir, exist_ok=True)
-        json.dump(self.state, open(os.path.join(output_dir, TRAINER_STATE_NAME), "w", encoding="utf-8", newline="\n"), indent=2)
-
     def save_model(self, output_dir: Optional[str] = None) -> None:
         r"""
-        Saves trainable parameters as model checkpoint.
+        Saves model checkpoint.
 
         Subclass and override to inject custom behavior.
         """
-        self.accelerator.wait_for_everyone() # must be executed before is_world_process_zero()
-        if not self.is_world_process_zero():
-            return
-
-        output_dir = output_dir if output_dir is not None else self.training_args.output_dir
-        os.makedirs(output_dir, exist_ok=True)
-        logger.info(f"Saving model checkpoint to {output_dir}")
-        model = self.accelerator.unwrap_model(self.model)
-        model.pretrained_model.save_pretrained(output_dir, state_dict=get_state_dict(model.pretrained_model)) # lora weights
-        torch.save(get_state_dict(model.v_head), os.path.join(output_dir, VALUE_HEAD_FILE_NAME)) # valuehead weights
-        torch.save(self.training_args, os.path.join(output_dir, TRAINING_ARGS_NAME))
-        torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
+        if self.args.should_save:
+            self._save(output_dir)

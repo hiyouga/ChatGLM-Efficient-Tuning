@@ -1,7 +1,7 @@
 import os
 import json
 from typing import List, Literal, Optional
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 
 CHATGLM_REPO_NAME = "THUDM/chatglm-6b"
@@ -208,7 +208,8 @@ class FinetuningArguments:
     )
 
     def __post_init__(self):
-        self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
+        if isinstance(self.lora_target, str):
+            self.lora_target = [target.strip() for target in self.lora_target.split(",")] # support custom target modules of LoRA
 
         if self.num_layer_trainable > 0: # fine-tuning the last n layers if num_layer_trainable > 0
             trainable_layer_ids = [27-k for k in range(self.num_layer_trainable)]
@@ -221,3 +222,16 @@ class FinetuningArguments:
             self.trainable_layers = ["layers.{:d}.attention.query_key_value".format(idx) for idx in trainable_layer_ids]
 
         assert self.finetuning_type in ["none", "freeze", "p_tuning", "lora", "full"], "Invalid fine-tuning method."
+
+    def save_to_json(self, json_path: str):
+        """Save the content of this instance in JSON format inside `json_path`."""
+        json_string = json.dumps(asdict(self), indent=2, sort_keys=True) + "\n"
+        with open(json_path, "w", encoding="utf-8") as f:
+            f.write(json_string)
+
+    @classmethod
+    def load_from_json(cls, json_path: str):
+        """Create an instance from the content of `json_path`."""
+        with open(json_path, "r", encoding="utf-8") as f:
+            text = f.read()
+        return cls(**json.loads(text))

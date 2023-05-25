@@ -145,7 +145,7 @@ def load_pretrained(
             if not os.path.isfile(os.path.join(checkpoint_dir, FINETUNING_ARGS_NAME)):
                 raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
         logger.info("Load fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
-        finetuning_args = torch.load(os.path.join(model_args.checkpoint_dir[-1], FINETUNING_ARGS_NAME))
+        finetuning_args = FinetuningArguments.load_from_json(os.path.join(model_args.checkpoint_dir[-1], FINETUNING_ARGS_NAME))
         if finetuning_args.finetuning_type != "lora" and len(model_args.checkpoint_dir) > 1:
             logger.warning("Only LoRA tuning accepts multiple checkpoints.")
 

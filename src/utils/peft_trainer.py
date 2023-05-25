@@ -59,7 +59,7 @@ class PeftTrainer(Seq2SeqTrainer):
             torch.save(get_state_dict(getattr(model, "v_head")), os.path.join(output_dir, VALUE_HEAD_FILE_NAME))
 
         torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
-        torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
+        self.finetuning_args.save_to_json(os.path.join(output_dir, FINETUNING_ARGS_NAME))
 
     def _load_best_model(self):
         r"""

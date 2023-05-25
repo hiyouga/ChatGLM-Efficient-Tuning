@@ -16,7 +16,7 @@ from peft.utils.other import WEIGHTS_NAME
 
 IGNORE_INDEX = -100
 VALUE_HEAD_FILE_NAME = "value_head.bin"
-FINETUNING_ARGS_NAME = "finetuning_args.bin"
+FINETUNING_ARGS_NAME = "finetuning_args.json"
 PREDICTION_FILE_NAME = "generated_predictions.txt"
 
 
@@ -152,7 +152,7 @@ def auto_configure_device_map(num_gpus: int) -> Dict[str, int]:
     """
     num_layers = 28
     layers_per_gpu = 30 / num_gpus
-    device_map = {"transformer.word_embeddings": 0, "transformer.final_layernorm": 0, "lm_head": 0}
+    device_map = {"transformer.word_embeddings": 0, "transformer.final_layernorm": 0, "transformer.prefix_encoder": 0, "lm_head": 0}
     added_layers = 2
     target_gpu = 0
 
