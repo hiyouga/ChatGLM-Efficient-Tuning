@@ -276,14 +276,14 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
     if training_args.do_train and (not training_args.fp16):
         logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")
 
-    if training_args.local_rank != -1 and training_args.ddp_find_unused_parameters:
-        logger.warning("`predict_with_generate` needs to be set as False in DDP training.")
+    if training_args.local_rank != -1 and training_args.ddp_find_unused_parameters is None:
+        logger.warning("`ddp_find_unused_parameters` needs to be set as False in DDP training.")
         training_args.ddp_find_unused_parameters = False
 
     training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
 
     # Log on each process the small summary:
-    logger.warning(
+    logger.info(
         f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}\n"
         + f"  distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
