@@ -18,9 +18,10 @@ from .config import FinetuningArguments
 from .other import (
     AverageMeter,
     get_logger,
-    save_trainable_params,
+    get_state_dict,
     get_logits_processor,
-    FINETUNING_ARGS_NAME
+    FINETUNING_ARGS_NAME,
+    VALUE_HEAD_FILE_NAME
 )
 
 
@@ -65,8 +66,8 @@ class PPOTrainerForChatGLM(PPOTrainer):
     Inherits PPOTrainer.
     """
 
-    def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, **kwargs):
+        super().__init__(**kwargs)
         self.data_collator = self.accelerator.prepare(kwargs["data_collator"])
         self.state = {"log_history": []}
         self.training_args = training_args
@@ -137,7 +138,7 @@ class PPOTrainerForChatGLM(PPOTrainer):
                 replace_model(unwrapped_model, target="reward")
                 _, _, values = self.model(**self.prepare_model_inputs(queries, responses))
                 rewards = [reward for reward in values[-1]]
-                replace_model(unwrapped_model, target="default")
+                replace_model(unwrapped_model, target="default") # make sure the model is default at the end
 
                 # Run PPO step
                 unwrapped_model.gradient_checkpointing_enable()
@@ -290,6 +291,8 @@ class PPOTrainerForChatGLM(PPOTrainer):
         output_dir = output_dir if output_dir is not None else self.training_args.output_dir
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving model checkpoint to {output_dir}")
-        save_trainable_params(output_dir, self.model)
+        model = self.accelerator.unwrap_model(self.model)
+        model.pretrained_model.save_pretrained(output_dir, state_dict=get_state_dict(model.pretrained_model)) # lora weights
+        torch.save(get_state_dict(model.v_head), os.path.join(output_dir, VALUE_HEAD_FILE_NAME)) # valuehead weights
         torch.save(self.training_args, os.path.join(output_dir, TRAINING_ARGS_NAME))
         torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))

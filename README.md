@@ -301,7 +301,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [x] Implementing the Freeze-Tuning and P-Tuning method.
 - [x] Supporting Multi-GPUs fine-tuning.
-- [x] Adding script for evaluation. (but it appears very slow, increasing batch size may help)
+- [x] Adding script for evaluation.
 - [x] Loading from checkpoint.
 - [x] Fine-tuning the quantized model.
 - [x] Writing a guidebook about how to fine-tune ChatGLM with this framework.

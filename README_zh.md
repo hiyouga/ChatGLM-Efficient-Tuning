@@ -305,8 +305,8 @@ python src/export_model.py \
   - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
   - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
 - [x] 实现参数冻结和 P-Tuning 微调方法。
-- [x] 支持多GPU训练。（但尚不支持 LoRA 方法）
-- [x] 加入模型评估脚本。（但它可能很慢！增大批处理大小可以显著提升速度）
+- [x] 支持多GPU训练。
+- [x] 加入模型评估脚本。
 - [x] 断点加载。
 - [x] 量化微调。
 - [x] 撰写基于该框架的 ChatGLM 模型微调指南手册。

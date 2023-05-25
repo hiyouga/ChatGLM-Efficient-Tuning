@@ -5,8 +5,7 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-from transformers import Seq2SeqTrainer
-from transformers.trainer import PredictionOutput, TRAINING_ARGS_NAME
+from transformers.trainer import PredictionOutput
 from transformers.deepspeed import is_deepspeed_zero3_enabled
 from transformers.tokenization_utils import PreTrainedTokenizer
 
@@ -14,14 +13,11 @@ import jieba
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
-from .config import FinetuningArguments
+from .peft_trainer import PeftTrainer
 
 from .other import (
     get_logger,
-    save_trainable_params,
-    load_trainable_params,
     IGNORE_INDEX,
-    FINETUNING_ARGS_NAME,
     PREDICTION_FILE_NAME
 )
 
@@ -71,38 +67,10 @@ class ComputeMetrics:
         return {k: float(np.mean(v)) for k, v in score_dict.items()}
 
 
-class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
+class Seq2SeqTrainerForChatGLM(PeftTrainer):
     r"""
-    Inherits Seq2SeqTrainer to compute generative metrics such as BLEU and ROUGE.
+    Inherits PeftTrainer to compute generative metrics such as BLEU and ROUGE.
     """
-
-    def __init__(self, finetuning_args: FinetuningArguments, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.finetuning_args = finetuning_args
-
-    def _save(self, output_dir: Optional[str] = None, state_dict: Optional[Dict[str, torch.Tensor]] = None) -> None:
-        r"""
-        Saves trainable parameters as model checkpoint.
-
-        This function will only be executed at the process zero.
-
-        Subclass and override to inject custom behavior. It should not be directly used by external scripts.
-        """
-        output_dir = output_dir if output_dir is not None else self.args.output_dir
-        os.makedirs(output_dir, exist_ok=True)
-        logger.info(f"Saving model checkpoint to {output_dir}")
-        save_trainable_params(output_dir, self.model)
-        torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))
-        torch.save(self.finetuning_args, os.path.join(output_dir, FINETUNING_ARGS_NAME))
-
-    def _load_best_model(self):
-        r"""
-        Loads trainable parameters from model checkpoint.
-
-        Subclass and override to inject custom behavior. It should not be directly used by external scripts.
-        """
-        logger.info(f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric}).")
-        load_trainable_params(self.model, self.state.best_model_checkpoint)
 
     def prediction_step(
             self,
@@ -151,7 +119,7 @@ class Seq2SeqTrainerForChatGLM(Seq2SeqTrainer):
         elif gen_config.max_new_tokens is not None and generated_tokens.shape[-1] < gen_config.max_new_tokens + 1:
             generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_config.max_new_tokens + 1)
 
-        loss = None
+        loss = None # we cannot compute loss while generation
 
         if self.args.prediction_loss_only:
             return loss, None, None

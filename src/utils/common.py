@@ -207,8 +207,8 @@ def load_pretrained(
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
     if not is_trainable:
-        model.requires_grad_(False) # fix all params
-        model = model.half() # cast all params to float16
+        model.requires_grad_(False) # fix all model params
+        model = model.half() # cast all params to float16 for inference
 
     # Quantization with the built-in method for P-Tuning v2 training or evaluation.
     # Model parameters should be cast to float16 in quantized P-Tuning setting.
@@ -216,10 +216,12 @@ def load_pretrained(
         assert model_args.quantization_bit in [4, 8], "P-Tuning v2 and inference mode only accept 4-bit or 8-bit quantization."
         assert not (is_trainable and training_args.fp16), "FP16 training conflicts with cpm quantization."
 
-        for name, param in model.named_parameters():
-            if "prefix_encoder" not in name:
-                param.data = param.data.to(torch.float16) # convert all params into half precision except prefix_encoder
-        model.quantize(model_args.quantization_bit) # in-place method
+        if is_trainable: # convert all params into half precision except prefix_encoder in training
+            for name, param in model.named_parameters():
+                if "prefix_encoder" not in name:
+                    param.data = param.data.to(torch.float16)
+
+        model.quantize(model_args.quantization_bit) # built-in method in ChatGLM-6B, also an in-place operation
 
     if quantization is not None:
         logger.info("Quantized model to {} bit.".format(model_args.quantization_bit))
@@ -269,10 +271,14 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
         raise ValueError("`predict_with_generate` cannot be set to True while training.")
 
     if model_args.quantization_bit is not None and training_args.do_train == False:
-        logger.warning("We do not recommend to evaluaute model in 4/8-bit mode.")
+        logger.warning("Evaluating model in 4/8-bit mode may cause lower results.")
 
     if training_args.do_train and (not training_args.fp16):
         logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")
+
+    if training_args.local_rank != -1 and training_args.ddp_find_unused_parameters:
+        logger.warning("`predict_with_generate` needs to be set as False in DDP training.")
+        training_args.ddp_find_unused_parameters = False
 
     training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
 
@@ -397,9 +403,9 @@ def preprocess_data(
             target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
 
             if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
-                source_ids = source_ids[-data_args.max_source_length + 2:] # truncating from left side
+                source_ids = source_ids[:data_args.max_source_length - 2]
             if len(target_ids) > data_args.max_target_length - 1: # eos token
-                target_ids = target_ids[:data_args.max_target_length - 1] # truncating from right side
+                target_ids = target_ids[:data_args.max_target_length - 1]
 
             input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
 
@@ -418,9 +424,9 @@ def preprocess_data(
             target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
 
             if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
-                source_ids = source_ids[-data_args.max_source_length + 2:] # truncating from left side
+                source_ids = source_ids[:data_args.max_source_length - 2]
             if len(target_ids) > data_args.max_target_length - 2: # gmask and bos tokens
-                target_ids = target_ids[:data_args.max_target_length - 2] # truncating from right side
+                target_ids = target_ids[:data_args.max_target_length - 2]
 
             input_ids = tokenizer.build_inputs_with_special_tokens(source_ids)
             labels = tokenizer.build_inputs_with_special_tokens(target_ids)
@@ -438,11 +444,11 @@ def preprocess_data(
             reject_ids = tokenizer.encode(text=answer[1], add_special_tokens=False)
 
             if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
-                source_ids = source_ids[-data_args.max_source_length + 2:] # truncating from left side
+                source_ids = source_ids[:data_args.max_source_length - 2]
             if len(accept_ids) > data_args.max_target_length - 1: # eos token
-                accept_ids = accept_ids[:data_args.max_target_length - 1] # truncating from right side
+                accept_ids = accept_ids[:data_args.max_target_length - 1]
             if len(reject_ids) > data_args.max_target_length - 1: # eos token
-                reject_ids = reject_ids[:data_args.max_target_length - 1] # truncating from right side
+                reject_ids = reject_ids[:data_args.max_target_length - 1]
 
             accept_ids = tokenizer.build_inputs_with_special_tokens(source_ids[:], accept_ids) # avoid copying error
             reject_ids = tokenizer.build_inputs_with_special_tokens(source_ids[:], reject_ids)
@@ -468,9 +474,9 @@ def preprocess_data(
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
 
     if stage == "sft":
-        if (not training_args.do_train) and training_args.predict_with_generate:
+        if (not training_args.do_train) and training_args.predict_with_generate: # with generation
             preprocess_function = preprocess_evaluation_dataset
-        else:
+        else: # without generation
             preprocess_function = preprocess_supervised_dataset
     elif stage == "rm":
         preprocess_function = preprocess_pairwise_dataset

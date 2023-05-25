@@ -7,10 +7,9 @@ from typing import Dict, List, Optional
 
 from transformers import Seq2SeqTrainingArguments
 from transformers.trainer import TRAINER_STATE_NAME
-from transformers.modeling_utils import PreTrainedModel, unwrap_model
+from transformers.modeling_utils import PreTrainedModel
 from transformers.generation.utils import LogitsProcessorList
 from transformers.generation.logits_process import LogitsProcessor
-
 
 from peft.utils.other import WEIGHTS_NAME
 
@@ -117,7 +116,7 @@ def print_trainable_params(model: torch.nn.Module) -> None:
                 trainable_params, all_param, 100 * trainable_params / all_param))
 
 
-def filter_model_params(model: torch.nn.Module) -> Dict[str, torch.Tensor]: # filter out freezed parameters
+def get_state_dict(model: torch.nn.Module) -> Dict[str, torch.Tensor]: # get state dict containing trainable parameters
     state_dict = model.state_dict()
     filtered_state_dict = {}
 
@@ -128,26 +127,7 @@ def filter_model_params(model: torch.nn.Module) -> Dict[str, torch.Tensor]: # fi
     return filtered_state_dict
 
 
-def save_trainable_params(save_directory: os.PathLike, model: torch.nn.Module) -> None:
-    model_to_save = unwrap_model(model)
-
-    if hasattr(model_to_save, "pretrained_model"): # for language model with valuehead
-        backbone_model = model_to_save.pretrained_model
-    else:
-        backbone_model = model_to_save
-
-    if hasattr(backbone_model, "peft_config"): # peft methods
-        backbone_model.save_pretrained(save_directory, state_dict=filter_model_params(backbone_model)) # save lora weights
-    else: # non-peft methods
-        torch.save(filter_model_params(backbone_model), os.path.join(save_directory, WEIGHTS_NAME)) # save trainable weights
-
-    if hasattr(model_to_save, "v_head"): # save valuehead weights
-        torch.save(filter_model_params(model_to_save.v_head), os.path.join(save_directory, VALUE_HEAD_FILE_NAME))
-
-
 def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
-    model = unwrap_model(model)
-
     weights_file = os.path.join(checkpoint_dir, WEIGHTS_NAME)
     assert os.path.exists(weights_file), f"Provided path ({checkpoint_dir}) does not contain the pretrained weights."
     model_state_dict = torch.load(weights_file, map_location="cpu")
@@ -155,8 +135,6 @@ def load_trainable_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -
 
 
 def load_valuehead_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -> None:
-    model = unwrap_model(model)
-
     valuehead_file = os.path.join(checkpoint_dir, VALUE_HEAD_FILE_NAME)
     assert os.path.exists(valuehead_file), f"Provided path ({checkpoint_dir}) does not contain the valuehead weights."
     valuehead_state_dict = torch.load(valuehead_file, map_location="cpu")
