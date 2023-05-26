@@ -246,7 +246,9 @@ def load_pretrained(
     return model, tokenizer
 
 
-def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments]:
+def prepare_args(
+        stage: Literal["sft", "rm", "ppo"]
+) -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments]:
 
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments, FinetuningArguments))
 
@@ -267,11 +269,14 @@ def prepare_args() -> Tuple[ModelArguments, DataTrainingArguments, Seq2SeqTraini
     transformers.utils.logging.enable_explicit_format()
 
     # Check arguments (do not check finetuning_args since it may be loaded from checkpoints)
-    if training_args.do_train and training_args.predict_with_generate:
-        raise ValueError("`predict_with_generate` cannot be set to True while training.")
+    if stage != "sft" and training_args.predict_with_generate:
+        raise ValueError("`predict_with_generate` cannot be set as True in RM and PPO stages.")
 
-    if model_args.quantization_bit is not None and training_args.do_train == False:
-        logger.warning("Evaluating model in 4/8-bit mode may cause lower results.")
+    if training_args.do_train and training_args.predict_with_generate:
+        raise ValueError("`predict_with_generate` cannot be set as True while training.")
+
+    if model_args.quantization_bit is not None and (not training_args.do_train):
+        logger.warning("Evaluating model in 4/8-bit mode may cause lower scores.")
 
     if training_args.do_train and (not training_args.fp16):
         logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")

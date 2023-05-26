@@ -2,7 +2,7 @@
 # Implements several parameter-efficient supervised fine-tuning method for ChatGLM.
 # This code is inspired by https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py
 
-from utils.seq2seq import MyCallback
+
 from utils import (
     load_pretrained,
     prepare_args,
@@ -19,7 +19,7 @@ from utils import (
 def main():
 
     # Prepare pretrained model and dataset
-    model_args, data_args, training_args, finetuning_args = prepare_args()
+    model_args, data_args, training_args, finetuning_args = prepare_args(stage="sft")
     dataset = prepare_data(model_args, data_args)
     model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, training_args.do_train, stage="sft")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="sft")
@@ -41,8 +41,6 @@ def main():
     else: # do_eval or do_predict
         trainer_kwargs = {"eval_dataset": dataset}
 
-    # Initialize callback function
-    callback = MyCallback()
     # Initialize our Trainer
     trainer = Seq2SeqTrainerForChatGLM(
         finetuning_args=finetuning_args,
@@ -51,7 +49,6 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=ComputeMetrics(tokenizer) if training_args.predict_with_generate else None,
-        callbacks=[callback],
         **trainer_kwargs
     )
 
@@ -77,12 +74,16 @@ def main():
     # Evaluation
     if training_args.do_eval:
         metrics = trainer.evaluate(metric_key_prefix="eval", **gen_kwargs)
+        if training_args.predict_with_generate: # eval_loss will be wrong if predict_with_generate is enabled
+            metrics.pop("eval_loss", None)
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
 
     # Predict
     if training_args.do_predict:
         predict_results = trainer.predict(dataset, metric_key_prefix="predict", **gen_kwargs)
+        if training_args.predict_with_generate: # predict_loss will be wrong if predict_with_generate is enabled
+            predict_results.metrics.pop("predict_loss", None)
         trainer.log_metrics("predict", predict_results.metrics)
         trainer.save_metrics("predict", predict_results.metrics)
         trainer.save_predictions(predict_results, tokenizer)

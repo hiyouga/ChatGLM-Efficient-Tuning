@@ -74,16 +74,25 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
             input_ids = [feature["input_ids"].clone().detach().flip(0) for feature in features]
         else:
             input_ids = [torch.tensor(feature["input_ids"]).flip(0) for feature in features]
-        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id).flip(-1)
-        batch = {
-            "input_ids": input_ids,
-            "attention_mask": self.get_attention_masks(input_ids, device=input_ids.device),
-            "position_ids": self.get_position_ids(input_ids, device=input_ids.device)
-        }
+
         if "labels" in features[0]:
             if isinstance(features[0]["labels"], torch.Tensor):
                 labels = [feature["labels"].clone().detach().flip(0) for feature in features]
             else:
                 labels = [torch.tensor(feature["labels"]).flip(0) for feature in features]
-            batch["labels"] = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=self.label_pad_token_id).flip(-1)
+            input_ids = input_ids + labels # pad them to the same length
+
+        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id).flip(-1)
+
+        batch = {}
+
+        if "labels" in features[0]:
+            input_ids, labels = input_ids.split(len(features), dim=0)
+            labels = torch.where(labels != self.tokenizer.pad_token_id, labels, self.label_pad_token_id)
+            batch["labels"] = labels
+
+        batch["input_ids"] = input_ids
+        batch["attention_mask"] = self.get_attention_masks(input_ids, device=input_ids.device)
+        batch["position_ids"] = self.get_position_ids(input_ids, device=input_ids.device)
+
         return batch

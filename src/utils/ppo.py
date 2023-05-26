@@ -4,8 +4,7 @@ import torch
 from tqdm import tqdm
 from typing import Callable, Dict, List, Literal, Optional, Tuple
 
-from transformers import Seq2SeqTrainingArguments
-from transformers.trainer import TrainerState
+from transformers import Seq2SeqTrainingArguments, TrainerState
 from transformers.modeling_utils import PreTrainedModel
 
 from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
@@ -81,6 +80,11 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         num_examples = len(self.dataset)
         num_train_epochs = self.args.num_train_epochs
         max_steps = math.ceil(num_train_epochs * num_steps_per_epoch)
+
+        self.state.max_steps = max_steps
+        self.state.num_train_epochs = num_train_epochs
+        self.state.is_local_process_zero = self.is_local_process_zero()
+        self.state.is_world_process_zero = self.is_world_process_zero()
 
         if self.is_world_process_zero():
             logger.info("***** Running training *****")
