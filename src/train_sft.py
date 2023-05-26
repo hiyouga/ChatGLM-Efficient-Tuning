@@ -2,7 +2,7 @@
 # Implements several parameter-efficient supervised fine-tuning method for ChatGLM.
 # This code is inspired by https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py
 
-
+from utils.seq2seq import MyCallback
 from utils import (
     load_pretrained,
     prepare_args,
@@ -41,6 +41,8 @@ def main():
     else: # do_eval or do_predict
         trainer_kwargs = {"eval_dataset": dataset}
 
+    # Initialize callback function
+    callback = MyCallback()
     # Initialize our Trainer
     trainer = Seq2SeqTrainerForChatGLM(
         finetuning_args=finetuning_args,
@@ -49,6 +51,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=ComputeMetrics(tokenizer) if training_args.predict_with_generate else None,
+        callbacks=[callback],
         **trainer_kwargs
     )
 
