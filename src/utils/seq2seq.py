@@ -1,10 +1,14 @@
+import datetime
 import os
 import json
+import time
+
 import torch
 import numpy as np
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
+from transformers import TrainerCallback
 from transformers.trainer import PredictionOutput
 from transformers.deepspeed import is_deepspeed_zero3_enabled
 from transformers.tokenization_utils import PreTrainedTokenizer
@@ -20,7 +24,6 @@ from .other import (
     IGNORE_INDEX,
     PREDICTION_FILE_NAME
 )
-
 
 logger = get_logger(__name__)
 
@@ -98,13 +101,13 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
         if gen_kwargs.get("max_length") is None and gen_kwargs.get("max_new_tokens") is None:
             gen_kwargs["max_length"] = self.model.config.max_length
         gen_kwargs["num_beams"] = gen_kwargs["num_beams"] \
-                    if gen_kwargs.get("num_beams") is not None else self.model.config.num_beams
+            if gen_kwargs.get("num_beams") is not None else self.model.config.num_beams
         default_synced_gpus = True if is_deepspeed_zero3_enabled() else False
         gen_kwargs["synced_gpus"] = gen_kwargs["synced_gpus"] \
-                    if gen_kwargs.get("synced_gpus") is not None else default_synced_gpus
+            if gen_kwargs.get("synced_gpus") is not None else default_synced_gpus
 
         generated_tokens = self.model.generate(**inputs, **gen_kwargs)
-        generated_tokens = generated_tokens[:, inputs["input_ids"].size(-1):] # important for ChatGLM
+        generated_tokens = generated_tokens[:, inputs["input_ids"].size(-1):]  # important for ChatGLM
 
         # Temporary hack to ensure the generation config is not initialized for each iteration of the evaluation loop
         # Inspired by: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/trainer_seq2seq.py#L273
@@ -119,7 +122,7 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
         elif gen_config.max_new_tokens is not None and generated_tokens.shape[-1] < gen_config.max_new_tokens + 1:
             generated_tokens = self._pad_tensors_to_max_len(generated_tokens, gen_config.max_new_tokens + 1)
 
-        loss = None # we cannot compute loss while generation
+        loss = None  # we cannot compute loss while generation
 
         if self.args.prediction_loss_only:
             return loss, None, None
@@ -148,8 +151,10 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
         if not self.is_world_process_zero():
             return
         assert self.args.predict_with_generate, "Please enable `predict_with_generate` for saving model predictions."
-        preds = np.where(predict_results.predictions != IGNORE_INDEX, predict_results.predictions, self.tokenizer.pad_token_id)
-        labels = np.where(predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids, self.tokenizer.pad_token_id)
+        preds = np.where(predict_results.predictions != IGNORE_INDEX, predict_results.predictions,
+                         self.tokenizer.pad_token_id)
+        labels = np.where(predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids,
+                          self.tokenizer.pad_token_id)
 
         preds = [tokenizer.decode(pred, skip_special_tokens=True).strip() for pred in preds]
         labels = [tokenizer.decode(label, skip_special_tokens=True).strip() for label in labels]
@@ -161,3 +166,50 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
             for pred, label in zip(preds, labels):
                 res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
             writer.write("\n".join(res))
+
+
+class MyCallback(TrainerCallback):
+    r"""
+    TrainerCallback Includes the state function during training, for more details refer to the TrainerCallback class.
+    The on_log function primarily collects process parameters during training, such as loss rate, learning rate,
+    and training epochs, as well as progress parameters like the current percentage progress and estimated remaining
+    time. Every time a log is triggered, a new record is appended to the file "messages.log" for training
+    visualization purposes.
+    """
+
+    def __init__(self):
+        self.start_time = time.time()
+        self.single_turn_time = time.time()
+        self.step_times = []
+
+    def on_log(self, args, state, control, **kwargs):
+        percentage = state.log_history[-1].get('step') / state.max_steps * 100
+        elapsed_time = time.time() - self.start_time
+        elapsed_time_formatted = str(datetime.timedelta(seconds=int(elapsed_time)))
+        self.step_times.append(time.time() - self.single_turn_time)
+        self.single_turn_time = time.time()
+
+        if state.log_history[-1].get('step') > 0:
+            avg_step_time = sum(self.step_times) / len(self.step_times)
+            remaining_steps = state.max_steps - state.log_history[-1].get('step')
+            remaining_time_seconds = avg_step_time * remaining_steps
+            remaining_time = datetime.timedelta(seconds=int(remaining_time_seconds))
+            remaining_time_formatted = str(remaining_time)
+        else:
+            remaining_time_formatted = "Unknown"
+
+        # Dictionary object for returning, encapsulating the fields required for display in the frontend. Please make
+        # any additions or modifications here for future changes.
+        training_dict = {
+            'current_step': state.log_history[-1].get('step') if state.log_history else {},
+            'total_steps': state.max_steps,
+            'loss': state.log_history[-1].get('loss') if state.log_history else {},
+            'learning_rate': state.log_history[-1].get('learning_rate') if state.log_history else {},
+            'epoch': state.log_history[-1].get('epoch') if state.log_history else {},
+            'percentage': percentage,
+            'elapsed_time': elapsed_time_formatted,
+            'remaining_time': remaining_time_formatted
+        }
+
+        with open('messages.log', 'a') as f:
+            f.write(json.dumps(training_dict) + '\n')
