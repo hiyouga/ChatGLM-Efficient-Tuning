@@ -157,7 +157,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
 运行以下命令在单个 GPU 上测试模型效果，它会加载 `adgen_lora` 文件夹内保存的微调模型权重，并合并进原版 ChatGLM 模型的参数权重中，同时启动流式交互窗口。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/infer.py \
+CUDA_VISIBLE_DEVICES=0 python src/cli_demo.py \
     --checkpoint_dir adgen_lora
 ```
 

@@ -275,6 +275,9 @@ def prepare_args(
     if training_args.do_train and training_args.predict_with_generate:
         raise ValueError("`predict_with_generate` cannot be set as True while training.")
 
+    if training_args.do_predict and (not training_args.predict_with_generate):
+        raise ValueError("Please enable `predict_with_generate` for saving model predictions.")
+
     if model_args.quantization_bit is not None and (not training_args.do_train):
         logger.warning("Evaluating model in 4/8-bit mode may cause lower scores.")
 
