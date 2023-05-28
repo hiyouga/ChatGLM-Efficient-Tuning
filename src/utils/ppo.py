@@ -11,7 +11,7 @@ from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
 from trl.core import LengthSampler
 from trl.trainer.ppo_trainer import PPODecorators, logprobs_from_logits
 
-from .peft_trainer import PeftTrainer
+from .peft_trainer import PeftTrainer, LogCallback
 
 from .config import FinetuningArguments
 
@@ -63,10 +63,17 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
     Inherits PPOTrainer.
     """
 
-    def __init__(self, training_args: Seq2SeqTrainingArguments, finetuning_args: FinetuningArguments, **kwargs):
+    def __init__(
+            self,
+            training_args: Seq2SeqTrainingArguments,
+            finetuning_args: FinetuningArguments,
+            callbacks: List[LogCallback],
+            **kwargs
+    ):
         PPOTrainer.__init__(self, **kwargs)
         self.args = training_args
         self.finetuning_args = finetuning_args
+        self.log_callback = callbacks[0]
         self.state = TrainerState()
         self.data_collator = self.accelerator.prepare(kwargs["data_collator"])
 
@@ -167,6 +174,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
                 print(logs)
                 logs["step"] = step
                 self.state.log_history.append(logs)
+                self.log_callback.on_log(self.args, self.state, None)
                 loss_meter.reset()
                 reward_meter.reset()
 
@@ -177,8 +185,8 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
     def generate(
             self,
             inputs: Dict[str, torch.Tensor],
-            length_sampler: Callable = None,
-            return_prompt: bool = True,
+            length_sampler: Optional[Callable] = None,
+            return_prompt: Optional[bool] = True,
             **generation_kwargs,
     ) -> torch.Tensor:
         r"""

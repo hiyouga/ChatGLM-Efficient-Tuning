@@ -52,7 +52,7 @@ class LogCallback(TrainerCallback):
         cur_time = time.time()
         cur_steps = state.log_history[-1].get("step")
         elapsed_time = cur_time - self.start_time
-        avg_time_per_step = elapsed_time / cur_steps
+        avg_time_per_step = elapsed_time / cur_steps if cur_steps != 0 else 0
         remaining_steps = state.max_steps - cur_steps
         remaining_time = remaining_steps * avg_time_per_step
         log_dict = {
@@ -62,7 +62,7 @@ class LogCallback(TrainerCallback):
             "reward": state.log_history[-1].get("reward", None),
             "learning_rate": state.log_history[-1].get("learning_rate", None),
             "epoch": state.log_history[-1].get("epoch", None),
-            "percentage": round(cur_steps / state.max_steps * 100, 2),
+            "percentage": round(cur_steps / state.max_steps * 100, 2) if state.max_steps != 0 else 100,
             "elapsed_time": str(timedelta(seconds=int(elapsed_time))),
             "remaining_time": str(timedelta(seconds=int(remaining_time)))
         }
@@ -77,7 +77,7 @@ class PeftTrainer(Seq2SeqTrainer):
     """
 
     def __init__(self, finetuning_args: FinetuningArguments, **kwargs):
-        super().__init__(callbacks=[LogCallback()], **kwargs)
+        super().__init__(**kwargs)
         self.finetuning_args = finetuning_args
         if os.path.exists(os.path.join(self.args.output_dir, "trainer_log.jsonl")):
             logger.warning("Previous log file in this folder will be deleted.")

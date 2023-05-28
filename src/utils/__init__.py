@@ -7,6 +7,8 @@ from .common import (
 
 from .data_collator import DataCollatorForChatGLM
 
+from .peft_trainer import LogCallback
+
 from .seq2seq import ComputeMetrics, Seq2SeqTrainerForChatGLM
 from .pairwise import PairwiseDataCollatorForChatGLM, PairwiseTrainerForChatGLM
 from .ppo import PPOTrainerForChatGLM
