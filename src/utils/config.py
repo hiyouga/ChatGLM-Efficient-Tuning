@@ -68,6 +68,14 @@ class ModelArguments:
         default=None,
         metadata={"help": "Path to the directory containing the checkpoints of the reward model."}
     )
+    resume_lora_training: Optional[bool] = field(
+        default=True,
+        metadata={"help": "Whether to resume training from the last LoRA weights or create new weights after merging them."}
+    )
+    plot_loss: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to plot the training loss after fine-tuning or not."}
+    )
 
     def __post_init__(self):
         if self.checkpoint_dir is not None: # support merging lora weights
@@ -197,14 +205,6 @@ class FinetuningArguments:
     lora_target: Optional[str] = field(
         default="query_key_value",
         metadata={"help": "Name(s) of target modules to apply LoRA. Use comma to separate multiple modules."}
-    )
-    resume_lora_training: Optional[bool] = field(
-        default=True,
-        metadata={"help": "Whether to resume training from the last LoRA weights or create new weights after merging them."}
-    )
-    plot_loss: Optional[bool] = field(
-        default=False,
-        metadata={"help": "Whether to plot the training loss after fine-tuning or not."}
     )
 
     def __post_init__(self):
