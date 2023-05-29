@@ -87,6 +87,8 @@ def init_adapter(
         logger.info("Fine-tuning method: P-Tuning v2") # nothing to do
 
     if finetuning_args.finetuning_type != "lora" and model_args.checkpoint_dir is not None:
+        if len(model_args.checkpoint_dir) > 1:
+            logger.warning("Only LoRA tuning accepts multiple checkpoints.")
         load_trainable_params(model, model_args.checkpoint_dir[0]) # load model checkpoints for non-peft methods
 
     if finetuning_args.finetuning_type == "lora":
@@ -120,6 +122,9 @@ def init_adapter(
             )
             model = get_peft_model(model, lora_config)
 
+    if model_args.checkpoint_dir is not None:
+        logger.info("Loaded fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
+
     return model
 
 
@@ -135,19 +140,14 @@ def load_pretrained(
 
     Support both training and inference.
     """
-
-    if (not is_trainable) and (model_args.checkpoint_dir is None):
-        logger.warning("Checkpoint is not found at evaluation, load the original model.")
-        finetuning_args = FinetuningArguments(finetuning_type="none")
-
-    if model_args.checkpoint_dir is not None: # load fine-tuned model from checkpoint
-        for checkpoint_dir in model_args.checkpoint_dir:
-            if not os.path.isfile(os.path.join(checkpoint_dir, FINETUNING_ARGS_NAME)):
-                raise ValueError("The fine-tuning arguments are not found in the provided dictionary.")
-        logger.info("Load fine-tuned model from checkpoint(s): {}".format(",".join(model_args.checkpoint_dir)))
-        finetuning_args = FinetuningArguments.load_from_json(os.path.join(model_args.checkpoint_dir[-1], FINETUNING_ARGS_NAME))
-        if finetuning_args.finetuning_type != "lora" and len(model_args.checkpoint_dir) > 1:
-            logger.warning("Only LoRA tuning accepts multiple checkpoints.")
+    if finetuning_args is None: # load the fine-tuning arguments
+        if model_args.checkpoint_dir is None:
+            logger.warning("Checkpoint is not found at evaluation, load the original model.")
+            finetuning_args = FinetuningArguments(finetuning_type="none")
+        elif os.path.exists(os.path.join(model_args.checkpoint_dir[-1], FINETUNING_ARGS_NAME)):
+            finetuning_args = FinetuningArguments.load_from_json(os.path.join(model_args.checkpoint_dir[-1], FINETUNING_ARGS_NAME))
+        else:
+            raise ValueError("Missing fine-tuning arguments in the provided dictionary.")
 
     assert stage == "sft" or finetuning_args.finetuning_type == "lora", "RM and PPO training can only be performed with LoRA method."
 
@@ -482,10 +482,8 @@ def preprocess_data(
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
 
     if stage == "sft":
-        if (not training_args.do_train) and training_args.predict_with_generate: # with generation
-            preprocess_function = preprocess_evaluation_dataset
-        else: # without generation
-            preprocess_function = preprocess_supervised_dataset
+        preprocess_function = preprocess_evaluation_dataset \
+            if training_args.predict_with_generate else preprocess_supervised_dataset
     elif stage == "rm":
         preprocess_function = preprocess_pairwise_dataset
     elif stage == "ppo":

@@ -3,9 +3,9 @@
 # Usage: python export_model.py --checkpoint_dir path_to_checkpoint --output_dir path_to_save_model
 
 
+from utils import ModelArguments, load_pretrained
 from transformers import HfArgumentParser, TrainingArguments
 from transformers.utils.versions import require_version
-from utils import ModelArguments, load_pretrained
 
 
 def main():
