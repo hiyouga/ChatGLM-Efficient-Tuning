@@ -2,7 +2,7 @@
 
 ## 一、环境配置
 
-基本环境配置请参照 [此案例](alter_self_cognition.md)。
+基本环境配置请参照[此案例](alter_self_cognition.md)。
 
 为了进行分布式训练，我们需要准备一台配有多个 GPU 的主机。我们推荐在 NVLinks 桥接的多显卡主机上进行分布式训练，否则训练效率会大幅下降，可使用下述命令查询显卡之间的桥接方式。
 
@@ -154,7 +154,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
 
 ## 五、模型测试
 
-运行以下命令在单个 GPU 上测试模型效果，它会加载 `adgen_lora` 文件夹内保存的微调模型权重，并合并进原版 ChatGLM 模型的参数权重中，同时启动流式交互窗口。
+运行以下命令在单个 GPU 上测试模型效果，它会加载 `adgen_lora` 文件夹内保存的微调模型权重，并合并进原版 ChatGLM-6B 模型的参数权重中，同时启动流式交互窗口。
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/cli_demo.py \

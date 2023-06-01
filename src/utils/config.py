@@ -16,6 +16,12 @@ class DatasetAttr:
     file_name: Optional[str] = None
     file_sha1: Optional[str] = None
 
+    def __repr__(self) -> str:
+        if self.dataset_name is not None:
+            return self.dataset_name
+        else:
+            return self.file_name
+
     def __post_init__(self):
         self.prompt_column = "instruction"
         self.query_column = "input"

@@ -1,4 +1,4 @@
-# 修改 ChatGLM 自我认知的例子
+# 修改 ChatGLM-6B 自我认知的例子
 
 ## 一、环境配置
 
@@ -24,18 +24,16 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
-###### 本项目默认会联网获取最新的 ChatGLM 模型，其版本可能影响代码效果甚至报错，建议使用官方最新的模型版本文件。若频繁出现网络无法连接，请尝试使用下述命令下载官方模型，并修改 `src/utils/config.py` 中的 [CHATGLM_REPO_NAME](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/blob/06bd29014a6db8dd077bbc946bfbeda461be623b/src/utils/config.py#L7) 为存放模型文件的本地路径。
+> 注：本项目默认会联网获取最新的 ChatGLM-6B 模型，其版本可能影响代码效果甚至报错，建议使用官方最新的模型版本文件。若频繁出现网络无法连接，请尝试使用下述命令下载官方模型，并在每次训练或推理时添加 `--model_name_or_path [本地 ChatGLM-6B 模型路径]` 参数。
 
 ```bash
 git lfs install
-git clone https://huggingface.co/THUDM/chatglm-6b
+git clone -b v0.1.0 https://huggingface.co/THUDM/chatglm-6b
 ```
-
-![1.jpg](media/alter_self_cognition_1.jpg)
 
 ## 二、数据集准备
 
-在该案例中，我们使用 `self_cognition` 数据集，该数据集包含了 18 条关于模型自我认知的数据，我们的目标是修改模型自身的知识，使模型给出我们希望的答复。数据集的内容请查看 `data/self_cognition.json`，这里我们列出两条示例。
+在本案例中，我们使用 `self_cognition` 数据集，该数据集包含了 18 条关于模型自我认知的数据，我们的目标是修改模型自身的知识，使模型给出我们希望的答复。数据集的内容请查看 `data/self_cognition.json`，这里我们列出两条示例。
 
 ```json
 [
@@ -54,7 +52,7 @@ git clone https://huggingface.co/THUDM/chatglm-6b
 
 **提示：您可以将 `[NAME]` 换成您自己的名字，从而让模型回答它的创造者是您。**
 
-###### 本框架内置了十余种指令数据集，其简要介绍请移步 [data](../data/) 文件夹。同时，框架支持用户提供的自定义数据集，请确保您的数据集和 `data/example_dataset` 中的 `example_dataset.json` 文件格式相同。其中 `instruction` 项和 `output` 项为必需项，以保证模型的监督微调（SFT）能够正常运行。
+> 注：本框架内置了十余种指令数据集，其简要介绍请移步 [data](../data/) 文件夹。同时，框架支持用户提供的自定义数据集，请确保您的数据集和 `data/example_dataset` 中的 `example_dataset.json` 文件格式相同。其中 `instruction` 项和 `output` 项为必需项，以保证模型的监督微调（SFT）能够正常运行。
 
 ## 三、模型监督微调
 
@@ -80,11 +78,11 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
 
 框架运行日志如下图所示。
 
-![2.jpg](media/alter_self_cognition_2.jpg)
+![1.jpg](media/alter_self_cognition_1.jpg)
 
 ## 四、模型效果测试
 
-运行以下命令在单个 GPU 上测试模型效果，它会加载 `cognition` 文件夹内保存的微调模型权重，并合并进原版 ChatGLM 模型的参数权重中，同时启动流式交互窗口。
+运行以下命令在单个 GPU 上测试模型效果，它会加载 `cognition` 文件夹内保存的微调模型权重，并合并进原版 ChatGLM-6B 模型的参数权重中，同时启动流式交互窗口。
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/cli_demo.py \
@@ -93,12 +91,28 @@ CUDA_VISIBLE_DEVICES=0 python src/cli_demo.py \
 
 向微调后的 ChatGLM-6B 模型问一些自我认知问题，我们可以发现它能够给出我们期望的回答。同时，我们还测试了两个额外的问题，验证结果说明模型的原本知识**并没有被严重破坏**。
 
-![3.jpg](media/alter_self_cognition_3.jpg)
+![2.jpg](media/alter_self_cognition_2.jpg)
 
 为了对比效果，我们同时测试了原版 ChatGLM-6B 模型的回答，下图为原版模型的回答，关于自身认知的回答与上图相比有着显著不同。
 
-![4.jpg](media/alter_self_cognition_4.jpg)
+![3.jpg](media/alter_self_cognition_3.jpg)
 
 ## 五、模型部署
 
-如果要将微调后的模型部署在您的项目框架中，请参考 [README_zh.md](../README_zh.md#模型部署) 中关于部署微调模型的部分。
+如果要将微调后的模型部署在您的项目框架中，请使用 `export_model.py` 将微调后的权重合并到 ChatGLM-6B 模型中并导出完整模型。
+
+```bash
+python src/export_model.py \
+    --checkpoint_dir cognition \
+    --output_dir path_to_save_model
+```
+
+通过类似如下代码的调用方式，您可以在任何项目中独立部署微调后的模型。
+
+```python
+from transformers import AutoTokenizer, AutoModel
+tokenizer = AutoTokenizer.from_pretrained(path_to_save_model, trust_remote_code=True)
+model = AutoModel.from_pretrained(path_to_save_model, trust_remote_code=True).half().cuda()
+response, history = model.chat(tokenizer, "你是谁", history=[])
+print(response)
+```

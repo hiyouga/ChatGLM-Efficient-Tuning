@@ -13,9 +13,11 @@ Fine-tuning ðŸ¤–[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with ðŸ¤
 
 ## Changelog
 
+[23/06/01] We implemented a framework supporting the efficient tuning of LLaMA and BLOOM models. Please follow [LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning) if you are interested.
+
 [23/05/19] Now we support using the development set to evaluate the model while training. Try `--dev_ratio` argument to specify the size of development set.
 
-[23/04/29] Now we support training ChatGLM with **Reinforcement Learning with Human Feedback (RLHF)** ! We provide several examples to run RLHF training, please refer to the `examples` folder for details. (experimental feature)
+[23/04/29] Now we support training ChatGLM with **Reinforcement Learning with Human Feedback (RLHF)** ! We provide several examples to run RLHF training, please refer to the `examples` folder for details.
 
 [23/04/20] Our repo achieved 100 stars within 12 days! Congratulations!
 
