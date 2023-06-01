@@ -499,11 +499,11 @@ def preprocess_data(
             desc="Running tokenizer on dataset"
         )
 
-    if stage == "sft":
-        print_sft_dataset_example(dataset[0])
-    elif stage == "rm":
-        print_pairwise_dataset_example(dataset[0])
-    elif stage == "ppo":
-        print_ppo_dataset_example(dataset[0])
+        if stage == "sft":
+            print_sft_dataset_example(dataset[0])
+        elif stage == "rm":
+            print_pairwise_dataset_example(dataset[0])
+        elif stage == "ppo":
+            print_ppo_dataset_example(dataset[0])
 
-    return dataset
+        return dataset
