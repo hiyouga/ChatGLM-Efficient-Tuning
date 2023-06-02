@@ -22,7 +22,7 @@ def main():
     # Prepare pretrained model and dataset
     model_args, data_args, training_args, finetuning_args = prepare_args(stage="sft")
     dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, training_args.do_train, stage="sft")
+    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args, training_args.do_train, stage="sft")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="sft")
     data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss)
 

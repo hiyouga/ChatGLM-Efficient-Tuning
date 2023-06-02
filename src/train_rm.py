@@ -21,7 +21,7 @@ def main():
     # prepare pretrained model and dataset
     model_args, data_args, training_args, finetuning_args = prepare_args(stage="rm")
     dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, training_args, finetuning_args, training_args.do_train, stage="rm")
+    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args, training_args.do_train, stage="rm")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="rm")
     data_collator = PairwiseDataCollatorForChatGLM(tokenizer, model.pretrained_model)
 
