@@ -2,7 +2,7 @@ import torch
 
 from typing import Dict, Optional, Sequence, Union
 
-from transformers import DataCollatorWithPadding
+from transformers import DataCollatorWithPadding, BatchEncoding
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils import PreTrainedTokenizer
 
@@ -64,7 +64,7 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
             position_ids = torch.stack((position_ids, block_position_ids), dim=1)
         return position_ids
 
-    def __call__(self, features: Sequence[Dict[str, Union[torch.Tensor, Sequence[int]]]]) -> Dict[str, torch.Tensor]:
+    def __call__(self, features: Sequence[Dict[str, Union[torch.Tensor, Sequence[int]]]]) -> BatchEncoding:
         r"""
         Pads batched data to the longest sequence in the batch.
 
@@ -95,4 +95,4 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
         batch["attention_mask"] = self.get_attention_masks(input_ids, device=input_ids.device)
         batch["position_ids"] = self.get_position_ids(input_ids, device=input_ids.device)
 
-        return batch
+        return BatchEncoding(batch)

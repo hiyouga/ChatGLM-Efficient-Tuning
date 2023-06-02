@@ -13,5 +13,5 @@ from .seq2seq import ComputeMetrics, Seq2SeqTrainerForChatGLM
 from .pairwise import PairwiseDataCollatorForChatGLM, PairwiseTrainerForChatGLM
 from .ppo import PPOTrainerForChatGLM
 
-from .config import ModelArguments
+from .config import ModelArguments, FinetuningArguments
 from .other import auto_configure_device_map, get_logits_processor, plot_loss
