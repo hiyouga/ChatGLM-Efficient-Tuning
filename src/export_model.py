@@ -14,7 +14,7 @@ def main():
 
     parser = HfArgumentParser((ModelArguments, TrainingArguments, FinetuningArguments))
     model_args, training_args, finetuning_args = parser.parse_args_into_dataclasses()
-
+    model_args.use_fast_tokenizer = False
     model, tokenizer = load_pretrained(model_args, finetuning_args)
     model.save_pretrained(training_args.output_dir, max_shard_size="1GB")
     tokenizer.save_pretrained(training_args.output_dir)

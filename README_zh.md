@@ -13,6 +13,8 @@
 
 ## 更新日志
 
+[23/06/05] 现在我们实现了 4 比特的 LoRA 训练（也称 QLoRA）。请尝试使用 `--quantization_bit 4` 参数进行 4 比特量化微调。（实验性功能）
+
 [23/06/01] 我们开源了支持 LLaMA 和 BLOOM 系列模型的高效微调框架，如果您感兴趣请关注我们的 [LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning) 项目。
 
 [23/06/01] 我们新增了一个使用监督微调和 RLHF 训练医疗问答模型的例子，请移步 [covid_doctor.md](examples/covid_doctor.md) 查阅。
@@ -231,6 +233,7 @@ python src/export_model.py \
 | LoRA (r=8)       |     8      | FP16 |  24GB  | 8ex/s |
 | LoRA (r=8)       |     4      | FP16 |  20GB  | 8ex/s |
 | LoRA (r=8)       |     4      | INT8 |  10GB  | 8ex/s |
+| LoRA (r=8)       |     4      | INT4 |   8GB  | 8ex/s |
 | P-Tuning (p=16)  |     4      | FP16 |  20GB  | 8ex/s |
 | P-Tuning (p=16)  |     4      | INT8 |  16GB  | 8ex/s |
 | P-Tuning (p=16)  |     4      | INT4 |  12GB  | 8ex/s |

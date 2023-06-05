@@ -10,7 +10,8 @@ from transformers import (
     AutoModel,
     AutoTokenizer,
     HfArgumentParser,
-    Seq2SeqTrainingArguments
+    Seq2SeqTrainingArguments,
+    BitsAndBytesConfig
 )
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
@@ -184,15 +185,27 @@ def load_pretrained(
 
     # Quantization configurations for Full, Freeze and LoRA in training (using bitsandbytes library).
     if quantization == "bnb":
-        assert model_args.quantization_bit == 8, "Freeze and LoRA fine-tuning only accept 8-bit quantization."
-
-        require_version("bitsandbytes>=0.37.0", "bitsandbytes library is required to use this feature.")
-        from bitsandbytes.cuda_setup.main import get_compute_capability, get_cuda_lib_handle, is_cublasLt_compatible
-        cuda = get_cuda_lib_handle()
-        cc = get_compute_capability(cuda)
-        assert is_cublasLt_compatible(cc), "The current GPU(s) is incompatible with quantization."
-
-        config_kwargs["load_in_8bit"] = True
+        if model_args.quantization_bit == 8:
+            require_version("bitsandbytes>=0.37.0", "To fix: pip install bitsandbytes>=0.37.0")
+            config_kwargs["load_in_8bit"] = True
+            config_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_threshold=6.0
+            )
+        elif model_args.quantization_bit == 4:
+            require_version("bitsandbytes>=0.39.0", "To fix: pip install bitsandbytes>=0.39.0")
+            require_version("transformers>=4.30.0.dev0", "To fix: pip install git+https://github.com/huggingface/transformers.git")
+            require_version("peft>=0.4.0.dev0", "To fix: pip install git+https://github.com/huggingface/peft.git")
+            require_version("accelerate>=0.20.0.dev0", "To fix: pip install git+https://github.com/huggingface/accelerate.git")
+            config_kwargs["load_in_4bit"] = True
+            config_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=model_args.compute_dtype,
+                bnb_4bit_use_double_quant=model_args.double_quantization,
+                bnb_4bit_quant_type=model_args.quantization_type
+            )
+        else:
+            raise NotImplementedError
         config_kwargs["device_map"] = "auto" # it should not be specified outside of load_in_8bit
 
     # Load and prepare pretrained models (without valuehead).
@@ -264,13 +277,16 @@ def prepare_args(
 
     # Check arguments (do not check finetuning_args since it may be loaded from checkpoints)
     if stage != "sft" and training_args.predict_with_generate:
-        raise ValueError("`predict_with_generate` cannot be set as True in RM and PPO stages.")
+        raise ValueError("`predict_with_generate` cannot be set as True at RM and PPO stages.")
 
     if training_args.do_train and training_args.predict_with_generate:
         raise ValueError("`predict_with_generate` cannot be set as True while training.")
 
     if training_args.do_predict and (not training_args.predict_with_generate):
-        raise ValueError("Please enable `predict_with_generate` for saving model predictions.")
+        raise ValueError("Please enable `predict_with_generate` to save model predictions.")
+
+    if model_args.quantization_bit is not None and finetuning_args.finetuning_type == "full":
+        raise ValueError("Quantization is incompatible with the full-parameter tuning.")
 
     if model_args.quantization_bit is not None and (not training_args.do_train):
         logger.warning("Evaluating model in 4/8-bit mode may cause lower scores.")
@@ -283,6 +299,14 @@ def prepare_args(
         training_args.ddp_find_unused_parameters = False
 
     training_args.optim = "adamw_torch" if training_args.optim == "adamw_hf" else training_args.optim # suppress warning
+
+    if model_args.quantization_bit is not None:
+        if training_args.fp16:
+            model_args.compute_dtype = torch.float16
+        elif training_args.bf16:
+            model_args.compute_dtype = torch.bfloat16
+        else:
+            model_args.compute_dtype = torch.float32
 
     # Log on each process the small summary:
     logger.info(
