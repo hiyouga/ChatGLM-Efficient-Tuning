@@ -13,7 +13,9 @@ from transformers import HfArgumentParser
 from transformers.utils.versions import require_version
 
 
-require_version("gradio==3.27.0", "To fix: pip install gradio==3.27.0") # higher version may cause problems
+require_version("gradio>=3.30.0", "To fix: pip install gradio>=3.30.0")
+
+
 parser = HfArgumentParser((ModelArguments, FinetuningArguments))
 model_args, finetuning_args = parser.parse_args_into_dataclasses()
 model, tokenizer = load_pretrained(model_args, finetuning_args)
@@ -94,16 +96,24 @@ def reset_state():
 
 
 with gr.Blocks() as demo:
-    gr.HTML("""<h1 align="center">ChatGLM-Efficient-Tuning</h1>""")
+
+    gr.HTML("""
+    <h1 align="center">
+        <a href="https://github.com/hiyouga/ChatGLM-Efficient-Tuning" target="_blank">
+            ChatGLM Efficient Tuning
+        </a>
+    </h1>
+    """)
 
     chatbot = gr.Chatbot()
+
     with gr.Row():
         with gr.Column(scale=4):
             with gr.Column(scale=12):
-                user_input = gr.Textbox(show_label=False, placeholder="Input...", lines=10).style(
-                    container=False)
+                user_input = gr.Textbox(show_label=False, placeholder="Input...", lines=10).style(container=False)
             with gr.Column(min_width=32, scale=1):
                 submitBtn = gr.Button("Submit", variant="primary")
+
         with gr.Column(scale=1):
             emptyBtn = gr.Button("Clear History")
             max_length = gr.Slider(0, 4096, value=2048, step=1.0, label="Maximum length", interactive=True)
@@ -112,10 +122,9 @@ with gr.Blocks() as demo:
 
     history = gr.State([])
 
-    submitBtn.click(predict, [user_input, chatbot, max_length, top_p, temperature, history], [chatbot, history],
-                    show_progress=True)
+    submitBtn.click(predict, [user_input, chatbot, max_length, top_p, temperature, history], [chatbot, history], show_progress=True)
     submitBtn.click(reset_user_input, [], [user_input])
 
     emptyBtn.click(reset_state, outputs=[chatbot, history], show_progress=True)
 
-demo.queue().launch(server_name="0.0.0.0", share=False, inbrowser=True)
+demo.queue().launch(server_name="0.0.0.0", share=True, inbrowser=True)

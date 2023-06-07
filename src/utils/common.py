@@ -206,7 +206,7 @@ def load_pretrained(
             )
         else:
             raise NotImplementedError
-        config_kwargs["device_map"] = "auto" # it should not be specified outside of load_in_8bit
+        config_kwargs["device_map"] = {"": int(os.environ.get("LOCAL_RANK") or 0)}
 
     # Load and prepare pretrained models (without valuehead).
     model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
