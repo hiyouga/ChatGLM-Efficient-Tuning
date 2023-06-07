@@ -10,7 +10,7 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.generation.utils import LogitsProcessorList
 from transformers.generation.logits_process import LogitsProcessor
 
-from peft.utils.other import WEIGHTS_NAME
+from peft.utils import WEIGHTS_NAME
 
 
 IGNORE_INDEX = -100
@@ -18,7 +18,10 @@ VALUE_HEAD_FILE_NAME = "value_head.bin"
 FINETUNING_ARGS_NAME = "finetuning_args.json"
 
 
-logger = logging.getLogger(__name__)
+def get_logger(name: str) -> logging.Logger:
+    return logging.getLogger(name)
+
+
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     datefmt="%m/%d/%Y %H:%M:%S",
@@ -27,8 +30,7 @@ logging.basicConfig(
 )
 
 
-def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(name)
+logger = get_logger(__name__)
 
 
 class AverageMeter:

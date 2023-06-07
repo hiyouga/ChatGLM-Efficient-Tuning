@@ -28,6 +28,8 @@ from peft import (
     get_peft_model
 )
 
+from peft.utils import CONFIG_NAME
+
 from trl import AutoModelForCausalLMWithValueHead
 
 from .config import (
@@ -94,6 +96,9 @@ def init_adapter(
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
         lastest_checkpoint = None
+
+        assert os.path.exists(model_args.checkpoint_dir[0], CONFIG_NAME), \
+            "The given checkpoint is not a LoRA checkpoint, please specify `--finetuning_type full/p_tuning/freeze` instead."
 
         if model_args.checkpoint_dir is not None:
             if is_trainable and model_args.resume_lora_training: # continually train on the lora weights
