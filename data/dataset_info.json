@@ -106,5 +106,8 @@
             "response": "output",
             "history": "history"
         }
+    },
+    "huatuo_gpt":{
+        "script_url":"huatuo_gpt"
     }
 }
