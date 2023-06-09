@@ -2,11 +2,11 @@ import json
 import datasets
 from typing import Any, Dict, List
 
-_DESCRIPTION = "An example of dataset for ChatGLM."
+_DESCRIPTION = "An huatuo of dataset for ChatGLM."
 _CITATION = ""
 _HOMEPAGE = ""
 _LICENSE = ""
-_URL = "HuatuoGPT_sft_data_v1.json"
+_URL = "FreedomIntelligence/HuatuoGPT-sft-data-v1"
 
 
 class ExampleDataset(datasets.GeneratorBasedBuilder):
