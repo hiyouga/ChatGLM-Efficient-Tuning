@@ -221,6 +221,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         queries: torch.Tensor,
         responses: torch.Tensor,
         model_inputs: dict,
+        return_logits: bool = False
     ):
         r"""
         Calculates model outputs in multiple batches.
