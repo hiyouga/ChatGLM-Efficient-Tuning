@@ -35,7 +35,8 @@ from trl import AutoModelForCausalLMWithValueHead
 from .config import (
     ModelArguments,
     DataTrainingArguments,
-    FinetuningArguments
+    FinetuningArguments,
+    GeneratingArguments
 )
 
 from .other import (
@@ -49,8 +50,9 @@ from .other import (
 
 check_min_version("4.27.4")
 require_version("datasets>=2.10.0", "To fix: pip install datasets>=2.10.0")
+require_version("accelerate>=0.19.0", "To fix: pip install accelerate>=0.19.0")
 require_version("peft>=0.3.0", "To fix: pip install peft>=0.3.0")
-require_version("trl>=0.4.1", "To fix: pip install trl>=0.4.1")
+require_version("trl>=0.4.4", "To fix: pip install trl>=0.4.4")
 
 
 logger = get_logger(__name__)
@@ -136,7 +138,6 @@ def init_adapter(
 def load_pretrained(
         model_args: ModelArguments,
         finetuning_args: FinetuningArguments,
-        training_args: Optional[Seq2SeqTrainingArguments] = None,
         is_trainable: Optional[bool] = False,
         stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
@@ -199,9 +200,9 @@ def load_pretrained(
             )
         elif model_args.quantization_bit == 4:
             require_version("bitsandbytes>=0.39.0", "To fix: pip install bitsandbytes>=0.39.0")
-            require_version("transformers>=4.30.0.dev0", "To fix: pip install git+https://github.com/huggingface/transformers.git")
+            require_version("transformers>=4.30.1", "To fix: pip install transformers>=4.30.1")
+            require_version("accelerate>=0.20.3", "To fix: pip install accelerate>=0.20.3")
             require_version("peft>=0.4.0.dev0", "To fix: pip install git+https://github.com/huggingface/peft.git")
-            require_version("accelerate>=0.20.0.dev0", "To fix: pip install git+https://github.com/huggingface/accelerate.git")
             config_kwargs["load_in_4bit"] = True
             config_kwargs["quantization_config"] = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -209,8 +210,6 @@ def load_pretrained(
                 bnb_4bit_use_double_quant=model_args.double_quantization,
                 bnb_4bit_quant_type=model_args.quantization_type
             )
-        else:
-            raise NotImplementedError
         config_kwargs["device_map"] = {"": int(os.environ.get("LOCAL_RANK") or 0)}
 
     # Load and prepare pretrained models (without valuehead).
@@ -225,9 +224,6 @@ def load_pretrained(
     # Quantization with the built-in method for P-Tuning v2 training or evaluation.
     # Model parameters should be cast to float16 in quantized P-Tuning setting.
     if quantization == "cpm":
-        assert model_args.quantization_bit in [4, 8], "P-Tuning v2 and inference mode only accept 4-bit or 8-bit quantization."
-        assert not (is_trainable and training_args.fp16), "FP16 training conflicts with cpm quantization."
-
         if is_trainable: # convert all params into half precision except prefix_encoder in training
             for name, param in model.named_parameters():
                 if "prefix_encoder" not in name:
@@ -241,17 +237,19 @@ def load_pretrained(
     if stage == "rm" or stage == "ppo": # add value head
         model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
 
+        if stage == "rm" and model_args.checkpoint_dir is not None: # load valuehead weights to evaluate reward model
+            load_valuehead_params(model, model_args.checkpoint_dir[0])
+            model.v_head.load_state_dict({
+                "summary.weight": getattr(model, "reward_head_weight"),
+                "summary.bias": getattr(model, "reward_head_bias")
+            })
+
         if stage == "ppo": # load reward model
             assert is_trainable, "PPO stage cannot be performed at evaluation."
             assert model_args.reward_model is not None, "Reward model is necessary for PPO training."
             logger.info("Load reward model from {}".format(model_args.reward_model))
             model.pretrained_model.load_adapter(model_args.reward_model, "reward", is_trainable=False)
             load_valuehead_params(model, model_args.reward_model)
-
-        # Set the parameter _is_int8_training_enabled for the AutoModelForCausalLMWithValueHead model
-        # To meet the compliance requirements of the transformers library
-        if quantization == "bnb":
-            model._is_int8_training_enabled = True
 
     print_trainable_params(model)
 
@@ -290,11 +288,15 @@ def prepare_args(
     if training_args.do_predict and (not training_args.predict_with_generate):
         raise ValueError("Please enable `predict_with_generate` to save model predictions.")
 
-    if model_args.quantization_bit is not None and finetuning_args.finetuning_type == "full":
-        raise ValueError("Quantization is incompatible with the full-parameter tuning.")
+    if model_args.quantization_bit is not None:
+        if finetuning_args.finetuning_type == "full":
+            raise ValueError("Quantization is incompatible with the full-parameter tuning.")
 
-    if model_args.quantization_bit is not None and (not training_args.do_train):
-        logger.warning("Evaluating model in 4/8-bit mode may cause lower scores.")
+        if finetuning_args.finetuning_type == "p_tuning" and training_args.fp16:
+            raise ValueError("FP16 training conflicts with quantized P-Tuning.")
+
+        if not training_args.do_train:
+            logger.warning("Evaluating model in 4/8-bit mode may cause lower scores.")
 
     if training_args.do_train and (not training_args.fp16):
         logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")
@@ -326,6 +328,18 @@ def prepare_args(
     return model_args, data_args, training_args, finetuning_args
 
 
+def prepare_infer_args() -> Tuple[ModelArguments, FinetuningArguments, GeneratingArguments]:
+
+    parser = HfArgumentParser((ModelArguments, FinetuningArguments, GeneratingArguments))
+
+    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"): # Provide arguments with a json file.
+        model_args, finetuning_args, generating_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+    else:
+        model_args, finetuning_args, generating_args = parser.parse_args_into_dataclasses()
+
+    return model_args, finetuning_args, generating_args
+
+
 def prepare_data(
         model_args: ModelArguments,
         data_args: DataTrainingArguments
@@ -354,7 +368,14 @@ def prepare_data(
             )
         elif dataset_attr.load_from == "file":
             data_file = os.path.join(data_args.dataset_dir, dataset_attr.file_name) # support json, jsonl and csv
+
             extension = dataset_attr.file_name.split(".")[-1]
+            if extension == "csv":
+                file_type = "csv"
+            elif extension == "json" or extension == "jsonl":
+                file_type = "json"
+            else:
+                raise ValueError("File extension must be csv, json or jsonl.")
 
             if dataset_attr.file_sha1 is not None:
                 checksum(data_file, dataset_attr.file_sha1)
@@ -362,7 +383,7 @@ def prepare_data(
                 logger.warning("Checksum failed: missing SHA-1 hash value in dataset_info.json.")
 
             raw_datasets = load_dataset(
-                extension,
+                file_type,
                 data_files=data_file,
                 cache_dir=model_args.cache_dir,
                 use_auth_token=True if model_args.use_auth_token else None
@@ -403,7 +424,7 @@ def preprocess_data(
         tokenizer: PreTrainedTokenizer,
         data_args: DataTrainingArguments,
         training_args: Seq2SeqTrainingArguments,
-        stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
+        stage: Literal["sft", "rm", "ppo"]
 ) -> Dataset:
 
     column_names = list(dataset.column_names)

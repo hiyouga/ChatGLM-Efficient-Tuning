@@ -21,8 +21,7 @@ import uvicorn
 import datetime
 from fastapi import FastAPI, Request
 
-from utils import ModelArguments, FinetuningArguments, auto_configure_device_map, load_pretrained
-from transformers import HfArgumentParser
+from utils import prepare_infer_args, auto_configure_device_map, load_pretrained
 
 
 def torch_gc():
@@ -39,7 +38,7 @@ app = FastAPI()
 
 @app.post("/")
 async def create_item(request: Request):
-    global model, tokenizer
+    global model, tokenizer, generating_args
 
     # Parse the request JSON
     json_post_raw = await request.json()
@@ -49,7 +48,7 @@ async def create_item(request: Request):
     history = json_post_list.get("history")
 
     # Generate response
-    response, history = model.chat(tokenizer, prompt, history=history)
+    response, history = model.chat(tokenizer, prompt, history=history, **generating_args.to_dict())
 
     # Prepare response
     now = datetime.datetime.now()
@@ -70,8 +69,7 @@ async def create_item(request: Request):
 
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((ModelArguments, FinetuningArguments))
-    model_args, finetuning_args = parser.parse_args_into_dataclasses()
+    model_args, finetuning_args, generating_args = prepare_infer_args()
     model, tokenizer = load_pretrained(model_args, finetuning_args)
 
     if torch.cuda.device_count() > 1:

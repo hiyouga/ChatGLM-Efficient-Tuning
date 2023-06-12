@@ -8,16 +8,14 @@ import torch
 import mdtex2html
 import gradio as gr
 
-from utils import ModelArguments, FinetuningArguments, auto_configure_device_map, load_pretrained
-from transformers import HfArgumentParser
+from utils import prepare_infer_args, auto_configure_device_map, load_pretrained
 from transformers.utils.versions import require_version
 
 
 require_version("gradio>=3.30.0", "To fix: pip install gradio>=3.30.0")
 
 
-parser = HfArgumentParser((ModelArguments, FinetuningArguments))
-model_args, finetuning_args = parser.parse_args_into_dataclasses()
+model_args, finetuning_args, generating_args = prepare_infer_args()
 model, tokenizer = load_pretrained(model_args, finetuning_args)
 
 if torch.cuda.device_count() > 1:
@@ -81,7 +79,8 @@ def parse_text(text): # copy from https://github.com/GaiZhenbiao/ChuanhuChatGPT
 def predict(input, chatbot, max_length, top_p, temperature, history):
     chatbot.append((parse_text(input), ""))
     for response, history in model.stream_chat(tokenizer, input, history, max_length=max_length, top_p=top_p,
-                                               temperature=temperature):
+                                               temperature=temperature, do_sample=generating_args.do_sample,
+                                               num_beams=generating_args.num_beams, top_k=generating_args.top_k):
         chatbot[-1] = (parse_text(input), parse_text(response))
 
         yield chatbot, history
@@ -116,9 +115,9 @@ with gr.Blocks() as demo:
 
         with gr.Column(scale=1):
             emptyBtn = gr.Button("Clear History")
-            max_length = gr.Slider(0, 4096, value=2048, step=1.0, label="Maximum length", interactive=True)
-            top_p = gr.Slider(0, 1, value=0.7, step=0.01, label="Top P", interactive=True)
-            temperature = gr.Slider(0, 1, value=0.95, step=0.01, label="Temperature", interactive=True)
+            max_length = gr.Slider(0, 4096, value=generating_args.max_length, step=1.0, label="Maximum length", interactive=True)
+            top_p = gr.Slider(0, 1, value=generating_args.top_p, step=0.01, label="Top P", interactive=True)
+            temperature = gr.Slider(0, 1.5, value=generating_args.temperature, step=0.01, label="Temperature", interactive=True)
 
     history = gr.State([])
 

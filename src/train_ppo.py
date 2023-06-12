@@ -11,13 +11,13 @@ from transformers.optimization import get_scheduler
 from trl import PPOConfig
 
 from utils import (
-    prepare_args,
-    prepare_data,
-    load_pretrained,
-    preprocess_data,
     DataCollatorForChatGLM,
     PPOTrainerForChatGLM,
     LogCallback,
+    load_pretrained,
+    prepare_args,
+    prepare_data,
+    preprocess_data,
     plot_loss
 )
 
@@ -27,7 +27,7 @@ def main():
     # prepare pretrained model and dataset
     model_args, data_args, training_args, finetuning_args = prepare_args(stage="ppo")
     dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args, training_args.do_train, stage="ppo")
+    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args.do_train, stage="ppo")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="ppo")
     data_collator = DataCollatorForChatGLM(tokenizer, model.pretrained_model)
 

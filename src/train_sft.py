@@ -4,14 +4,14 @@
 
 
 from utils import (
-    load_pretrained,
-    prepare_args,
-    prepare_data,
-    preprocess_data,
     DataCollatorForChatGLM,
     Seq2SeqTrainerForChatGLM,
     ComputeMetrics,
     LogCallback,
+    load_pretrained,
+    prepare_args,
+    prepare_data,
+    preprocess_data,
     get_logits_processor,
     plot_loss
 )
@@ -22,15 +22,15 @@ def main():
     # Prepare pretrained model and dataset
     model_args, data_args, training_args, finetuning_args = prepare_args(stage="sft")
     dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args, training_args.do_train, stage="sft")
+    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args.do_train, stage="sft")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="sft")
     data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss)
 
     # Override the decoding parameters of Seq2SeqTrainer
     training_args.generation_max_length = training_args.generation_max_length if \
                 training_args.generation_max_length is not None else data_args.max_target_length
-    training_args.generation_num_beams = data_args.num_beams if \
-                data_args.num_beams is not None else training_args.generation_num_beams
+    training_args.generation_num_beams = data_args.eval_num_beams if \
+                data_args.eval_num_beams is not None else training_args.generation_num_beams
 
     # Split the dataset
     if training_args.do_train:
