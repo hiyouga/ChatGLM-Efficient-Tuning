@@ -448,7 +448,7 @@ def preprocess_data(
                 yield prompt, answer
 
     def preprocess_supervised_dataset(examples):
-        # build inputs with format `X [gMASK] [BOS] Y [EOS]` and labels with format `[IGNORE] ... [IGNORE] [BOS] Y [EOS]`
+        # build inputs with format `X [gMASK] [BOS] Y [EOS]` and labels with format `[IGNORE] ... [IGNORE] Y [EOS]`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
@@ -461,7 +461,7 @@ def preprocess_data(
 
             input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
 
-            context_length = input_ids.index(tokenizer.bos_token_id)
+            context_length = input_ids.index(tokenizer.bos_token_id) + 1
             labels = [IGNORE_INDEX] * context_length + input_ids[context_length:]
 
             model_inputs["input_ids"].append(input_ids)
