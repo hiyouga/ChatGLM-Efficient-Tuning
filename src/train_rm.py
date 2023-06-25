@@ -24,7 +24,7 @@ def main():
     dataset = prepare_data(model_args, data_args)
     model, tokenizer = load_pretrained(model_args, finetuning_args, training_args.do_train, stage="rm")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="rm")
-    data_collator = PairwiseDataCollatorForChatGLM(tokenizer, model.pretrained_model)
+    data_collator = PairwiseDataCollatorForChatGLM(tokenizer, model.pretrained_model, use_v2=model_args.use_v2)
 
     training_args.remove_unused_columns = False # Important for pairwise dataset
 

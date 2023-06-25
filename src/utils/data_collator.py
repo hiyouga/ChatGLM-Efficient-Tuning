@@ -17,13 +17,20 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
             self,
             tokenizer: PreTrainedTokenizer,
             model: PreTrainedModel,
-            ignore_pad_token_for_loss: Optional[bool] = False
+            ignore_pad_token_for_loss: Optional[bool] = False,
+            use_v2: Optional[bool] = False
     ):
         super().__init__(tokenizer, padding=True)
         self.model = model
         self.label_pad_token_id = IGNORE_INDEX if ignore_pad_token_for_loss else tokenizer.pad_token_id
+        if use_v2:
+            self.get_attention_masks = self.get_attention_masks_v2
+            self.get_position_ids = self.get_position_ids_v2
+        else:
+            self.get_attention_masks = self.get_attention_masks_v1
+            self.get_position_ids = self.get_position_ids_v1
 
-    def get_attention_masks(self, input_ids: torch.Tensor, device: torch.device) -> torch.Tensor:
+    def get_attention_masks_v1(self, input_ids: torch.Tensor, device: torch.device) -> torch.Tensor:
         r"""
         Generates attention masks for left-padded sequences.
 
@@ -41,7 +48,7 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
         attention_mask = (attention_mask < 0.5).bool()
         return attention_mask
 
-    def get_position_ids(self, input_ids: torch.Tensor, device: torch.device) -> torch.Tensor:
+    def get_position_ids_v1(self, input_ids: torch.Tensor, device: torch.device) -> torch.Tensor:
         r"""
         Generates position ids for left-padded sequenes.
 
@@ -62,6 +69,27 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
             block_position_ids[i, context_length:] = torch.arange(seq_length - context_length, dtype=torch.long, device=device) + 1
         if self.model.position_encoding_2d:
             position_ids = torch.stack((position_ids, block_position_ids), dim=1)
+        return position_ids
+
+    def get_attention_masks_v2(self, input_ids: torch.Tensor, device: torch.device) -> torch.Tensor:
+        r"""
+        Generates attention masks for left-padded sequences.
+        """
+        batch_size, seq_length = input_ids.size()
+        attention_mask = torch.ones((batch_size, seq_length), device=device)
+        for i, seq in enumerate(input_ids):
+            attention_mask[i, :(seq != self.tokenizer.pad_token_id).nonzero()[0].item()] = 0 # padding
+        return attention_mask
+
+    def get_position_ids_v2(self, input_ids: torch.Tensor, device: torch.device) -> torch.Tensor:
+        r"""
+        Generates position ids for left-padded sequenes.
+        """
+        batch_size, seq_length = input_ids.size()
+        position_ids = torch.zeros((batch_size, seq_length), dtype=torch.long, device=device)
+        for i, seq in enumerate(input_ids):
+            padding_length = (seq != self.tokenizer.pad_token_id).nonzero()[0].item()
+            position_ids[i, padding_length:] = torch.arange(seq_length - padding_length, dtype=torch.long, device=device)
         return position_ids
 
     def __call__(self, features: Sequence[Dict[str, Union[torch.Tensor, Sequence[int]]]]) -> BatchEncoding:

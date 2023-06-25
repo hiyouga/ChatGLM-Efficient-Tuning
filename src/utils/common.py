@@ -2,6 +2,7 @@ import os
 import sys
 import torch
 import hashlib
+from types import MethodType
 from typing import List, Literal, Optional, Tuple
 
 import transformers
@@ -185,6 +186,7 @@ def load_pretrained(
     # P-Tuning v2 configurations.
     # We use the built-in p-tuning method of ChatGLM, we cannot use PEFT since the attention masks of ChatGLM are unusual. >_<
     if finetuning_args.finetuning_type == "p_tuning":
+        assert not model_args.use_v2, "ChatGLM2-6B does not support P-Tuning v2."
         config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
         config.prefix_projection = finetuning_args.prefix_projection
 
@@ -213,6 +215,23 @@ def load_pretrained(
 
     # Load and prepare pretrained models (without valuehead).
     model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
+
+    if model_args.use_v2:
+        def get_input_embeddings(self):
+            return self.transformer.embedding
+        model.get_input_embeddings = MethodType(get_input_embeddings, model)
+        model.lm_head = model.transformer.output_layer # need fix: cast to float
+
+        tokenizer.bos_token = "sop"
+        tokenizer.eos_token = "</s>"
+        def build_inputs_with_special_tokens(self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None) -> List[int]:
+            prefix_tokens = self.get_prefix_tokens()
+            token_ids_0 = token_ids_0 + prefix_tokens
+            if token_ids_1 is not None:
+                token_ids_0 = token_ids_0 + token_ids_1 + [self.get_command("<eos>")]
+            return token_ids_0
+        tokenizer.build_inputs_with_special_tokens = MethodType(build_inputs_with_special_tokens, tokenizer)
+
     model = prepare_model_for_training(model) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
@@ -448,7 +467,8 @@ def preprocess_data(
                 yield prompt, answer
 
     def preprocess_supervised_dataset(examples):
-        # build inputs with format `X [gMASK] [BOS] Y [EOS]` and labels with format `[IGNORE] ... [IGNORE] Y [EOS]`
+        # V1: build inputs with format `X [gMASK] <sop> Y <eop>` and labels with format `[IGNORE] ... [IGNORE] Y <eop>`
+        # V2: build inputs with format `X [gMASK] sop Y </s>` and labels with format `[IGNORE] ... [IGNORE] Y </s>`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
@@ -469,7 +489,8 @@ def preprocess_data(
         return model_inputs
 
     def preprocess_evaluation_dataset(examples):
-        # build inputs with format `X [gMASK] [BOS]` and labels with format `Y [gMASK] [BOS]`
+        # V1: build inputs with format `X [gMASK] <sop>` and labels with format `Y [gMASK] <sop>`
+        # V2: build inputs with format `X [gMASK] sop` and labels with format `Y [gMASK] sop`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
@@ -488,7 +509,8 @@ def preprocess_data(
         return model_inputs
 
     def preprocess_pairwise_dataset(examples):
-        # build input pairs with format `X [gMASK] [BOS] Y1 [EOS]` and `X [gMASK] [BOS] Y2 [EOS]`
+        # build input pairs with format `X [gMASK] <sop> Y1 <eop>` and `X [gMASK] <sop> Y2 <eop>`
+        # build input pairs with format `X [gMASK] sop Y1 </s>` and `X [gMASK] sop Y2 </s>`
         model_inputs = {"accept_ids": [], "reject_ids": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
@@ -513,7 +535,9 @@ def preprocess_data(
         print("input_ids:\n{}".format(example["input_ids"]))
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
         print("label_ids:\n{}".format(example["labels"]))
-        print("labels:\n{}".format(tokenizer.decode(example["labels"])))
+        print("labels:\n{}".format(
+            tokenizer.decode([d if d != IGNORE_INDEX else tokenizer.pad_token_id for d in example["labels"]]))
+        )
 
     def print_pairwise_dataset_example(example):
         print("accept_ids:\n{}".format(example["accept_ids"]))

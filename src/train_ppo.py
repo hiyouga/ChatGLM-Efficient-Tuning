@@ -29,7 +29,7 @@ def main():
     dataset = prepare_data(model_args, data_args)
     model, tokenizer = load_pretrained(model_args, finetuning_args, training_args.do_train, stage="ppo")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="ppo")
-    data_collator = DataCollatorForChatGLM(tokenizer, model.pretrained_model)
+    data_collator = DataCollatorForChatGLM(tokenizer, model.pretrained_model, use_v2=model_args.use_v2)
 
     ppo_config = PPOConfig(
         model_name=model_args.model_name_or_path,
