@@ -6,7 +6,6 @@ from dataclasses import asdict, dataclass, field
 
 
 CHATGLM_REPO_NAME = "THUDM/chatglm-6b"
-CHATGLM_VERSION = "a8ede826cf1b62bd3c78bdfb3625c7c5d2048fbd"
 
 
 @dataclass
@@ -60,7 +59,7 @@ class ModelArguments:
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."}
     )
     model_revision: Optional[str] = field(
-        default=CHATGLM_VERSION,
+        default="main",
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."}
     )
     use_auth_token: Optional[bool] = field(
