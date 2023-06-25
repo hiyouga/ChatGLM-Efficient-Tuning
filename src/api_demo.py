@@ -119,14 +119,14 @@ async def predict(query: str, history: List[List[str]], gen_kwargs: Dict[str, An
     chunk = ChatCompletionResponse(model=model_id, choices=[choice_data], object="chat.completion.chunk")
     yield "data: {}\n\n".format(chunk.json(exclude_unset=True, ensure_ascii=False))
 
-    old_response = ""
+    current_length = 0
 
     for new_response, _ in model.stream_chat(tokenizer, query, history, **gen_kwargs):
-        if new_response == old_response:
+        if len(new_response) == current_length:
             continue
 
-        new_text = new_response.replace(old_response, "")
-        old_response = new_response
+        new_text = new_response[current_length:]
+        current_length = len(new_response)
 
         choice_data = ChatCompletionResponseStreamChoice(
             index=0,
