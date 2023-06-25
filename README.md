@@ -13,6 +13,8 @@ Fine-tuning ðŸ¤–[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with ðŸ¤
 
 ## Changelog
 
+[23/06/25] Now we align the [demo API](src/api_demo.py) with the [OpenAI's](https://platform.openai.com/docs/api-reference/chat) format where you can insert the fine-tuned model in arbitrary ChatGPT-based applications.
+
 [23/06/25] Now we support fine-tuning the [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) model with our framework! Try `--use_v2` argument to fine-tune that model.
 
 [23/06/05] Now we support 4-bit LoRA training (aka [QLoRA](https://github.com/artidoro/qlora)). Try `--quantization_bit 4` argument to work with 4-bit quantized model. (experimental feature)
