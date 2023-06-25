@@ -121,7 +121,7 @@ async def predict(query: str, history: List[List[str]], gen_kwargs: Dict[str, An
 
     old_response = ""
 
-    for new_response in model.stream_chat(tokenizer, query, history, **gen_kwargs):
+    for new_response, _ in model.stream_chat(tokenizer, query, history, **gen_kwargs):
         if new_response == old_response:
             continue
 
