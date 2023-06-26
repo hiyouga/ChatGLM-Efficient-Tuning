@@ -150,7 +150,7 @@ def load_valuehead_params(model: torch.nn.Module, checkpoint_dir: os.PathLike) -
     return True
 
 
-def auto_configure_device_map(num_gpus: int) -> Dict[str, int]:
+def auto_configure_device_map(num_gpus: int, use_v2: bool) -> Dict[str, int]:
     r"""
     Configures device map for ChatGLM.
 
@@ -158,7 +158,22 @@ def auto_configure_device_map(num_gpus: int) -> Dict[str, int]:
     """
     num_layers = 28
     layers_per_gpu = 30 / num_gpus
-    device_map = {"transformer.word_embeddings": 0, "transformer.final_layernorm": 0, "transformer.prefix_encoder": 0, "lm_head": 0}
+    if use_v2:
+        device_map = {
+            "transformer.embedding.word_embeddings": 0,
+            "transformer.encoder.final_layernorm": 0,
+            "transformer.output_layer": 0,
+            "transformer.rotary_pos_emb": 0,
+            "lm_head": 0
+        }
+    else:
+        device_map = {
+            "transformer.word_embeddings": 0,
+            "transformer.final_layernorm": 0,
+            "transformer.prefix_encoder": 0,
+            "lm_head": 0
+        }
+
     added_layers = 2
     target_gpu = 0
 
@@ -167,7 +182,10 @@ def auto_configure_device_map(num_gpus: int) -> Dict[str, int]:
             target_gpu += 1
             added_layers = 0
         assert target_gpu < num_gpus
-        device_map[f"transformer.layers.{i}"] = target_gpu
+        if use_v2:
+            device_map[f"transformer.encoder.layers.{i}"] = target_gpu
+        else:
+            device_map[f"transformer.layers.{i}"] = target_gpu
         added_layers += 1
 
     return device_map
