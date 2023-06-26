@@ -371,6 +371,12 @@ def prepare_data(
         if sha1 != hash:
             logger.warning("Checksum failed for {}. It may vary depending on the platform.".format(file_path))
 
+    ext2type = {
+        "csv": "csv",
+        "json": "json",
+        "jsonl": "json"
+    }
+
     max_samples = data_args.max_samples
     all_datasets: List[Dataset] = [] # support multiple datasets
 
@@ -378,38 +384,47 @@ def prepare_data(
 
         logger.info("Loading dataset {}...".format(dataset_attr))
 
+        logger.info("Loading dataset {}...".format(dataset_attr))
+
         if dataset_attr.load_from == "hf_hub":
-            raw_datasets = load_dataset(dataset_attr.dataset_name, cache_dir=model_args.cache_dir)
+            data_path = dataset_attr.dataset_name
+            data_files = None
         elif dataset_attr.load_from == "script":
-            raw_datasets = load_dataset(
-                os.path.join(data_args.dataset_dir, dataset_attr.dataset_name),
-                cache_dir=model_args.cache_dir
-            )
+            data_path = os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)
+            data_files = None
         elif dataset_attr.load_from == "file":
-            data_file = os.path.join(data_args.dataset_dir, dataset_attr.file_name) # support json, jsonl and csv
+            data_path = None
+            data_files: List[str] = []
 
-            extension = dataset_attr.file_name.split(".")[-1]
-            if extension == "csv":
-                file_type = "csv"
-            elif extension == "json" or extension == "jsonl":
-                file_type = "json"
+            if os.path.isdir(os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)):
+                for file_name in os.listdir(os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)):
+                    data_files.append(os.path.join(data_args.dataset_dir, dataset_attr.dataset_name, file_name))
+
+                    if data_path is None:
+                        data_path = ext2type.get(data_files[0].split(".")[-1], None)
+                    else:
+                        assert ext2type.get(data_files[-1].split(".")[-1], None) == data_path, "file type does not match."
+            elif os.path.isfile(os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)):
+                data_files.append(os.path.join(data_args.dataset_dir, dataset_attr.dataset_name))
+                data_path = ext2type.get(data_files[0].split(".")[-1], None)
             else:
-                raise ValueError("File extension must be csv, json or jsonl.")
+                raise ValueError("File not found.")
 
-            if dataset_attr.file_sha1 is not None:
-                checksum(data_file, dataset_attr.file_sha1)
+            assert data_path, "File extension must be csv, json or jsonl."
+
+            if len(data_files) == 1 and dataset_attr.dataset_sha1 is not None:
+                checksum(data_files[0], dataset_attr.dataset_sha1)
             else:
-                logger.warning("Checksum failed: missing SHA-1 hash value in dataset_info.json.")
-
-            raw_datasets = load_dataset(
-                file_type,
-                data_files=data_file,
-                cache_dir=model_args.cache_dir,
-                use_auth_token=True if model_args.use_auth_token else None
-            )
+                logger.warning("Checksum failed: missing SHA-1 hash value in dataset_info.json or too many files.")
         else:
             raise NotImplementedError
 
+        raw_datasets = load_dataset(
+            data_path,
+            data_files=data_files,
+            cache_dir=model_args.cache_dir,
+            use_auth_token=True if model_args.use_auth_token else None
+        )
         dataset = raw_datasets[data_args.split]
 
         if max_samples is not None:
@@ -533,21 +548,22 @@ def preprocess_data(
 
     def print_sft_dataset_example(example):
         print("input_ids:\n{}".format(example["input_ids"]))
-        print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
+        print("inputs:\n{}".format(tokenizer.decode(example["input_ids"], skip_special_tokens=False)))
         print("label_ids:\n{}".format(example["labels"]))
         print("labels:\n{}".format(
-            tokenizer.decode([d if d != IGNORE_INDEX else tokenizer.pad_token_id for d in example["labels"]]))
-        )
+            tokenizer.decode([d if d != IGNORE_INDEX else tokenizer.pad_token_id for d in example["labels"]],
+                             skip_special_tokens=False)
+        ))
 
     def print_pairwise_dataset_example(example):
         print("accept_ids:\n{}".format(example["accept_ids"]))
-        print("accepts:\n{}".format(tokenizer.decode(example["accept_ids"])))
+        print("accepts:\n{}".format(tokenizer.decode(example["accept_ids"], skip_special_tokens=False)))
         print("reject_ids:\n{}".format(example["reject_ids"]))
-        print("rejects:\n{}".format(tokenizer.decode(example["reject_ids"])))
+        print("rejects:\n{}".format(tokenizer.decode(example["reject_ids"], skip_special_tokens=False)))
 
     def print_ppo_dataset_example(example):
         print("input_ids:\n{}".format(example["input_ids"]))
-        print("inputs:\n{}".format(tokenizer.decode(example["input_ids"])))
+        print("inputs:\n{}".format(tokenizer.decode(example["input_ids"], skip_special_tokens=False)))
 
     if stage == "sft":
         preprocess_function = preprocess_evaluation_dataset \
