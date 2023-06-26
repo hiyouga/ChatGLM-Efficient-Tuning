@@ -222,14 +222,13 @@ def load_pretrained(
         model.get_input_embeddings = MethodType(get_input_embeddings, model)
         model.lm_head = model.transformer.output_layer # need fix: cast to float
 
-        tokenizer.bos_token = "sop"
+        tokenizer.bos_token = "<s>"
         tokenizer.eos_token = "</s>"
         def build_inputs_with_special_tokens(self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None) -> List[int]:
             prefix_tokens = self.get_prefix_tokens()
+            token_ids_0 = prefix_tokens + token_ids_0
             if token_ids_1 is not None:
-                token_ids_0 = token_ids_0 + prefix_tokens + token_ids_1 + [self.get_command("<eos>")]
-            else:
-                token_ids_0 = prefix_tokens + token_ids_0
+                token_ids_0 = token_ids_0 + [self.get_command("<bos>")] + token_ids_1 + [self.get_command("<eos>")]
             return token_ids_0
         tokenizer.build_inputs_with_special_tokens = MethodType(build_inputs_with_special_tokens, tokenizer)
 
@@ -468,15 +467,15 @@ def preprocess_data(
                 yield prompt, answer
 
     def preprocess_supervised_dataset(examples):
-        # V1: build inputs with format `X [gMASK] <sop> Y <eop>` and labels with format `[IGNORE] ... [IGNORE] Y <eop>`
-        # V2: build inputs with format `X [gMASK] sop Y </s>` and labels with format `[IGNORE] ... [IGNORE] Y </s>`
+        # v1: build inputs with format `X [gMASK] <sop> Y <eop>` and labels with format `[IGNORE] ... [IGNORE] Y <eop>`
+        # v2: build inputs with format `[gMASK] sop X <s> Y </s>` and labels with format `[IGNORE] ... [IGNORE] Y </s>`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
             target_ids = tokenizer.encode(text=answer, add_special_tokens=False)
 
-            if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
-                source_ids = source_ids[:data_args.max_source_length - 2]
+            if len(source_ids) > data_args.max_source_length - 3: # gmask, sop and bos tokens
+                source_ids = source_ids[:data_args.max_source_length - 3]
             if len(target_ids) > data_args.max_target_length - 1: # eos token
                 target_ids = target_ids[:data_args.max_target_length - 1]
 
@@ -490,8 +489,8 @@ def preprocess_data(
         return model_inputs
 
     def preprocess_evaluation_dataset(examples):
-        # V1: build inputs with format `X [gMASK] <sop>` and labels with format `Y [gMASK] <sop>`
-        # V2: build inputs with format `X [gMASK] sop` and labels with format `Y [gMASK] sop`
+        # v1: build inputs with format `X [gMASK] <sop>` and labels with format `Y [gMASK] <sop>`
+        # v2: build inputs with format `[gMASK] sop X` and labels with format `[gMASK] sop Y`
         model_inputs = {"input_ids": [], "labels": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
@@ -510,16 +509,16 @@ def preprocess_data(
         return model_inputs
 
     def preprocess_pairwise_dataset(examples):
-        # build input pairs with format `X [gMASK] <sop> Y1 <eop>` and `X [gMASK] <sop> Y2 <eop>`
-        # build input pairs with format `X [gMASK] sop Y1 </s>` and `X [gMASK] sop Y2 </s>`
+        # v1: build input pairs with format `X [gMASK] <sop> Y1 <eop>` and `X [gMASK] <sop> Y2 <eop>`
+        # v2: build input pairs with format `[gMASK] sop X <s> Y1 </s>` and `[gMASK] sop X <s> Y2 </s>`
         model_inputs = {"accept_ids": [], "reject_ids": []}
         for prompt, answer in format_example(examples):
             source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
             accept_ids = tokenizer.encode(text=answer[0], add_special_tokens=False)
             reject_ids = tokenizer.encode(text=answer[1], add_special_tokens=False)
 
-            if len(source_ids) > data_args.max_source_length - 2: # gmask and bos tokens
-                source_ids = source_ids[:data_args.max_source_length - 2]
+            if len(source_ids) > data_args.max_source_length - 3: # gmask, sop and bos tokens
+                source_ids = source_ids[:data_args.max_source_length - 3]
             if len(accept_ids) > data_args.max_target_length - 1: # eos token
                 accept_ids = accept_ids[:data_args.max_target_length - 1]
             if len(reject_ids) > data_args.max_target_length - 1: # eos token
