@@ -38,13 +38,14 @@ class ComputeMetrics:
         if isinstance(preds, tuple):
             preds = preds[0]
 
-        # Replace IGNORE_INDEX in the labels with pad_token_id as we cannot decode them if ignore_pad_token_for_loss=True.
+        # Replace IGNORE_INDEX in the labels with pad_token_id as we cannot decode them.
         preds = np.where(preds != IGNORE_INDEX, preds, self.tokenizer.pad_token_id)
         labels = np.where(labels != IGNORE_INDEX, labels, self.tokenizer.pad_token_id)
 
+        preds = preds[:, labels.shape[1]:] # remove prompts
         score_dict = {"rouge-1": [], "rouge-2": [], "rouge-l": [], "bleu-4": []}
+
         for pred, label in zip(preds, labels):
-            pred = pred[(pred == self.tokenizer.bos_token_id).nonzero()[0][0]:] # remove the query
             hypothesis = list(jieba.cut(self.tokenizer.decode(pred, skip_special_tokens=True)))
             reference = list(jieba.cut(self.tokenizer.decode(label, skip_special_tokens=True)))
 
@@ -85,7 +86,7 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
         preds = np.where(predict_results.predictions != IGNORE_INDEX, predict_results.predictions, self.tokenizer.pad_token_id)
         labels = np.where(predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids, self.tokenizer.pad_token_id)
 
-        preds = [pred[(pred == self.tokenizer.bos_token_id).nonzero()[0][0]:] for pred in preds] # remove the queries
+        preds = preds[:, labels.shape[1]:] # remove prompts
         preds = [tokenizer.decode(pred, skip_special_tokens=True).strip() for pred in preds]
         labels = [tokenizer.decode(label, skip_special_tokens=True).strip() for label in labels]
 

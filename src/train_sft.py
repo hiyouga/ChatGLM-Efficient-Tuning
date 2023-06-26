@@ -24,7 +24,12 @@ def main():
     dataset = prepare_data(model_args, data_args)
     model, tokenizer = load_pretrained(model_args, finetuning_args, training_args.do_train, stage="sft")
     dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="sft")
-    data_collator = DataCollatorForChatGLM(tokenizer, model, data_args.ignore_pad_token_for_loss, use_v2=model_args.use_v2)
+    data_collator = DataCollatorForChatGLM(
+        tokenizer=tokenizer,
+        model=model,
+        ignore_pad_token_for_loss=(data_args.ignore_pad_token_for_loss and not training_args.predict_with_generate),
+        use_v2=model_args.use_v2
+    )
 
     # Override the decoding parameters of Seq2SeqTrainer
     training_args.generation_max_length = training_args.generation_max_length if \
