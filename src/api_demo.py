@@ -31,6 +31,21 @@ async def lifespan(app: FastAPI): # collects GPU memory
 app = FastAPI(lifespan=lifespan)
 
 
+class ModelCard(BaseModel):
+    id: str
+    object: str = "model"
+    created: int = Field(default_factory=lambda: int(time.time()))
+    owned_by: str = "owner"
+    root: Optional[str] = None
+    parent: Optional[str] = None
+    permission: Optional[list] = None
+
+
+class ModelList(BaseModel):
+    object: str = "list"
+    data: List[ModelCard] = []
+
+
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant", "system"]
     content: str
@@ -70,6 +85,13 @@ class ChatCompletionResponse(BaseModel):
     created: Optional[int] = Field(default_factory=lambda: int(time.time()))
 
 
+@app.get("/v1/models", response_model=ModelList)
+async def list_models():
+    global model_args
+    model_card = ModelCard(id="gpt-3.5-turbo")
+    return ModelList(data=[model_card])
+
+
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 async def create_chat_completion(request: ChatCompletionRequest):
     global model, tokenizer, generating_args
@@ -91,12 +113,14 @@ async def create_chat_completion(request: ChatCompletionRequest):
     gen_kwargs = generating_args.to_dict()
     gen_kwargs.update({
         "temperature": request.temperature if request.temperature else gen_kwargs["temperature"],
-        "top_p": request.top_p if request.top_p else gen_kwargs["top_p"],
-        "max_length": request.max_length if request.max_length else gen_kwargs["max_length"],
-        "max_new_tokens": request.max_new_tokens if request.max_new_tokens else gen_kwargs["max_new_tokens"],
+        "top_p": request.top_p if request.top_p else gen_kwargs["top_p"]
     })
-    if gen_kwargs["max_new_tokens"]:
-        del gen_kwargs["max_length"]
+    if request.max_length:
+        gen_kwargs.pop("max_new_tokens", None)
+        gen_kwargs["max_length"] = request.max_length
+    if request.max_new_tokens:
+        gen_kwargs.pop("max_length", None)
+        gen_kwargs["max_new_tokens"] = request.max_new_tokens
 
     if request.stream:
         generate = predict(query, history, gen_kwargs, request.model)
