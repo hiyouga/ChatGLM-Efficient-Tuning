@@ -226,9 +226,10 @@ def load_pretrained(
         tokenizer.eos_token = "</s>"
         def build_inputs_with_special_tokens(self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None) -> List[int]:
             prefix_tokens = self.get_prefix_tokens()
-            token_ids_0 = token_ids_0 + prefix_tokens
             if token_ids_1 is not None:
-                token_ids_0 = token_ids_0 + token_ids_1 + [self.get_command("<eos>")]
+                token_ids_0 = token_ids_0 + prefix_tokens + token_ids_1 + [self.get_command("<eos>")]
+            else:
+                token_ids_0 = prefix_tokens + token_ids_0
             return token_ids_0
         tokenizer.build_inputs_with_special_tokens = MethodType(build_inputs_with_special_tokens, tokenizer)
 
