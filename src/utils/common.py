@@ -468,16 +468,12 @@ def preprocess_data(
         for i in range(len(examples["prompt"])):
             if examples["prompt"][i] and examples["response"][i]:
                 query, answer = examples["prompt"][i], examples["response"][i]
-                if examples["query"][i]:
-                    query += examples["query"][i]
-                if examples["history"][i]:
-                    prompt = ""
-                    history = examples["history"][i]
-                    for j, (old_query, response) in enumerate(history):
-                        prompt += "[Round {}]\n问：{}\n答：{}\n".format(j, old_query, response)
-                    prompt += "[Round {}]\n问：{}\n答：".format(len(history), query)
-                else:
-                    prompt = query
+                query = query + examples["query"][i] if examples["query"][i] else query
+                history = examples["history"][i] if examples["history"][i] else []
+                prompt = ""
+                for j, (old_query, response) in enumerate(history):
+                    prompt += "[Round {}]\n\n问：{}\n\n答：{}\n\n".format(j+1, old_query, response)
+                prompt += "[Round {}]\n\n问：{}\n\n答：".format(len(history)+1, query)
                 prompt = prefix + prompt
                 yield prompt, answer
 
