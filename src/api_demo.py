@@ -47,6 +47,7 @@ class ChatCompletionRequest(BaseModel):
     temperature: Optional[float] = None
     top_p: Optional[float] = None
     max_length: Optional[int] = None
+    max_new_tokens: Optional[int] = None
     stream: Optional[bool] = False
 
 
@@ -92,7 +93,10 @@ async def create_chat_completion(request: ChatCompletionRequest):
         "temperature": request.temperature if request.temperature else gen_kwargs["temperature"],
         "top_p": request.top_p if request.top_p else gen_kwargs["top_p"],
         "max_length": request.max_length if request.max_length else gen_kwargs["max_length"],
+        "max_new_tokens": request.max_new_tokens if request.max_new_tokens else gen_kwargs["max_new_tokens"],
     })
+    if gen_kwargs["max_new_tokens"]:
+        del gen_kwargs["max_length"]
 
     if request.stream:
         generate = predict(query, history, gen_kwargs, request.model)
