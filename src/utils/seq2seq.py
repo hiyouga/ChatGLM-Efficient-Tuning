@@ -37,9 +37,8 @@ class ComputeMetrics:
         score_dict = {"rouge-1": [], "rouge-2": [], "rouge-l": [], "bleu-4": []}
 
         for pred, label in zip(preds, labels):
-            padding_length = np.sum(label == IGNORE_INDEX)
-            pred = pred[len(label) - padding_length : len(pred) - (padding_length * 2)] # remove prompts
-            label = np.where(label != IGNORE_INDEX, label, self.tokenizer.pad_token_id)
+            pred = pred[len(label) - np.sum(label == IGNORE_INDEX) : len(pred) - np.sum(pred == IGNORE_INDEX)] # remove prompts
+            label = label[:len(label) - np.sum(label == IGNORE_INDEX)]
 
             hypothesis = list(jieba.cut(self.tokenizer.decode(pred, skip_special_tokens=True)))
             reference = list(jieba.cut(self.tokenizer.decode(label, skip_special_tokens=True)))
@@ -67,8 +66,7 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
 
     def save_predictions(
             self,
-            predict_results: PredictionOutput,
-            tokenizer: PreTrainedTokenizer
+            predict_results: PredictionOutput
     ) -> None:
         r"""
         Saves model predictions to `output_dir`.
@@ -82,14 +80,13 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
         logger.info(f"Saving prediction results to {output_prediction_file}")
         with open(output_prediction_file, "w", encoding="utf-8") as writer:
             res: List[str] = []
-
             for pred, label in zip(predict_results.predictions, predict_results.label_ids):
-                padding_length = np.sum(label == IGNORE_INDEX)
-                pred = pred[len(label) - padding_length : len(pred) - (padding_length * 2)] # remove prompts
-                label = np.where(label != IGNORE_INDEX, label, self.tokenizer.pad_token_id)
+                pred = pred[len(label) - np.sum(label == IGNORE_INDEX) : len(pred) - np.sum(pred == IGNORE_INDEX)] # remove prompts
+                label = label[:len(label) - np.sum(label == IGNORE_INDEX)]
 
                 pred = self.tokenizer.decode(pred, skip_special_tokens=True)
                 label = self.tokenizer.decode(label, skip_special_tokens=True)
 
                 res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
+
             writer.write("\n".join(res))
