@@ -4,13 +4,14 @@
 date=`date +%Y%m%d%H`
 
 # params
-model="rec_reason_v1_chatglm26b"
-sft_data="rec_reason_train"
+model="intention_4bit_v1_chatglm26b"
+sft_data="intention_train"
 output_dir="./model/"${model}"_ckp"
 log_dir="./log/"${model}"_"${date}
 
 # default
 model_base_dir="/home/apps/gzx/LocalModelHub"
+# model_base_dir="/data/jupyterlab/gzx/LocalModelHub/"
 chatglm2_6b=${model_base_dir}"/chatglm2_6b/hf"
 
 set -x
@@ -33,4 +34,5 @@ accelerate launch ./src/train_sft.py \
     --max_target_length 2048 \
     --ddp_find_unused_parameters False \
     --num_train_epochs 3.0 \
+    --quantization_bit 4 \
     --fp16 &>> ${log_dir}

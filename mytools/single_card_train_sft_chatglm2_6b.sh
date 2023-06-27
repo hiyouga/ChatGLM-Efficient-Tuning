@@ -1,16 +1,22 @@
 #!/bin/bash
 
+# date
+date=`date +%Y%m%d%H`
+
 # params
-model="rec_reason_v1_chatglm26b_ckp"
-sft_data="rec_reason_train"
-output_dir="./model/"${model}
+gpu_id=2
+model="intention_v1_chatglm26b"
+sft_data="intention_train"
+output_dir="./model/"${model}"_ckp"
+log_dir="./log/"${model}"_"${date}
 
 # default
 model_base_dir="/home/apps/gzx/LocalModelHub"
+# model_base_dir="/data/jupyterlab/gzx/LocalModelHub/"
 chatglm2_6b=${model_base_dir}"/chatglm2_6b/hf"
 
 set -x
-CUDA_VISIBLE_DEVICES=7 python ./src/train_sft.py \
+CUDA_VISIBLE_DEVICES=${gpu_id} python ./src/train_sft.py \
     --model_name_or_path ${chatglm2_6b} \
     --use_v2 \
     --do_train \
@@ -29,4 +35,4 @@ CUDA_VISIBLE_DEVICES=7 python ./src/train_sft.py \
     --max_target_length 2048 \
     --ddp_find_unused_parameters False \
     --num_train_epochs 3.0 \
-    --fp16
+    --fp16 &>> ${log_dir}
