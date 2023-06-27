@@ -1,0 +1,878 @@
+[2023-06-27 14:39:26,156] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2023-06-27 14:39:28,602] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2023-06-27 14:39:28,780] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+
+===================================BUG REPORT===================================
+Welcome to bitsandbytes. For bug reports, please run
+
+python -m bitsandbytes
+
+ and submit this information together with your error trace to: https://github.com/TimDettmers/bitsandbytes/issues
+================================================================================
+bin /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: /home/apps/anaconda3/envs/chatglm_peft_gzx did not contain ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] as expected! Searching further paths...
+  warn(msg)
+CUDA SETUP: CUDA runtime path found: /usr/local/cuda-11.2/lib64/libcudart.so.11.0
+CUDA SETUP: Highest compute capability among GPUs detected: 7.5
+CUDA SETUP: Detected CUDA version 112
+CUDA SETUP: Loading binary /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so...
+
+===================================BUG REPORT===================================
+Welcome to bitsandbytes. For bug reports, please run
+
+python -m bitsandbytes
+
+ and submit this information together with your error trace to: https://github.com/TimDettmers/bitsandbytes/issues
+================================================================================
+bin /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: /home/apps/anaconda3/envs/chatglm_peft_gzx did not contain ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] as expected! Searching further paths...
+  warn(msg)
+CUDA SETUP: CUDA runtime path found: /usr/local/cuda-11.2/lib64/libcudart.so
+CUDA SETUP: Highest compute capability among GPUs detected: 7.5
+CUDA SETUP: Detected CUDA version 112
+CUDA SETUP: Loading binary /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so...
+06/27/2023 14:39:30 - INFO - torch.distributed.distributed_c10d - Added key: store_based_barrier_key:1 to store for rank: 0
+06/27/2023 14:39:30 - INFO - torch.distributed.distributed_c10d - Added key: store_based_barrier_key:1 to store for rank: 1
+06/27/2023 14:39:30 - INFO - torch.distributed.distributed_c10d - Rank 1: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+06/27/2023 14:39:30 - INFO - utils.common - Process rank: 1, device: cuda:1, n_gpu: 1
+  distributed training: True, 16-bits training: True
+06/27/2023 14:39:30 - INFO - utils.common - Training/evaluation parameters Seq2SeqTrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=False,
+bf16_full_eval=False,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=False,
+ddp_timeout=1800,
+debug=[],
+deepspeed=None,
+disable_tqdm=False,
+do_eval=False,
+do_predict=False,
+do_train=True,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=True,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'fsdp_min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+generation_config=None,
+generation_max_length=None,
+generation_num_beams=None,
+gradient_accumulation_steps=16,
+gradient_checkpointing=False,
+greater_is_better=None,
+group_by_length=False,
+half_precision_backend=auto,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=0.001,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=1,
+log_level=passive,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=./model/rec_reason_v1_chatglm26b_ckp/runs/Jun27_14-39-30_localhost.localdomain,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=10,
+logging_strategy=steps,
+lr_scheduler_type=cosine,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mp_parameters=,
+no_cuda=False,
+num_train_epochs=3.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=./model/rec_reason_v1_chatglm26b_ckp,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=8,
+per_device_train_batch_size=1,
+predict_with_generate=False,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+ray_scope=last,
+remove_unused_columns=True,
+report_to=[],
+resume_from_checkpoint=None,
+run_name=./model/rec_reason_v1_chatglm26b_ckp,
+save_on_each_node=False,
+save_safetensors=False,
+save_steps=1000,
+save_strategy=steps,
+save_total_limit=None,
+seed=42,
+sharded_ddp=[],
+skip_memory_metrics=True,
+sortish_sampler=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+xpu_backend=None,
+)
+06/27/2023 14:39:30 - INFO - utils.common - Loading dataset /home/apps/gzx/LocalDataHub/sft/rec_reason_training_task.json...
+06/27/2023 14:39:30 - WARNING - utils.common - Checksum failed: missing SHA-1 hash value in dataset_info.json or too many files.
+06/27/2023 14:39:30 - INFO - torch.distributed.distributed_c10d - Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+06/27/2023 14:39:30 - INFO - utils.common - Process rank: 0, device: cuda:0, n_gpu: 1
+  distributed training: True, 16-bits training: True
+06/27/2023 14:39:30 - INFO - utils.common - Training/evaluation parameters Seq2SeqTrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=False,
+bf16_full_eval=False,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=False,
+ddp_timeout=1800,
+debug=[],
+deepspeed=None,
+disable_tqdm=False,
+do_eval=False,
+do_predict=False,
+do_train=True,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=True,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'fsdp_min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+generation_config=None,
+generation_max_length=None,
+generation_num_beams=None,
+gradient_accumulation_steps=16,
+gradient_checkpointing=False,
+greater_is_better=None,
+group_by_length=False,
+half_precision_backend=auto,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=0.001,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=0,
+log_level=passive,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=./model/rec_reason_v1_chatglm26b_ckp/runs/Jun27_14-39-30_localhost.localdomain,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=10,
+logging_strategy=steps,
+lr_scheduler_type=cosine,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mp_parameters=,
+no_cuda=False,
+num_train_epochs=3.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=./model/rec_reason_v1_chatglm26b_ckp,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=8,
+per_device_train_batch_size=1,
+predict_with_generate=False,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+ray_scope=last,
+remove_unused_columns=True,
+report_to=[],
+resume_from_checkpoint=None,
+run_name=./model/rec_reason_v1_chatglm26b_ckp,
+save_on_each_node=False,
+save_safetensors=False,
+save_steps=1000,
+save_strategy=steps,
+save_total_limit=None,
+seed=42,
+sharded_ddp=[],
+skip_memory_metrics=True,
+sortish_sampler=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+xpu_backend=None,
+)
+06/27/2023 14:39:30 - INFO - utils.common - Loading dataset /home/apps/gzx/LocalDataHub/sft/rec_reason_training_task.json...
+06/27/2023 14:39:30 - WARNING - utils.common - Checksum failed: missing SHA-1 hash value in dataset_info.json or too many files.
+06/27/2023 14:39:31 - INFO - datasets.builder - Using custom data configuration default-e03ba5b173cf57e1
+06/27/2023 14:39:31 - INFO - datasets.info - Loading Dataset Infos from /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/datasets/packaged_modules/json
+06/27/2023 14:39:31 - INFO - datasets.builder - Overwrite dataset info from restored data version if exists.
+06/27/2023 14:39:31 - INFO - datasets.info - Loading Dataset info from /home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4
+06/27/2023 14:39:31 - WARNING - datasets.builder - Found cached dataset json (/home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4)
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 572.29it/s]
+06/27/2023 14:39:31 - WARNING - datasets.builder - Found cached dataset json (/home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4)
+06/27/2023 14:39:31 - INFO - datasets.info - Loading Dataset info from /home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 631.77it/s]
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:39:31,890 >> loading file tokenizer.model
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:39:31,890 >> loading file added_tokens.json
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:39:31,890 >> loading file special_tokens_map.json
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:39:31,890 >> loading file tokenizer_config.json
+[WARNING|configuration_utils.py:549] 2023-06-27 14:39:31,920 >> You are using a model of type chatglm to instantiate a model of type . This is not supported for all configurations of models and can yield errors.
+[INFO|configuration_utils.py:667] 2023-06-27 14:39:31,923 >> loading configuration file /home/apps/gzx/LocalModelHub/chatglm2_6b/hf/config.json
+[INFO|configuration_utils.py:667] 2023-06-27 14:39:31,924 >> loading configuration file /home/apps/gzx/LocalModelHub/chatglm2_6b/hf/config.json
+[WARNING|configuration_utils.py:549] 2023-06-27 14:39:31,924 >> You are using a model of type chatglm to instantiate a model of type . This is not supported for all configurations of models and can yield errors.
+[INFO|configuration_utils.py:725] 2023-06-27 14:39:31,925 >> Model config ChatGLMConfig {
+  "_name_or_path": "/home/apps/gzx/LocalModelHub/chatglm2_6b/hf",
+  "add_bias_linear": false,
+  "add_qkv_bias": true,
+  "apply_query_key_layer_scaling": true,
+  "apply_residual_connection_post_layernorm": false,
+  "architectures": [
+    "ChatGLMModel"
+  ],
+  "attention_dropout": 0.0,
+  "attention_softmax_in_fp32": true,
+  "auto_map": {
+    "AutoConfig": "configuration_chatglm.ChatGLMConfig",
+    "AutoModel": "modeling_chatglm.ChatGLMForConditionalGeneration",
+    "AutoModelForSeq2SeqLM": "modeling_chatglm.ChatGLMForConditionalGeneration"
+  },
+  "bias_dropout_fusion": true,
+  "eos_token_id": 2,
+  "ffn_hidden_size": 13696,
+  "fp32_residual_connection": false,
+  "hidden_dropout": 0.0,
+  "hidden_size": 4096,
+  "kv_channels": 128,
+  "layernorm_epsilon": 1e-05,
+  "multi_query_attention": true,
+  "multi_query_group_num": 2,
+  "num_attention_heads": 32,
+  "num_layers": 28,
+  "original_rope": true,
+  "pad_token_id": 2,
+  "padded_vocab_size": 65024,
+  "post_layer_norm": true,
+  "quantization_bit": 0,
+  "rmsnorm": true,
+  "seq_length": 32768,
+  "tie_word_embeddings": false,
+  "torch_dtype": "float16",
+  "transformers_version": "4.30.2",
+  "use_cache": true
+}
+
+[INFO|modeling_utils.py:2575] 2023-06-27 14:39:32,006 >> loading weights file /home/apps/gzx/LocalModelHub/chatglm2_6b/hf/pytorch_model.bin.index.json
+[INFO|configuration_utils.py:577] 2023-06-27 14:39:32,007 >> Generate config GenerationConfig {
+  "_from_model_config": true,
+  "eos_token_id": 2,
+  "pad_token_id": 2,
+  "transformers_version": "4.30.2"
+}
+
+Loading checkpoint shards:   0%|          | 0/7 [00:00<?, ?it/s]Loading checkpoint shards:   0%|          | 0/7 [00:00<?, ?it/s]Loading checkpoint shards:  14%|█▍        | 1/7 [00:03<00:19,  3.32s/it]Loading checkpoint shards:  14%|█▍        | 1/7 [00:03<00:20,  3.34s/it]Loading checkpoint shards:  29%|██▊       | 2/7 [00:05<00:14,  2.88s/it]Loading checkpoint shards:  29%|██▊       | 2/7 [00:06<00:16,  3.38s/it]Loading checkpoint shards:  43%|████▎     | 3/7 [00:09<00:12,  3.07s/it]Loading checkpoint shards:  43%|████▎     | 3/7 [00:09<00:12,  3.25s/it]Loading checkpoint shards:  57%|█████▋    | 4/7 [00:11<00:08,  2.79s/it]Loading checkpoint shards:  57%|█████▋    | 4/7 [00:12<00:08,  2.91s/it]Loading checkpoint shards:  71%|███████▏  | 5/7 [00:15<00:06,  3.10s/it]Loading checkpoint shards:  71%|███████▏  | 5/7 [00:15<00:06,  3.21s/it]Loading checkpoint shards:  86%|████████▌ | 6/7 [00:19<00:03,  3.37s/it]Loading checkpoint shards:  86%|████████▌ | 6/7 [00:19<00:03,  3.34s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:21<00:00,  2.96s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:21<00:00,  3.03s/it]
+[INFO|modeling_utils.py:3295] 2023-06-27 14:39:53,320 >> All model checkpoint weights were used when initializing ChatGLMForConditionalGeneration.
+
+[INFO|modeling_utils.py:3303] 2023-06-27 14:39:53,320 >> All the weights of ChatGLMForConditionalGeneration were initialized from the model checkpoint at /home/apps/gzx/LocalModelHub/chatglm2_6b/hf.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use ChatGLMForConditionalGeneration for predictions without further training.
+[INFO|modeling_utils.py:2927] 2023-06-27 14:39:53,322 >> Generation config file not found, using a generation config created from the model config.
+06/27/2023 14:39:53 - INFO - utils.common - Fine-tuning method: LoRA
+Loading checkpoint shards: 100%|██████████| 7/7 [00:21<00:00,  2.92s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:21<00:00,  3.09s/it]
+06/27/2023 14:39:53 - INFO - utils.common - Fine-tuning method: LoRA
+trainable params: 1949696 || all params: 6245533696 || trainable%: 0.0312
+Running tokenizer on dataset:   0%|          | 0/5000 [00:00<?, ? examples/s]06/27/2023 14:40:00 - INFO - datasets.arrow_dataset - Caching processed dataset at /home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4/cache-4ef74f89af67c74a.arrow
+Running tokenizer on dataset:  20%|██        | 1000/5000 [00:00<00:02, 1581.32 examples/s]trainable params: 1949696 || all params: 6245533696 || trainable%: 0.0312
+Running tokenizer on dataset:  40%|████      | 2000/5000 [00:01<00:01, 1611.44 examples/s]Running tokenizer on dataset:  60%|██████    | 3000/5000 [00:01<00:01, 1621.74 examples/s]Running tokenizer on dataset:  80%|████████  | 4000/5000 [00:02<00:00, 1616.79 examples/s]Running tokenizer on dataset: 100%|██████████| 5000/5000 [00:03<00:00, 1620.29 examples/s]                                                                                          input_ids:
+[64790, 64792, 790, 30951, 517, 30910, 30939, 30996, 13, 13, 54761, 31211, 31822, 32065, 53015, 31791, 31744, 49635, 34677, 54619, 32941, 54530, 35195, 34677, 31123, 54556, 54236, 41578, 32941, 54530, 32727, 35195, 34677, 31123, 54724, 55155, 54571, 54236, 34677, 32667, 32911, 54887, 31123, 31696, 32363, 32495, 33652, 48084, 31123, 54952, 54744, 33840, 36410, 30966, 30940, 54550, 54952, 13, 296, 31791, 31744, 49635, 34677, 31211, 55163, 55149, 31007, 36053, 31007, 32645, 54931, 31007, 37035, 31007, 38427, 31007, 32033, 54931, 31007, 55430, 57264, 31007, 54940, 56949, 55835, 31007, 55120, 54635, 54931, 31007, 34277, 31007, 39783, 31007, 57212, 55386, 31007, 34454, 54931, 31007, 55120, 54635, 31007, 33408, 54936, 55202, 31007, 31638, 31007, 54620, 54561, 55145, 31007, 58686, 57440, 57440, 31007, 56635, 56048, 55529, 31007, 32330, 31709, 31007, 36463, 31007, 54940, 55608, 31007, 51219, 31007, 40136, 31123, 32941, 54611, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 54530, 35195, 34677, 31211, 43399, 31007, 55120, 54635, 54931, 31007, 55163, 55149, 13, 296, 13, 13, 55437, 31211, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+inputs:
+[Round 1]
+
+问：你的任务是根据我的历史偏好标签与影片的附属标签，来推断我喜欢影片的哪些附属标签，并仅用推断标签组成一段话，要求符合推荐理由的风格，字数尽量不超过30个字
+    我的历史偏好标签：益智|亲子|娱乐类|喜剧|冒险|游戏类|童谣|张秉君|早教类|动画|宠物|谭笑|辅导类|早教|英文儿歌|生活|合家欢|缪莹莹|贾晨露|语言能力|玩具|张伟|动画片|友情，影片《飞狗MOCO之我爱我家》的附属标签：奇幻|早教类|益智
+    
+
+答： 推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+labels:
+推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+Running tokenizer on dataset:   0%|          | 0/5000 [00:00<?, ? examples/s]Running tokenizer on dataset:  20%|██        | 1000/5000 [00:00<00:02, 1417.81 examples/s]Running tokenizer on dataset:  40%|████      | 2000/5000 [00:01<00:02, 1465.07 examples/s]Running tokenizer on dataset:  60%|██████    | 3000/5000 [00:02<00:01, 1475.51 examples/s]Running tokenizer on dataset:  80%|████████  | 4000/5000 [00:02<00:00, 1462.41 examples/s]Running tokenizer on dataset: 100%|██████████| 5000/5000 [00:03<00:00, 1464.82 examples/s]                                                                                          input_ids:
+[64790, 64792, 790, 30951, 517, 30910, 30939, 30996, 13, 13, 54761, 31211, 31822, 32065, 53015, 31791, 31744, 49635, 34677, 54619, 32941, 54530, 35195, 34677, 31123, 54556, 54236, 41578, 32941, 54530, 32727, 35195, 34677, 31123, 54724, 55155, 54571, 54236, 34677, 32667, 32911, 54887, 31123, 31696, 32363, 32495, 33652, 48084, 31123, 54952, 54744, 33840, 36410, 30966, 30940, 54550, 54952, 13, 296, 31791, 31744, 49635, 34677, 31211, 55163, 55149, 31007, 36053, 31007, 32645, 54931, 31007, 37035, 31007, 38427, 31007, 32033, 54931, 31007, 55430, 57264, 31007, 54940, 56949, 55835, 31007, 55120, 54635, 54931, 31007, 34277, 31007, 39783, 31007, 57212, 55386, 31007, 34454, 54931, 31007, 55120, 54635, 31007, 33408, 54936, 55202, 31007, 31638, 31007, 54620, 54561, 55145, 31007, 58686, 57440, 57440, 31007, 56635, 56048, 55529, 31007, 32330, 31709, 31007, 36463, 31007, 54940, 55608, 31007, 51219, 31007, 40136, 31123, 32941, 54611, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 54530, 35195, 34677, 31211, 43399, 31007, 55120, 54635, 54931, 31007, 55163, 55149, 13, 296, 13, 13, 55437, 31211, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+inputs:
+[Round 1]
+
+问：你的任务是根据我的历史偏好标签与影片的附属标签，来推断我喜欢影片的哪些附属标签，并仅用推断标签组成一段话，要求符合推荐理由的风格，字数尽量不超过30个字
+    我的历史偏好标签：益智|亲子|娱乐类|喜剧|冒险|游戏类|童谣|张秉君|早教类|动画|宠物|谭笑|辅导类|早教|英文儿歌|生活|合家欢|缪莹莹|贾晨露|语言能力|玩具|张伟|动画片|友情，影片《飞狗MOCO之我爱我家》的附属标签：奇幻|早教类|益智
+    
+
+答： 推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+labels:
+推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+[INFO|trainer.py:1786] 2023-06-27 14:40:17,758 >> ***** Running training *****
+[INFO|trainer.py:1787] 2023-06-27 14:40:17,759 >>   Num examples = 5,000
+[INFO|trainer.py:1788] 2023-06-27 14:40:17,759 >>   Num Epochs = 3
+[INFO|trainer.py:1789] 2023-06-27 14:40:17,759 >>   Instantaneous batch size per device = 1
+[INFO|trainer.py:1790] 2023-06-27 14:40:17,759 >>   Total train batch size (w. parallel, distributed & accumulation) = 32
+[INFO|trainer.py:1791] 2023-06-27 14:40:17,759 >>   Gradient Accumulation steps = 16
+[INFO|trainer.py:1792] 2023-06-27 14:40:17,759 >>   Total optimization steps = 468
+[INFO|trainer.py:1793] 2023-06-27 14:40:17,762 >>   Number of trainable parameters = 1,949,696
+  0%|          | 0/468 [00:00<?, ?it/s]  0%|          | 1/468 [00:06<48:41,  6.25s/it]06/27/2023 14:40:24 - INFO - torch.nn.parallel.distributed - Reducer buckets have been rebuilt in this iteration.
+06/27/2023 14:40:24 - INFO - torch.nn.parallel.distributed - Reducer buckets have been rebuilt in this iteration.
+  0%|          | 2/468 [00:11<44:05,  5.68s/it]  1%|          | 3/468 [00:16<41:58,  5.42s/it]  1%|          | 4/468 [00:21<40:54,  5.29s/it]  1%|          | 5/468 [00:26<40:31,  5.25s/it]  1%|▏         | 6/468 [00:32<40:24,  5.25s/it]  1%|▏         | 7/468 [00:37<40:45,  5.30s/it]  2%|▏         | 8/468 [00:42<40:34,  5.29s/it]  2%|▏         | 9/468 [00:48<40:42,  5.32s/it]  2%|▏         | 10/468 [00:53<41:40,  5.46s/it]                                                {'loss': 1.4184, 'learning_rate': 0.0009988738792578126, 'epoch': 0.06}
+  2%|▏         | 10/468 [00:53<41:40,  5.46s/it]WARNING:torch.distributed.elastic.agent.server.api:Received 2 death signal, shutting down workers
+WARNING:torch.distributed.elastic.multiprocessing.api:Sending process 102300 closing signal SIGINT
+WARNING:torch.distributed.elastic.multiprocessing.api:Sending process 102301 closing signal SIGINT
+Traceback (most recent call last):
+  File "/home/apps/gzx/ChatGLM_PEFT/ChatGLM-Efficient/./src/train_sft.py", line 105, in <module>
+    main()
+  File "/home/apps/gzx/ChatGLM_PEFT/ChatGLM-Efficient/./src/train_sft.py", line 73, in main
+    train_result = trainer.train()
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/transformers/trainer.py", line 1645, in train
+    return inner_training_loop(
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/transformers/trainer.py", line 1938, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/transformers/trainer.py", line 2770, in training_step
+Traceback (most recent call last):
+  File "/home/apps/gzx/ChatGLM_PEFT/ChatGLM-Efficient/./src/train_sft.py", line 105, in <module>
+    self.accelerator.backward(loss)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/accelerate/accelerator.py", line 1819, in backward
+    main()
+  File "/home/apps/gzx/ChatGLM_PEFT/ChatGLM-Efficient/./src/train_sft.py", line 73, in main
+    train_result = trainer.train()
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/transformers/trainer.py", line 1645, in train
+    self.scaler.scale(loss).backward(**kwargs)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/_tensor.py", line 487, in backward
+    return inner_training_loop(
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/transformers/trainer.py", line 1938, in _inner_training_loop
+    torch.autograd.backward(
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/autograd/__init__.py", line 200, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+KeyboardInterrupt
+    tr_loss_step = self.training_step(model, inputs)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/transformers/trainer.py", line 2770, in training_step
+    self.accelerator.backward(loss)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/accelerate/accelerator.py", line 1819, in backward
+    self.scaler.scale(loss).backward(**kwargs)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/_tensor.py", line 487, in backward
+    torch.autograd.backward(
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/autograd/__init__.py", line 200, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+KeyboardInterrupt
+  2%|▏         | 10/468 [00:55<42:28,  5.57s/it]
+Traceback (most recent call last):
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/bin/accelerate", line 8, in <module>
+    sys.exit(main())
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/accelerate/commands/accelerate_cli.py", line 45, in main
+    args.func(args)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/accelerate/commands/launch.py", line 932, in launch_command
+    multi_gpu_launcher(args)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/accelerate/commands/launch.py", line 627, in multi_gpu_launcher
+    distrib_run.run(args)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/distributed/run.py", line 785, in run
+    elastic_launch(
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 134, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 241, in launch_agent
+    result = agent.run()
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/distributed/elastic/metrics/api.py", line 129, in wrapper
+    result = f(*args, **kwargs)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/distributed/elastic/agent/server/api.py", line 723, in run
+    result = self._invoke_run(role)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/distributed/elastic/agent/server/api.py", line 864, in _invoke_run
+    time.sleep(monitor_interval)
+  File "/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 62, in _terminate_process_handler
+    raise SignalException(f"Process {os.getpid()} got signal: {sigval}", sigval=sigval)
+torch.distributed.elastic.multiprocessing.api.SignalException: Process 102238 got signal: 2
+[2023-06-27 14:44:45,926] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2023-06-27 14:44:48,598] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+[2023-06-27 14:44:48,603] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+
+===================================BUG REPORT===================================
+Welcome to bitsandbytes. For bug reports, please run
+
+python -m bitsandbytes
+
+ and submit this information together with your error trace to: https://github.com/TimDettmers/bitsandbytes/issues
+================================================================================
+
+===================================BUG REPORT===================================
+Welcome to bitsandbytes. For bug reports, please run
+
+python -m bitsandbytes
+
+ and submit this information together with your error trace to: https://github.com/TimDettmers/bitsandbytes/issues
+================================================================================
+bin /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: /home/apps/anaconda3/envs/chatglm_peft_gzx did not contain ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] as expected! Searching further paths...
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('http'), PosixPath('3928'), PosixPath('//172.22.17.106')}
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('vb=\\Eg'), PosixPath('li#55'), PosixPath('ks=\\E[?1h\\E='), PosixPath('F6=\\E[1;2S'), PosixPath('LP'), PosixPath('kR=\\E[1;2A'), PosixPath('co#238'), PosixPath('ve=\\E[34h\\E[?25h'), PosixPath('ku=\\EOA'), PosixPath('dc=\\E[P'), PosixPath('%e=\\E[5;2~'), PosixPath('ei=\\E[4l'), PosixPath('bs'), PosixPath('ue=\\E[24m'), PosixPath('LE=\\E[%dD'), PosixPath('mb=\\E[5m'), PosixPath('km'), PosixPath('kF=\\E[1;2B'), PosixPath('bt=\\E[Z'), PosixPath('kd=\\EOB'), PosixPath('AX'), PosixPath('F7=\\E[15;2~'), PosixPath('DO=\\E[%dB'), PosixPath('rc=\\E8'), PosixPath('%c=\\E[6;2~'), PosixPath('ce=\\E[K'), PosixPath('up=\\EM'), PosixPath('is=\\E)0'), PosixPath('AL=\\E[%dL'), PosixPath('FA=\\E[19;2~'), PosixPath('kP=\\E[5~'), PosixPath('kr=\\EOC'), PosixPath('kN=\\E[6~'), PosixPath('us=\\E[4m'), PosixPath('G0'), PosixPath('AB=\\E[4%dm'), PosixPath('AF=\\E[3%dm'), PosixPath('UP=\\E[%dA'), PosixPath('ms'), PosixPath('#4=\\E[1;2D'), PosixPath('#2=\\E[1;2H'), PosixPath('vi=\\E[?25l'), PosixPath('ac=\\140\\140aaffggjjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~..--++,,hhII00'), PosixPath('kB=\\E[Z'), PosixPath('op=\\E[39;49m'), PosixPath('sr=\\EM'), PosixPath('it#8'), PosixPath('k3=\\EOR'), PosixPath('sc=\\E7'), PosixPath('F2=\\E[24~'), PosixPath('se=\\E[23m'), PosixPath('k6=\\E[17~'), PosixPath('po=\\E[5i'), PosixPath('k2=\\EOQ'), PosixPath('mr=\\E[7m'), PosixPath('cm=\\E[%i%d;%dH'), PosixPath('ct=\\E[3g'), PosixPath('pa#64'), PosixPath('#3=\\E[2;2~'), PosixPath('k;=\\E[21~'), PosixPath('\\\n\t'), PosixPath('rs=\\Ec'), PosixPath('K2=\\EOE'), PosixPath('st=\\EH'), PosixPath('F4=\\E[1;2Q'), PosixPath('k1=\\EOP'), PosixPath('F1=\\E[23~'), PosixPath('F3=\\E[1;2P'), PosixPath('ti=\\E[?1049h'), PosixPath('ta=^I'), PosixPath('kl=\\EOD'), PosixPath('vs=\\E[34l'), PosixPath('le=^H'), PosixPath('Km=\\E[M'), PosixPath('am'), PosixPath('*4=\\E[3;2~'), PosixPath('DL=\\E[%dM'), PosixPath('kI=\\E[2~'), PosixPath('k4=\\EOS'), PosixPath('kh=\\E[1~'), PosixPath('k5=\\E[15~'), PosixPath('pf=\\E[4i'), PosixPath('F5=\\E[1;2R'), PosixPath('bl=^G'), PosixPath('@7=\\E[4~'), PosixPath('cr=^M'), PosixPath('nw=\\EE'), PosixPath('pt'), PosixPath('im=\\E[4h'), PosixPath('Co#8'), PosixPath('*7=\\E[1;2F'), PosixPath('@1=\\E[1~'), PosixPath('IC=\\E[%d@'), PosixPath('kH=\\E[4~'), PosixPath('as=\\E(0'), PosixPath('nd=\\E[C'), PosixPath('k7=\\E[18~'), PosixPath('dl=\\E[M'), PosixPath('cs=\\E[%i%d;%dr'), PosixPath('xv'), PosixPath('ke=\\E[?1l\\E>'), PosixPath('do=^J'), PosixPath('so=\\E[3m'), PosixPath('ho=\\E[H'), PosixPath('te=\\E[?1049l'), PosixPath('al=\\E[L'), PosixPath('F8=\\E[17;2~'), PosixPath('%i=\\E[1;2C'), PosixPath('SC|screen|VT 100/ANSI X3.64 virtual terminal'), PosixPath('DC=\\E[%dP'), PosixPath('xn'), PosixPath('kD=\\E[3~'), PosixPath('k0=\\E[10~'), PosixPath('cd=\\E[J'), PosixPath('RI=\\E[%dC'), PosixPath('md=\\E[1m'), PosixPath('ae=\\E(B'), PosixPath('F9=\\E[18;2~'), PosixPath('k8=\\E[19~'), PosixPath('mi'), PosixPath('kb=\x7f'), PosixPath('cl=\\E[H\\E[J'), PosixPath('k9=\\E[20~'), PosixPath('me=\\E[m')}
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('Asia/Shanghai')}
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('/tmp/torchelastic_g3_1lway/none_4kgs3nha/attempt_0/1/error.json')}
+  warn(msg)
+CUDA_SETUP: WARNING! libcudart.so not found in any environmental path. Searching in backup paths...
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: Found duplicate ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] files: {PosixPath('/usr/local/cuda/lib64/libcudart.so.11.0'), PosixPath('/usr/local/cuda/lib64/libcudart.so')}.. We'll flip a coin and try one of these, in order to fail forward.
+Either way, this might cause trouble in the future:
+If you get `CUDA error: invalid device function` errors, the above might be the cause and the solution is to make sure only one ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] in the paths that we search based on your env.
+  warn(msg)
+CUDA SETUP: CUDA runtime path found: /usr/local/cuda/lib64/libcudart.so.11.0
+CUDA SETUP: Highest compute capability among GPUs detected: 7.5
+CUDA SETUP: Detected CUDA version 112
+CUDA SETUP: Loading binary /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so...
+bin /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: /home/apps/anaconda3/envs/chatglm_peft_gzx did not contain ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] as expected! Searching further paths...
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('3928'), PosixPath('http'), PosixPath('//172.22.17.106')}
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('k4=\\EOS'), PosixPath('G0'), PosixPath('AL=\\E[%dL'), PosixPath('k9=\\E[20~'), PosixPath('%e=\\E[5;2~'), PosixPath('mi'), PosixPath('F3=\\E[1;2P'), PosixPath('sr=\\EM'), PosixPath('ti=\\E[?1049h'), PosixPath('rc=\\E8'), PosixPath('co#238'), PosixPath('k3=\\EOR'), PosixPath('DL=\\E[%dM'), PosixPath('kd=\\EOB'), PosixPath('k8=\\E[19~'), PosixPath('DO=\\E[%dB'), PosixPath('F4=\\E[1;2Q'), PosixPath('kF=\\E[1;2B'), PosixPath('ac=\\140\\140aaffggjjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~..--++,,hhII00'), PosixPath('kP=\\E[5~'), PosixPath('as=\\E(0'), PosixPath('pt'), PosixPath('st=\\EH'), PosixPath('K2=\\EOE'), PosixPath('LP'), PosixPath('#2=\\E[1;2H'), PosixPath('IC=\\E[%d@'), PosixPath('k7=\\E[18~'), PosixPath('us=\\E[4m'), PosixPath('#3=\\E[2;2~'), PosixPath('nw=\\EE'), PosixPath('pf=\\E[4i'), PosixPath('k5=\\E[15~'), PosixPath('ks=\\E[?1h\\E='), PosixPath('%i=\\E[1;2C'), PosixPath('Co#8'), PosixPath('xn'), PosixPath('F7=\\E[15;2~'), PosixPath('k6=\\E[17~'), PosixPath('F8=\\E[17;2~'), PosixPath('k;=\\E[21~'), PosixPath('F5=\\E[1;2R'), PosixPath('po=\\E[5i'), PosixPath('kB=\\E[Z'), PosixPath('LE=\\E[%dD'), PosixPath('it#8'), PosixPath('FA=\\E[19;2~'), PosixPath('up=\\EM'), PosixPath('kr=\\EOC'), PosixPath('\\\n\t'), PosixPath('AF=\\E[3%dm'), PosixPath('ue=\\E[24m'), PosixPath('ei=\\E[4l'), PosixPath('dl=\\E[M'), PosixPath('kD=\\E[3~'), PosixPath('pa#64'), PosixPath('AB=\\E[4%dm'), PosixPath('rs=\\Ec'), PosixPath('kN=\\E[6~'), PosixPath('se=\\E[23m'), PosixPath('ms'), PosixPath('ce=\\E[K'), PosixPath('@1=\\E[1~'), PosixPath('do=^J'), PosixPath('li#55'), PosixPath('le=^H'), PosixPath('ke=\\E[?1l\\E>'), PosixPath('kh=\\E[1~'), PosixPath('cl=\\E[H\\E[J'), PosixPath('k1=\\EOP'), PosixPath('cm=\\E[%i%d;%dH'), PosixPath('md=\\E[1m'), PosixPath('al=\\E[L'), PosixPath('UP=\\E[%dA'), PosixPath('ae=\\E(B'), PosixPath('kb=\x7f'), PosixPath('is=\\E)0'), PosixPath('so=\\E[3m'), PosixPath('kI=\\E[2~'), PosixPath('nd=\\E[C'), PosixPath('*7=\\E[1;2F'), PosixPath('km'), PosixPath('cd=\\E[J'), PosixPath('F9=\\E[18;2~'), PosixPath('vb=\\Eg'), PosixPath('DC=\\E[%dP'), PosixPath('mb=\\E[5m'), PosixPath('F2=\\E[24~'), PosixPath('@7=\\E[4~'), PosixPath('xv'), PosixPath('ho=\\E[H'), PosixPath('vs=\\E[34l'), PosixPath('*4=\\E[3;2~'), PosixPath('op=\\E[39;49m'), PosixPath('sc=\\E7'), PosixPath('F1=\\E[23~'), PosixPath('kl=\\EOD'), PosixPath('%c=\\E[6;2~'), PosixPath('kH=\\E[4~'), PosixPath('dc=\\E[P'), PosixPath('me=\\E[m'), PosixPath('ku=\\EOA'), PosixPath('ct=\\E[3g'), PosixPath('ta=^I'), PosixPath('k0=\\E[10~'), PosixPath('mr=\\E[7m'), PosixPath('bt=\\E[Z'), PosixPath('am'), PosixPath('RI=\\E[%dC'), PosixPath('#4=\\E[1;2D'), PosixPath('F6=\\E[1;2S'), PosixPath('Km=\\E[M'), PosixPath('k2=\\EOQ'), PosixPath('AX'), PosixPath('cs=\\E[%i%d;%dr'), PosixPath('cr=^M'), PosixPath('bs'), PosixPath('ve=\\E[34h\\E[?25h'), PosixPath('bl=^G'), PosixPath('te=\\E[?1049l'), PosixPath('im=\\E[4h'), PosixPath('kR=\\E[1;2A'), PosixPath('vi=\\E[?25l'), PosixPath('SC|screen|VT 100/ANSI X3.64 virtual terminal')}
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('Asia/Shanghai')}
+  warn(msg)
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: WARNING: The following directories listed in your path were found to be non-existent: {PosixPath('/tmp/torchelastic_g3_1lway/none_4kgs3nha/attempt_0/0/error.json')}
+  warn(msg)
+CUDA_SETUP: WARNING! libcudart.so not found in any environmental path. Searching in backup paths...
+/home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/cuda_setup/main.py:149: UserWarning: Found duplicate ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] files: {PosixPath('/usr/local/cuda/lib64/libcudart.so.11.0'), PosixPath('/usr/local/cuda/lib64/libcudart.so')}.. We'll flip a coin and try one of these, in order to fail forward.
+Either way, this might cause trouble in the future:
+If you get `CUDA error: invalid device function` errors, the above might be the cause and the solution is to make sure only one ['libcudart.so', 'libcudart.so.11.0', 'libcudart.so.12.0'] in the paths that we search based on your env.
+  warn(msg)
+CUDA SETUP: CUDA runtime path found: /usr/local/cuda/lib64/libcudart.so.11.0
+CUDA SETUP: Highest compute capability among GPUs detected: 7.5
+CUDA SETUP: Detected CUDA version 112
+CUDA SETUP: Loading binary /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/bitsandbytes/libbitsandbytes_cuda112.so...
+06/27/2023 14:44:50 - INFO - torch.distributed.distributed_c10d - Added key: store_based_barrier_key:1 to store for rank: 1
+06/27/2023 14:44:50 - INFO - torch.distributed.distributed_c10d - Added key: store_based_barrier_key:1 to store for rank: 0
+06/27/2023 14:44:50 - INFO - torch.distributed.distributed_c10d - Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+06/27/2023 14:44:50 - INFO - utils.common - Process rank: 0, device: cuda:0, n_gpu: 1
+  distributed training: True, 16-bits training: True
+06/27/2023 14:44:50 - INFO - utils.common - Training/evaluation parameters Seq2SeqTrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=False,
+bf16_full_eval=False,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=False,
+ddp_timeout=1800,
+debug=[],
+deepspeed=None,
+disable_tqdm=False,
+do_eval=False,
+do_predict=False,
+do_train=True,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=True,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'fsdp_min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+generation_config=None,
+generation_max_length=None,
+generation_num_beams=None,
+gradient_accumulation_steps=16,
+gradient_checkpointing=False,
+greater_is_better=None,
+group_by_length=False,
+half_precision_backend=auto,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=0.001,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=0,
+log_level=passive,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=./model/rec_reason_v1_chatglm26b_ckp/runs/Jun27_14-44-50_localhost.localdomain,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=10,
+logging_strategy=steps,
+lr_scheduler_type=cosine,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mp_parameters=,
+no_cuda=False,
+num_train_epochs=3.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=./model/rec_reason_v1_chatglm26b_ckp,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=8,
+per_device_train_batch_size=1,
+predict_with_generate=False,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+ray_scope=last,
+remove_unused_columns=True,
+report_to=[],
+resume_from_checkpoint=None,
+run_name=./model/rec_reason_v1_chatglm26b_ckp,
+save_on_each_node=False,
+save_safetensors=False,
+save_steps=1000,
+save_strategy=steps,
+save_total_limit=None,
+seed=42,
+sharded_ddp=[],
+skip_memory_metrics=True,
+sortish_sampler=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+xpu_backend=None,
+)
+06/27/2023 14:44:50 - INFO - utils.common - Loading dataset /home/apps/gzx/LocalDataHub/sft/rec_reason_training_task.json...
+06/27/2023 14:44:50 - WARNING - utils.common - Checksum failed: missing SHA-1 hash value in dataset_info.json or too many files.
+06/27/2023 14:44:50 - INFO - torch.distributed.distributed_c10d - Rank 1: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+06/27/2023 14:44:50 - INFO - utils.common - Process rank: 1, device: cuda:1, n_gpu: 1
+  distributed training: True, 16-bits training: True
+06/27/2023 14:44:50 - INFO - utils.common - Training/evaluation parameters Seq2SeqTrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=False,
+bf16_full_eval=False,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=False,
+ddp_timeout=1800,
+debug=[],
+deepspeed=None,
+disable_tqdm=False,
+do_eval=False,
+do_predict=False,
+do_train=True,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=True,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'fsdp_min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+generation_config=None,
+generation_max_length=None,
+generation_num_beams=None,
+gradient_accumulation_steps=16,
+gradient_checkpointing=False,
+greater_is_better=None,
+group_by_length=False,
+half_precision_backend=auto,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=0.001,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=1,
+log_level=passive,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=./model/rec_reason_v1_chatglm26b_ckp/runs/Jun27_14-44-50_localhost.localdomain,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=10,
+logging_strategy=steps,
+lr_scheduler_type=cosine,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mp_parameters=,
+no_cuda=False,
+num_train_epochs=3.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=./model/rec_reason_v1_chatglm26b_ckp,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=8,
+per_device_train_batch_size=1,
+predict_with_generate=False,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+ray_scope=last,
+remove_unused_columns=True,
+report_to=[],
+resume_from_checkpoint=None,
+run_name=./model/rec_reason_v1_chatglm26b_ckp,
+save_on_each_node=False,
+save_safetensors=False,
+save_steps=1000,
+save_strategy=steps,
+save_total_limit=None,
+seed=42,
+sharded_ddp=[],
+skip_memory_metrics=True,
+sortish_sampler=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+xpu_backend=None,
+)
+06/27/2023 14:44:50 - INFO - utils.common - Loading dataset /home/apps/gzx/LocalDataHub/sft/rec_reason_training_task.json...
+06/27/2023 14:44:50 - WARNING - utils.common - Checksum failed: missing SHA-1 hash value in dataset_info.json or too many files.
+06/27/2023 14:44:51 - INFO - datasets.builder - Using custom data configuration default-e03ba5b173cf57e1
+06/27/2023 14:44:51 - INFO - datasets.info - Loading Dataset Infos from /home/apps/anaconda3/envs/chatglm_peft_gzx/lib/python3.10/site-packages/datasets/packaged_modules/json
+06/27/2023 14:44:51 - INFO - datasets.builder - Overwrite dataset info from restored data version if exists.
+06/27/2023 14:44:51 - INFO - datasets.info - Loading Dataset info from /home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4
+06/27/2023 14:44:51 - WARNING - datasets.builder - Found cached dataset json (/home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4)
+06/27/2023 14:44:51 - INFO - datasets.info - Loading Dataset info from /home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00, 573.38it/s]
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:44:51,693 >> loading file tokenizer.model
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:44:51,694 >> loading file added_tokens.json
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:44:51,694 >> loading file special_tokens_map.json
+[INFO|tokenization_utils_base.py:1821] 2023-06-27 14:44:51,694 >> loading file tokenizer_config.json
+06/27/2023 14:44:51 - WARNING - datasets.builder - Found cached dataset json (/home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4)
+  0%|          | 0/1 [00:00<?, ?it/s][INFO|configuration_utils.py:667] 2023-06-27 14:44:51,727 >> loading configuration file /home/apps/gzx/LocalModelHub/chatglm2_6b/hf/config.json
+100%|██████████| 1/1 [00:00<00:00, 559.17it/s]
+[INFO|configuration_utils.py:667] 2023-06-27 14:44:51,728 >> loading configuration file /home/apps/gzx/LocalModelHub/chatglm2_6b/hf/config.json
+[WARNING|configuration_utils.py:549] 2023-06-27 14:44:51,728 >> You are using a model of type chatglm to instantiate a model of type . This is not supported for all configurations of models and can yield errors.
+[INFO|configuration_utils.py:725] 2023-06-27 14:44:51,729 >> Model config ChatGLMConfig {
+  "_name_or_path": "/home/apps/gzx/LocalModelHub/chatglm2_6b/hf",
+  "add_bias_linear": false,
+  "add_qkv_bias": true,
+  "apply_query_key_layer_scaling": true,
+  "apply_residual_connection_post_layernorm": false,
+  "architectures": [
+    "ChatGLMModel"
+  ],
+  "attention_dropout": 0.0,
+  "attention_softmax_in_fp32": true,
+  "auto_map": {
+    "AutoConfig": "configuration_chatglm.ChatGLMConfig",
+    "AutoModel": "modeling_chatglm.ChatGLMForConditionalGeneration",
+    "AutoModelForSeq2SeqLM": "modeling_chatglm.ChatGLMForConditionalGeneration"
+  },
+  "bias_dropout_fusion": true,
+  "eos_token_id": 2,
+  "ffn_hidden_size": 13696,
+  "fp32_residual_connection": false,
+  "hidden_dropout": 0.0,
+  "hidden_size": 4096,
+  "kv_channels": 128,
+  "layernorm_epsilon": 1e-05,
+  "multi_query_attention": true,
+  "multi_query_group_num": 2,
+  "num_attention_heads": 32,
+  "num_layers": 28,
+  "original_rope": true,
+  "pad_token_id": 2,
+  "padded_vocab_size": 65024,
+  "post_layer_norm": true,
+  "quantization_bit": 0,
+  "rmsnorm": true,
+  "seq_length": 32768,
+  "tie_word_embeddings": false,
+  "torch_dtype": "float16",
+  "transformers_version": "4.30.2",
+  "use_cache": true
+}
+
+[WARNING|configuration_utils.py:549] 2023-06-27 14:44:51,777 >> You are using a model of type chatglm to instantiate a model of type . This is not supported for all configurations of models and can yield errors.
+[INFO|modeling_utils.py:2575] 2023-06-27 14:44:51,810 >> loading weights file /home/apps/gzx/LocalModelHub/chatglm2_6b/hf/pytorch_model.bin.index.json
+[INFO|configuration_utils.py:577] 2023-06-27 14:44:51,811 >> Generate config GenerationConfig {
+  "_from_model_config": true,
+  "eos_token_id": 2,
+  "pad_token_id": 2,
+  "transformers_version": "4.30.2"
+}
+
+Loading checkpoint shards:   0%|          | 0/7 [00:00<?, ?it/s]Loading checkpoint shards:   0%|          | 0/7 [00:00<?, ?it/s]Loading checkpoint shards:  14%|█▍        | 1/7 [00:03<00:18,  3.09s/it]Loading checkpoint shards:  14%|█▍        | 1/7 [00:03<00:20,  3.40s/it]Loading checkpoint shards:  29%|██▊       | 2/7 [00:06<00:15,  3.19s/it]Loading checkpoint shards:  29%|██▊       | 2/7 [00:06<00:17,  3.45s/it]Loading checkpoint shards:  43%|████▎     | 3/7 [00:09<00:12,  3.18s/it]Loading checkpoint shards:  43%|████▎     | 3/7 [00:09<00:13,  3.38s/it]Loading checkpoint shards:  57%|█████▋    | 4/7 [00:13<00:09,  3.31s/it]Loading checkpoint shards:  57%|█████▋    | 4/7 [00:13<00:10,  3.39s/it]Loading checkpoint shards:  71%|███████▏  | 5/7 [00:16<00:06,  3.46s/it]Loading checkpoint shards:  71%|███████▏  | 5/7 [00:17<00:07,  3.53s/it]Loading checkpoint shards:  86%|████████▌ | 6/7 [00:20<00:03,  3.50s/it]Loading checkpoint shards:  86%|████████▌ | 6/7 [00:20<00:03,  3.62s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:21<00:00,  2.79s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:21<00:00,  3.13s/it]
+[INFO|modeling_utils.py:3295] 2023-06-27 14:45:13,782 >> All model checkpoint weights were used when initializing ChatGLMForConditionalGeneration.
+
+[INFO|modeling_utils.py:3303] 2023-06-27 14:45:13,782 >> All the weights of ChatGLMForConditionalGeneration were initialized from the model checkpoint at /home/apps/gzx/LocalModelHub/chatglm2_6b/hf.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use ChatGLMForConditionalGeneration for predictions without further training.
+[INFO|modeling_utils.py:2927] 2023-06-27 14:45:13,784 >> Generation config file not found, using a generation config created from the model config.
+06/27/2023 14:45:13 - INFO - utils.common - Fine-tuning method: LoRA
+Loading checkpoint shards: 100%|██████████| 7/7 [00:23<00:00,  3.14s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:23<00:00,  3.30s/it]
+06/27/2023 14:45:15 - INFO - utils.common - Fine-tuning method: LoRA
+trainable params: 1949696 || all params: 6245533696 || trainable%: 0.0312
+Running tokenizer on dataset:   0%|          | 0/5000 [00:00<?, ? examples/s]06/27/2023 14:45:21 - INFO - datasets.arrow_dataset - Caching processed dataset at /home/apps/.cache/huggingface/datasets/json/default-e03ba5b173cf57e1/0.0.0/e347ab1c932092252e717ff3f949105a4dd28b27e842dd53157d2f72e276c2e4/cache-4ef74f89af67c74a.arrow
+Running tokenizer on dataset:  20%|██        | 1000/5000 [00:00<00:02, 1413.93 examples/s]Running tokenizer on dataset:  40%|████      | 2000/5000 [00:01<00:02, 1480.25 examples/s]trainable params: 1949696 || all params: 6245533696 || trainable%: 0.0312
+Running tokenizer on dataset:  60%|██████    | 3000/5000 [00:02<00:01, 1464.24 examples/s]Running tokenizer on dataset:  80%|████████  | 4000/5000 [00:02<00:00, 1455.98 examples/s]Running tokenizer on dataset: 100%|██████████| 5000/5000 [00:03<00:00, 1452.78 examples/s]                                                                                          input_ids:
+[64790, 64792, 790, 30951, 517, 30910, 30939, 30996, 13, 13, 54761, 31211, 31822, 32065, 53015, 31791, 31744, 49635, 34677, 54619, 32941, 54530, 35195, 34677, 31123, 54556, 54236, 41578, 32941, 54530, 32727, 35195, 34677, 31123, 54724, 55155, 54571, 54236, 34677, 32667, 32911, 54887, 31123, 31696, 32363, 32495, 33652, 48084, 31123, 54952, 54744, 33840, 36410, 30966, 30940, 54550, 54952, 13, 296, 31791, 31744, 49635, 34677, 31211, 55163, 55149, 31007, 36053, 31007, 32645, 54931, 31007, 37035, 31007, 38427, 31007, 32033, 54931, 31007, 55430, 57264, 31007, 54940, 56949, 55835, 31007, 55120, 54635, 54931, 31007, 34277, 31007, 39783, 31007, 57212, 55386, 31007, 34454, 54931, 31007, 55120, 54635, 31007, 33408, 54936, 55202, 31007, 31638, 31007, 54620, 54561, 55145, 31007, 58686, 57440, 57440, 31007, 56635, 56048, 55529, 31007, 32330, 31709, 31007, 36463, 31007, 54940, 55608, 31007, 51219, 31007, 40136, 31123, 32941, 54611, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 54530, 35195, 34677, 31211, 43399, 31007, 55120, 54635, 54931, 31007, 55163, 55149, 13, 296, 13, 13, 55437, 31211, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+inputs:
+[Round 1]
+
+问：你的任务是根据我的历史偏好标签与影片的附属标签，来推断我喜欢影片的哪些附属标签，并仅用推断标签组成一段话，要求符合推荐理由的风格，字数尽量不超过30个字
+    我的历史偏好标签：益智|亲子|娱乐类|喜剧|冒险|游戏类|童谣|张秉君|早教类|动画|宠物|谭笑|辅导类|早教|英文儿歌|生活|合家欢|缪莹莹|贾晨露|语言能力|玩具|张伟|动画片|友情，影片《飞狗MOCO之我爱我家》的附属标签：奇幻|早教类|益智
+    
+
+答： 推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+labels:
+推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+Running tokenizer on dataset:   0%|          | 0/5000 [00:00<?, ? examples/s]Running tokenizer on dataset:  20%|██        | 1000/5000 [00:00<00:02, 1407.66 examples/s]Running tokenizer on dataset:  40%|████      | 2000/5000 [00:01<00:02, 1458.03 examples/s]Running tokenizer on dataset:  60%|██████    | 3000/5000 [00:02<00:01, 1468.90 examples/s]Running tokenizer on dataset:  80%|████████  | 4000/5000 [00:02<00:00, 1456.28 examples/s]Running tokenizer on dataset: 100%|██████████| 5000/5000 [00:03<00:00, 1447.86 examples/s]                                                                                          input_ids:
+[64790, 64792, 790, 30951, 517, 30910, 30939, 30996, 13, 13, 54761, 31211, 31822, 32065, 53015, 31791, 31744, 49635, 34677, 54619, 32941, 54530, 35195, 34677, 31123, 54556, 54236, 41578, 32941, 54530, 32727, 35195, 34677, 31123, 54724, 55155, 54571, 54236, 34677, 32667, 32911, 54887, 31123, 31696, 32363, 32495, 33652, 48084, 31123, 54952, 54744, 33840, 36410, 30966, 30940, 54550, 54952, 13, 296, 31791, 31744, 49635, 34677, 31211, 55163, 55149, 31007, 36053, 31007, 32645, 54931, 31007, 37035, 31007, 38427, 31007, 32033, 54931, 31007, 55430, 57264, 31007, 54940, 56949, 55835, 31007, 55120, 54635, 54931, 31007, 34277, 31007, 39783, 31007, 57212, 55386, 31007, 34454, 54931, 31007, 55120, 54635, 31007, 33408, 54936, 55202, 31007, 31638, 31007, 54620, 54561, 55145, 31007, 58686, 57440, 57440, 31007, 56635, 56048, 55529, 31007, 32330, 31709, 31007, 36463, 31007, 54940, 55608, 31007, 51219, 31007, 40136, 31123, 32941, 54611, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 54530, 35195, 34677, 31211, 43399, 31007, 55120, 54635, 54931, 31007, 55163, 55149, 13, 296, 13, 13, 55437, 31211, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+inputs:
+[Round 1]
+
+问：你的任务是根据我的历史偏好标签与影片的附属标签，来推断我喜欢影片的哪些附属标签，并仅用推断标签组成一段话，要求符合推荐理由的风格，字数尽量不超过30个字
+    我的历史偏好标签：益智|亲子|娱乐类|喜剧|冒险|游戏类|童谣|张秉君|早教类|动画|宠物|谭笑|辅导类|早教|英文儿歌|生活|合家欢|缪莹莹|贾晨露|语言能力|玩具|张伟|动画片|友情，影片《飞狗MOCO之我爱我家》的附属标签：奇幻|早教类|益智
+    
+
+答： 推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+label_ids:
+[-100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, -100, 30910, 54236, 34677, 31211, 55120, 54635, 54931, 31007, 55163, 55149, 31155, 32495, 33652, 33088, 55296, 56007, 30944, 4678, 30961, 54586, 43680, 38682, 54612, 32104, 43399, 31201, 55120, 54635, 54931, 54609, 33162, 31123, 31738, 31815, 55163, 55149, 31201, 55120, 54635, 54931, 40024, 32540, 31870, 31123, 34285, 32941, 44762, 53208, 32286, 37373, 54542, 31848, 39255, 54629, 32600, 31155, 2]
+labels:
+推断标签：早教类|益智。推荐理由：《飞狗MOCO之我爱我家》拥有奇幻、早教类等元素，对于喜欢益智、早教类内容的观众来说，这部影片一定能给您带来乐趣和知识的双重享受。
+06/27/2023 14:45:34 - WARNING - utils.peft_trainer - Previous log file in this folder will be deleted.
+[INFO|trainer.py:1786] 2023-06-27 14:45:39,422 >> ***** Running training *****
+[INFO|trainer.py:1787] 2023-06-27 14:45:39,423 >>   Num examples = 5,000
+[INFO|trainer.py:1788] 2023-06-27 14:45:39,423 >>   Num Epochs = 3
+[INFO|trainer.py:1789] 2023-06-27 14:45:39,423 >>   Instantaneous batch size per device = 1
+[INFO|trainer.py:1790] 2023-06-27 14:45:39,423 >>   Total train batch size (w. parallel, distributed & accumulation) = 32
+[INFO|trainer.py:1791] 2023-06-27 14:45:39,423 >>   Gradient Accumulation steps = 16
+[INFO|trainer.py:1792] 2023-06-27 14:45:39,423 >>   Total optimization steps = 468
+[INFO|trainer.py:1793] 2023-06-27 14:45:39,425 >>   Number of trainable parameters = 1,949,696
+  0%|          | 0/468 [00:00<?, ?it/s]  0%|          | 1/468 [00:06<48:59,  6.30s/it]06/27/2023 14:45:45 - INFO - torch.nn.parallel.distributed - Reducer buckets have been rebuilt in this iteration.
+06/27/2023 14:45:45 - INFO - torch.nn.parallel.distributed - Reducer buckets have been rebuilt in this iteration.
+  0%|          | 2/468 [00:11<44:22,  5.71s/it]  1%|          | 3/468 [00:16<42:10,  5.44s/it]  1%|          | 4/468 [00:21<41:21,  5.35s/it]  1%|          | 5/468 [00:27<41:06,  5.33s/it]  1%|▏         | 6/468 [00:32<41:07,  5.34s/it]  1%|▏         | 7/468 [00:38<41:21,  5.38s/it]  2%|▏         | 8/468 [00:43<41:02,  5.35s/it]  2%|▏         | 9/468 [00:48<41:17,  5.40s/it]  2%|▏         | 10/468 [00:54<42:19,  5.54s/it]                                                {'loss': 1.4183, 'learning_rate': 0.0009988738792578126, 'epoch': 0.06}
+  2%|▏         | 10/468 [00:54<42:19,  5.54s/it]  2%|▏         | 11/468 [01:00<43:05,  5.66s/it]  3%|▎         | 12/468 [01:06<42:40,  5.61s/it]  3%|▎         | 13/468 [01:11<42:54,  5.66s/it]  3%|▎         | 14/468 [01:17<42:47,  5.66s/it]  3%|▎         | 15/468 [01:23<42:45,  5.66s/it]  3%|▎         | 16/468 [01:28<42:39,  5.66s/it]  4%|▎         | 17/468 [01:34<42:41,  5.68s/it]  4%|▍         | 18/468 [01:40<42:57,  5.73s/it]  4%|▍         | 19/468 [01:46<43:07,  5.76s/it]  4%|▍         | 20/468 [01:52<43:03,  5.77s/it]                                                {'loss': 0.8996, 'learning_rate': 0.0009955005896229543, 'epoch': 0.13}
+  4%|▍         | 20/468 [01:52<43:03,  5.77s/it]  4%|▍         | 21/468 [01:57<43:14,  5.80s/it]  5%|▍         | 22/468 [02:04<43:43,  5.88s/it]  5%|▍         | 23/468 [02:09<43:48,  5.91s/it]  5%|▌         | 24/468 [02:16<44:09,  5.97s/it]  5%|▌         | 25/468 [02:22<45:13,  6.13s/it]  6%|▌         | 26/468 [02:28<45:05,  6.12s/it]  6%|▌         | 27/468 [02:34<44:53,  6.11s/it]  6%|▌         | 28/468 [02:40<44:21,  6.05s/it]  6%|▌         | 29/468 [02:46<44:11,  6.04s/it]  6%|▋         | 30/468 [02:52<43:23,  5.94s/it]                                                {'loss': 0.8329, 'learning_rate': 0.0009898953260211339, 'epoch': 0.19}
+  6%|▋         | 30/468 [02:52<43:23,  5.94s/it]  7%|▋         | 31/468 [02:58<42:54,  5.89s/it]  7%|▋         | 32/468 [03:04<42:41,  5.87s/it]  7%|▋         | 33/468 [03:09<42:23,  5.85s/it]  7%|▋         | 34/468 [03:15<41:39,  5.76s/it]  7%|▋         | 35/468 [03:20<41:09,  5.70s/it]  8%|▊         | 36/468 [03:26<40:52,  5.68s/it]  8%|▊         | 37/468 [03:32<40:46,  5.68s/it]  8%|▊         | 38/468 [03:38<41:13,  5.75s/it]  8%|▊         | 39/468 [03:43<41:09,  5.76s/it]  9%|▊         | 40/468 [03:50<41:52,  5.87s/it]                                                {'loss': 0.8215, 'learning_rate': 0.0009820833372667813, 'epoch': 0.26}
+  9%|▊         | 40/468 [03:50<41:52,  5.87s/it]  9%|▉         | 41/468 [03:55<41:42,  5.86s/it]  9%|▉         | 42/468 [04:01<42:01,  5.92s/it]  9%|▉         | 43/468 [04:07<41:56,  5.92s/it]  9%|▉         | 44/468 [04:14<42:22,  6.00s/it] 10%|▉         | 45/468 [04:20<42:32,  6.03s/it] 10%|▉         | 46/468 [04:26<42:40,  6.07s/it] 10%|█         | 47/468 [04:32<42:49,  6.10s/it] 10%|█         | 48/468 [04:38<42:08,  6.02s/it] 10%|█         | 49/468 [04:44<41:36,  5.96s/it] 11%|█         | 50/468 [04:50<41:17,  5.93s/it]                                                {'loss': 0.8205, 'learning_rate': 0.0009720998123301923, 'epoch': 0.32}
+ 11%|█         | 50/468 [04:50<41:17,  5.93s/it] 11%|█         | 51/468 [04:55<40:57,  5.89s/it] 11%|█         | 52/468 [05:01<40:18,  5.81s/it] 11%|█▏        | 53/468 [05:07<39:42,  5.74s/it] 12%|█▏        | 54/468 [05:12<39:49,  5.77s/it] 12%|█▏        | 55/468 [05:18<39:11,  5.69s/it] 12%|█▏        | 56/468 [05:24<39:11,  5.71s/it] 12%|█▏        | 57/468 [05:29<39:24,  5.75s/it] 12%|█▏        | 58/468 [05:35<38:48,  5.68s/it] 13%|█▎        | 59/468 [05:41<38:31,  5.65s/it] 13%|█▎        | 60/468 [05:46<38:32,  5.67s/it]                                                {'loss': 0.7732, 'learning_rate': 0.0009599897218294122, 'epoch': 0.38}
+ 13%|█▎        | 60/468 [05:46<38:32,  5.67s/it] 13%|█▎        | 61/468 [05:52<38:45,  5.71s/it] 13%|█▎        | 62/468 [05:58<38:45,  5.73s/it] 13%|█▎        | 63/468 [06:04<38:58,  5.77s/it] 14%|█▎        | 64/468 [06:10<39:25,  5.85s/it] 14%|█▍        | 65/468 [06:16<40:26,  6.02s/it] 14%|█▍        | 66/468 [06:22<40:28,  6.04s/it] 14%|█▍        | 67/468 [06:28<40:35,  6.07s/it] 15%|█▍        | 68/468 [06:34<40:27,  6.07s/it] 15%|█▍        | 69/468 [06:40<40:11,  6.04s/it] 15%|█▍        | 70/468 [06:47<40:04,  6.04s/it]                                                {'loss': 0.7809, 'learning_rate': 0.0009458076154608515, 'epoch': 0.45}
+ 15%|█▍        | 70/468 [06:47<40:04,  6.04s/it] 15%|█▌        | 71/468 [06:52<39:28,  5.97s/it] 15%|█▌        | 72/468 [06:58<39:30,  5.99s/it] 16%|█▌        | 73/468 [07:04<39:05,  5.94s/it] 16%|█▌        | 74/468 [07:10<38:43,  5.90s/it] 16%|█▌        | 75/468 [07:16<38:39,  5.90s/it]

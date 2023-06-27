@@ -108,7 +108,7 @@
         }
     },
     "intention_train": {
-        "file_name": "/data/jupyterlab/gzx/LocalDataHub/sft/intention_training_task.json",
+        "file_name": "/home/apps/gzx/LocalDataHub/sft/intention_training_task.json",
         "columns": {
             "prompt": "instruction",
             "query": "input",
@@ -117,7 +117,7 @@
         }
     },
     "rec_reason_train": {
-        "file_name": "/data/jupyterlab/gzx/LocalDataHub/sft/rec_reason_training_task.json",
+        "file_name": "/home/apps/gzx/LocalDataHub/sft/rec_reason_training_task.json",
         "columns": {
             "prompt": "instruction",
             "query": "input",
