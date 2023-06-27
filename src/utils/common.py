@@ -29,7 +29,7 @@ from peft import (
     get_peft_model
 )
 
-from peft.utils import CONFIG_NAME
+from peft.utils import CONFIG_NAME, WEIGHTS_NAME
 
 from trl import AutoModelForCausalLMWithValueHead
 
@@ -91,17 +91,22 @@ def init_adapter(
     if finetuning_args.finetuning_type == "p_tuning":
         logger.info("Fine-tuning method: P-Tuning v2") # nothing to do
 
-    if finetuning_args.finetuning_type != "lora" and model_args.checkpoint_dir is not None:
-        assert len(model_args.checkpoint_dir) == 1, "Only LoRA tuning accepts multiple checkpoints."
-        assert load_trainable_params(model, model_args.checkpoint_dir[0]), "Model checkpoint is not correctly loaded."
+    if model_args.checkpoint_dir is not None:
+        if finetuning_args.finetuning_type != "lora":
+            assert len(model_args.checkpoint_dir) == 1, "Only LoRA tuning accepts multiple checkpoints."
+            assert load_trainable_params(model, model_args.checkpoint_dir[0]), "Model checkpoint is not correctly loaded."
+        else:
+            assert len(model_args.checkpoint_dir) == 1, "Quantized model only accepts a single checkpoint."
 
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
         lastest_checkpoint = None
 
         if model_args.checkpoint_dir is not None:
+            assert os.path.exists(os.path.join(model_args.checkpoint_dir[0], WEIGHTS_NAME)), \
+                "Provided path ({}) does not contain a LoRA weight.".format(model_args.checkpoint_dir[0])
             assert os.path.exists(os.path.join(model_args.checkpoint_dir[0], CONFIG_NAME)), \
-                "The given checkpoint is not a LoRA checkpoint, please specify `--finetuning_type full/p_tuning/freeze` instead."
+                "The given checkpoint may be not a LoRA checkpoint, please specify `--finetuning_type full/p_tuning/freeze` instead."
 
             if is_trainable and model_args.resume_lora_training: # continually train on the lora weights
                 checkpoints_to_merge, lastest_checkpoint = model_args.checkpoint_dir[:-1], model_args.checkpoint_dir[-1]
@@ -150,7 +155,8 @@ def load_pretrained(
         logger.warning("Checkpoint is not found at evaluation, load the original model.")
         finetuning_args = FinetuningArguments(finetuning_type="none")
 
-    assert stage == "sft" or finetuning_args.finetuning_type == "lora", "RM and PPO training can only be performed with LoRA method."
+    assert stage == "sft" or finetuning_args.finetuning_type == "lora", \
+        "RM and PPO training can only be performed with LoRA method."
 
     quantization = None
     if model_args.quantization_bit is not None:
@@ -222,7 +228,7 @@ def load_pretrained(
         model.get_input_embeddings = MethodType(get_input_embeddings, model)
         model.lm_head = model.transformer.output_layer # need fix: cast to float
 
-    model = prepare_model_for_training(model) if is_trainable else model
+    model = prepare_model_for_training(model, finetuning_args.finetuning_type) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
     if not is_trainable:
