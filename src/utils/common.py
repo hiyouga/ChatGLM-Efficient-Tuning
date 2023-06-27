@@ -222,16 +222,6 @@ def load_pretrained(
         model.get_input_embeddings = MethodType(get_input_embeddings, model)
         model.lm_head = model.transformer.output_layer # need fix: cast to float
 
-        tokenizer.bos_token = "<s>"
-        tokenizer.eos_token = "</s>"
-        def build_inputs_with_special_tokens(self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None) -> List[int]:
-            prefix_tokens = self.get_prefix_tokens()
-            token_ids_0 = prefix_tokens + token_ids_0
-            if token_ids_1 is not None:
-                token_ids_0 = token_ids_0 + token_ids_1 + [self.get_command("<eos>")]
-            return token_ids_0
-        tokenizer.build_inputs_with_special_tokens = MethodType(build_inputs_with_special_tokens, tokenizer)
-
     model = prepare_model_for_training(model) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
@@ -488,9 +478,8 @@ def preprocess_data(
             if len(target_ids) > data_args.max_target_length - 1: # eos token
                 target_ids = target_ids[:data_args.max_target_length - 1]
 
-            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
-
             context_length = len(source_ids) + 2 # gmask and sop tokens
+            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
             labels = [IGNORE_INDEX] * context_length + input_ids[context_length:]
 
             model_inputs["input_ids"].append(input_ids)
