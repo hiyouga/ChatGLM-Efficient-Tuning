@@ -74,6 +74,8 @@ Our script now supports the following fine-tuning methods:
   - Fine-tuning the prefix encoder of the model.
 - [Freeze](https://arxiv.org/abs/2012.14913)
   - Fine-tuning the MLPs in the last n blocks of the model.
+- Full Tuning
+  - Fine-tuning all the parameters of the model.
 
 ## Requirement
 
@@ -338,3 +340,7 @@ If this work is helpful, please cite as:
 ## Acknowledgement
 
 This repo benefits from [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B), [ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning) and [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp). Thanks for their wonderful works.
+
+## Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=hiyouga/ChatGLM-Efficient-Tuning&type=Date)

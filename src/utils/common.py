@@ -226,9 +226,16 @@ def load_pretrained(
         def get_input_embeddings(self):
             return self.transformer.embedding
         model.get_input_embeddings = MethodType(get_input_embeddings, model)
-        model.lm_head = model.transformer.output_layer # need fix: cast to float
+        model.lm_head = model.transformer.output_layer
+        output_embedding_layer_name = "transformer.output_layer"
+    else:
+        output_embedding_layer_name = "lm_head"
 
-    model = prepare_model_for_training(model, finetuning_args.finetuning_type) if is_trainable else model
+    model = prepare_model_for_training(
+        model,
+        finetuning_args.finetuning_type,
+        output_embedding_layer_name
+    ) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
     if not is_trainable:

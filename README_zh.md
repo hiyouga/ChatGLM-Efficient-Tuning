@@ -78,8 +78,10 @@ huggingface-cli login
   - 仅微调低秩适应器。
 - [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
   - 仅微调前缀编码器。
-- [Freeze](https://arxiv.org/abs/2012.14913)
+- [Freeze Tuning](https://arxiv.org/abs/2012.14913)
   - 仅微调后几层的全连接层。
+- 全量微调
+  - 微调模型所有参数。
 
 ## 软件依赖
 
@@ -345,3 +347,7 @@ python src/export_model.py \
 ## 声明
 
 本项目受益于 [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B)、[ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning) 和 [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp)，感谢作者的付出。
+
+## Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=hiyouga/ChatGLM-Efficient-Tuning&type=Date)
