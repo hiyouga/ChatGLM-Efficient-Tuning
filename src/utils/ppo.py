@@ -228,7 +228,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
 
         Subclass and override to inject custom behavior.
         """
-        bs = len(model_inputs["input_ids"])
+        bs = len(queries)
         fbs = self.config.mini_batch_size
         all_logprobs = []
         all_logits = []
@@ -236,11 +236,15 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         all_values = []
 
         for i in range(int(bs / fbs)):
-            input_kwargs = {k: v[i * fbs : (i + 1) * fbs] for k, v in model_inputs.items()}
-            input_ids: torch.Tensor = input_kwargs["input_ids"] # left-padded sequences
+            input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
+            query_batch = queries[i * fbs : (i + 1) * fbs]
+            response_batch = responses[i * fbs : (i + 1) * fbs]
+            input_ids = input_kwargs["input_ids"] # left-padded sequences
+
             if self.is_distributed: # re-generate them to adapt padded inputs
                 input_kwargs["attention_mask"] = self.data_collator.get_attention_masks(input_ids, device=self.current_device)
                 input_kwargs["position_ids"] = self.data_collator.get_position_ids(input_ids, device=self.current_device)
+
             logits, _, values = model(**input_kwargs)
             logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
 
@@ -248,19 +252,24 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
             masks = torch.zeros_like(input_ids)
 
             for j in range(fbs):
-                start = (input_ids[j] == self.tokenizer.bos_token_id).nonzero()[0].item()
-                masks[j][start:] = 1
-                if len(masks[j][start:]) < 2:
+                start = len(query_batch[j]) - 1
+                start += (input_ids[j] != self.tokenizer.pad_token_id).nonzero()[0].item()
+                end = start + len(response_batch[j])
+                masks[j][start:end] = 1
+                if len(masks[j][start:end]) < 2:
                     raise ValueError("Responses are too short. Make sure they are at least 4 tokens long.")
 
-            all_logits.append(logits)
+            if return_logits:
+                all_logits.append(logits)
+            else:
+                del logits
             all_values.append(values)
             all_logprobs.append(logprobs)
             all_masks.append(masks)
 
         return (
             torch.cat(all_logprobs),
-            torch.cat(all_logits)[:, :-1],
+            torch.cat(all_logits)[:, :-1] if return_logits else None,
             torch.cat(all_values)[:, :-1],
             torch.cat(all_masks)[:, :-1],
         )
