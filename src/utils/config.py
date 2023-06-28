@@ -93,6 +93,9 @@ class ModelArguments:
     )
 
     def __post_init__(self):
+        if self.use_v2 and self.model_name_or_path == "THUDM/chatglm-6b":
+            self.model_name_or_path = "THUDM/chatglm2-6b"
+
         if self.checkpoint_dir is not None: # support merging lora weights
             self.checkpoint_dir = [cd.strip() for cd in self.checkpoint_dir.split(",")]
 
