@@ -232,6 +232,7 @@ def load_pretrained(
             return self.transformer.embedding
         model.get_input_embeddings = MethodType(get_input_embeddings, model)
         model.lm_head = model.transformer.output_layer
+        tokenizer.eos_token = "</s>"
         output_embedding_layer_name = "transformer.output_layer"
     else:
         output_embedding_layer_name = "lm_head"
