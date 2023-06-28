@@ -228,6 +228,9 @@ def load_pretrained(
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
 
     if model_args.use_v2:
+        def get_input_embeddings(self):
+            return self.transformer.embedding.word_embeddings
+        model.get_input_embeddings = MethodType(get_input_embeddings, model)
         model.lm_head = model.transformer.output_layer
         tokenizer.eos_token = "</s>"
         output_embedding_layer_name = "transformer.output_layer"
