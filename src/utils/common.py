@@ -233,13 +233,16 @@ def load_pretrained(
         model.get_input_embeddings = MethodType(get_input_embeddings, model)
         model.lm_head = model.transformer.output_layer
         tokenizer.eos_token = "</s>"
-        output_embedding_layer_name = "transformer.output_layer"
+        output_embedding_base_layer = model.transformer
+        output_embedding_layer_name = "output_layer"
     else:
+        output_embedding_base_layer = model
         output_embedding_layer_name = "lm_head"
 
     model = prepare_model_for_training(
         model,
         finetuning_args.finetuning_type,
+        output_embedding_base_layer,
         output_embedding_layer_name
     ) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
