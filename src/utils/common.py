@@ -189,10 +189,8 @@ def load_pretrained(
         **config_kwargs
     )
 
-    # P-Tuning v2 configurations.
-    # We use the built-in p-tuning method of ChatGLM, we cannot use PEFT since the attention masks of ChatGLM are unusual. >_<
+    # P-Tuning v2 configurations. Use the built-in p-tuning method of ChatGLM.
     if finetuning_args.finetuning_type == "p_tuning":
-        assert not model_args.use_v2, "ChatGLM2-6B does not support P-Tuning v2."
         config.pre_seq_len = finetuning_args.pre_seq_len # enable this will fix other parameters automatically
         config.prefix_projection = finetuning_args.prefix_projection
 
@@ -228,11 +226,8 @@ def load_pretrained(
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
 
     if model_args.use_v2:
-        def get_input_embeddings(self):
-            return self.transformer.embedding.word_embeddings
-        model.get_input_embeddings = MethodType(get_input_embeddings, model)
+        assert tokenizer.eos_token_id is not None, "Please update the *.json and *.py files of ChatGLM2-6B from HuggingFace."
         model.lm_head = model.transformer.output_layer
-        tokenizer.eos_token = "</s>"
         output_embedding_base_layer = model.transformer
         output_embedding_layer_name = "output_layer"
     else:
