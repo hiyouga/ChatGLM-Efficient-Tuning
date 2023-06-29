@@ -29,7 +29,7 @@ from peft import (
     get_peft_model
 )
 
-from peft.utils import CONFIG_NAME
+from peft.utils import CONFIG_NAME, WEIGHTS_NAME
 
 from trl import AutoModelForCausalLMWithValueHead
 
@@ -82,26 +82,31 @@ def init_adapter(
 
     if finetuning_args.finetuning_type == "freeze":
         logger.info("Fine-tuning method: Freeze")
+
         for name, param in model.named_parameters():
             if not any(trainable_layer in name for trainable_layer in finetuning_args.trainable_layers):
                 param.requires_grad_(False)
             else:
                 param.data = param.data.to(torch.float32)
 
-    if finetuning_args.finetuning_type == "p_tuning":
-        logger.info("Fine-tuning method: P-Tuning v2") # nothing to do
+        if model_args.checkpoint_dir is not None:
+            assert load_trainable_params(model, model_args.checkpoint_dir[0]), "Model checkpoint is not correctly loaded."
 
-    if finetuning_args.finetuning_type != "lora" and model_args.checkpoint_dir is not None:
-        assert len(model_args.checkpoint_dir) == 1, "Only LoRA tuning accepts multiple checkpoints."
-        assert load_trainable_params(model, model_args.checkpoint_dir[0]), "Model checkpoint is not correctly loaded."
+    if finetuning_args.finetuning_type == "p_tuning":
+        logger.info("Fine-tuning method: P-Tuning v2")
+
+        if model_args.checkpoint_dir is not None:
+            assert load_trainable_params(model, model_args.checkpoint_dir[0]), "Model checkpoint is not correctly loaded."
 
     if finetuning_args.finetuning_type == "lora":
         logger.info("Fine-tuning method: LoRA")
         lastest_checkpoint = None
 
         if model_args.checkpoint_dir is not None:
+            assert os.path.exists(os.path.join(model_args.checkpoint_dir[0], WEIGHTS_NAME)), \
+                "Provided path ({}) does not contain a LoRA weight.".format(model_args.checkpoint_dir[0])
             assert os.path.exists(os.path.join(model_args.checkpoint_dir[0], CONFIG_NAME)), \
-                "The given checkpoint is not a LoRA checkpoint, please specify `--finetuning_type full/p_tuning/freeze` instead."
+                "The given checkpoint may be not a LoRA checkpoint, please specify `--finetuning_type full/p_tuning/freeze` instead."
 
             if is_trainable and model_args.resume_lora_training: # continually train on the lora weights
                 checkpoints_to_merge, lastest_checkpoint = model_args.checkpoint_dir[:-1], model_args.checkpoint_dir[-1]
@@ -150,7 +155,8 @@ def load_pretrained(
         logger.warning("Checkpoint is not found at evaluation, load the original model.")
         finetuning_args = FinetuningArguments(finetuning_type="none")
 
-    assert stage == "sft" or finetuning_args.finetuning_type == "lora", "RM and PPO training can only be performed with LoRA method."
+    assert stage == "sft" or finetuning_args.finetuning_type == "lora", \
+        "RM and PPO training can only be performed with LoRA method."
 
     quantization = None
     if model_args.quantization_bit is not None:
@@ -213,26 +219,32 @@ def load_pretrained(
             )
         config_kwargs["device_map"] = {"": int(os.environ.get("LOCAL_RANK") or 0)}
 
+    if model_args.checkpoint_dir is not None and finetuning_args.finetuning_type == "full":
+        model_to_load = model_args.checkpoint_dir[0]
+    else:
+        model_to_load = model_args.model_name_or_path
+
     # Load and prepare pretrained models (without valuehead).
-    model = AutoModel.from_pretrained(model_args.model_name_or_path, config=config, **config_kwargs)
+    model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
 
     if model_args.use_v2:
         def get_input_embeddings(self):
-            return self.transformer.embedding
+            return self.transformer.embedding.word_embeddings
         model.get_input_embeddings = MethodType(get_input_embeddings, model)
-        model.lm_head = model.transformer.output_layer # need fix: cast to float
-
-        tokenizer.bos_token = "<s>"
+        model.lm_head = model.transformer.output_layer
         tokenizer.eos_token = "</s>"
-        def build_inputs_with_special_tokens(self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None) -> List[int]:
-            prefix_tokens = self.get_prefix_tokens()
-            token_ids_0 = prefix_tokens + token_ids_0
-            if token_ids_1 is not None:
-                token_ids_0 = token_ids_0 + token_ids_1 + [self.get_command("<eos>")]
-            return token_ids_0
-        tokenizer.build_inputs_with_special_tokens = MethodType(build_inputs_with_special_tokens, tokenizer)
+        output_embedding_base_layer = model.transformer
+        output_embedding_layer_name = "output_layer"
+    else:
+        output_embedding_base_layer = model
+        output_embedding_layer_name = "lm_head"
 
-    model = prepare_model_for_training(model) if is_trainable else model
+    model = prepare_model_for_training(
+        model,
+        finetuning_args.finetuning_type,
+        output_embedding_base_layer,
+        output_embedding_layer_name
+    ) if is_trainable else model
     model = init_adapter(model, model_args, finetuning_args, is_trainable)
 
     if not is_trainable:
@@ -298,24 +310,27 @@ def prepare_args(
     transformers.utils.logging.enable_explicit_format()
 
     # Check arguments (do not check finetuning_args since it may be loaded from checkpoints)
-    if stage != "sft" and training_args.predict_with_generate:
-        raise ValueError("`predict_with_generate` cannot be set as True at RM and PPO stages.")
+    assert stage == "sft" or (not training_args.predict_with_generate), \
+        "`predict_with_generate` cannot be set as True at PT, RM and PPO stages."
 
-    if training_args.do_train and training_args.predict_with_generate:
-        raise ValueError("`predict_with_generate` cannot be set as True while training.")
+    assert not (training_args.do_train and training_args.predict_with_generate), \
+        "`predict_with_generate` cannot be set as True while training."
 
-    if training_args.do_predict and (not training_args.predict_with_generate):
-        raise ValueError("Please enable `predict_with_generate` to save model predictions.")
+    assert (not training_args.do_predict) or training_args.predict_with_generate, \
+        "Please enable `predict_with_generate` to save model predictions."
 
     if model_args.quantization_bit is not None:
-        if finetuning_args.finetuning_type == "full":
-            raise ValueError("Quantization is incompatible with the full-parameter tuning.")
+        assert finetuning_args.finetuning_type != "full" and finetuning_args.finetuning_type != "freeze", \
+            "Quantization is incompatible with the full-parameter and freeze tuning."
 
-        if finetuning_args.finetuning_type == "p_tuning" and training_args.fp16:
-            raise ValueError("FP16 training conflicts with quantized P-Tuning.")
+        assert not (finetuning_args.finetuning_type == "p_tuning" and training_args.fp16), \
+            "FP16 training conflicts with quantized P-Tuning."
 
         if not training_args.do_train:
             logger.warning("Evaluating model in 4/8-bit mode may cause lower scores.")
+
+    assert model_args.checkpoint_dir is None or finetuning_args.finetuning_type == "lora" \
+        or len(model_args.checkpoint_dir) == 1, "Only LoRA tuning accepts multiple checkpoints."
 
     if training_args.do_train and (not training_args.fp16):
         logger.warning("We recommend enable fp16 mixed precision training for ChatGLM-6B.")
@@ -355,6 +370,9 @@ def prepare_infer_args() -> Tuple[ModelArguments, FinetuningArguments, Generatin
         model_args, finetuning_args, generating_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
         model_args, finetuning_args, generating_args = parser.parse_args_into_dataclasses()
+
+    assert model_args.checkpoint_dir is None or finetuning_args.finetuning_type == "lora" \
+        or len(model_args.checkpoint_dir) == 1, "Only LoRA tuning accepts multiple checkpoints."
 
     return model_args, finetuning_args, generating_args
 
@@ -488,9 +506,8 @@ def preprocess_data(
             if len(target_ids) > data_args.max_target_length - 1: # eos token
                 target_ids = target_ids[:data_args.max_target_length - 1]
 
-            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
-
             context_length = len(source_ids) + 2 # gmask and sop tokens
+            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
             labels = [IGNORE_INDEX] * context_length + input_ids[context_length:]
 
             model_inputs["input_ids"].append(input_ids)

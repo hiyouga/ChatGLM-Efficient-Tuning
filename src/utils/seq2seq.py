@@ -34,18 +34,13 @@ class ComputeMetrics:
         Uses the model predictions to compute metrics.
         """
         preds, labels = eval_preds
-
-        if isinstance(preds, tuple):
-            preds = preds[0]
-
-        # Replace IGNORE_INDEX in the labels with pad_token_id as we cannot decode them.
-        preds = np.where(preds != IGNORE_INDEX, preds, self.tokenizer.pad_token_id)
-        labels = np.where(labels != IGNORE_INDEX, labels, self.tokenizer.pad_token_id)
-
-        preds = preds[:, labels.shape[1]:] # remove prompts
         score_dict = {"rouge-1": [], "rouge-2": [], "rouge-l": [], "bleu-4": []}
 
         for pred, label in zip(preds, labels):
+            pred_pad_len, label_pad_len = np.sum(pred == IGNORE_INDEX), np.sum(label == IGNORE_INDEX)
+            pred = pred[len(label) - label_pad_len : len(pred) - pred_pad_len] # remove prompts
+            label = label[:len(label) - label_pad_len]
+
             hypothesis = list(jieba.cut(self.tokenizer.decode(pred, skip_special_tokens=True)))
             reference = list(jieba.cut(self.tokenizer.decode(label, skip_special_tokens=True)))
 
@@ -72,8 +67,7 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
 
     def save_predictions(
             self,
-            predict_results: PredictionOutput,
-            tokenizer: PreTrainedTokenizer
+            predict_results: PredictionOutput
     ) -> None:
         r"""
         Saves model predictions to `output_dir`.
@@ -83,17 +77,18 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
         if not self.is_world_process_zero():
             return
 
-        preds = np.where(predict_results.predictions != IGNORE_INDEX, predict_results.predictions, self.tokenizer.pad_token_id)
-        labels = np.where(predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids, self.tokenizer.pad_token_id)
-
-        preds = preds[:, labels.shape[1]:] # remove prompts
-        preds = [tokenizer.decode(pred, skip_special_tokens=True).strip() for pred in preds]
-        labels = [tokenizer.decode(label, skip_special_tokens=True).strip() for label in labels]
-
         output_prediction_file = os.path.join(self.args.output_dir, "generated_predictions.jsonl")
         logger.info(f"Saving prediction results to {output_prediction_file}")
         with open(output_prediction_file, "w", encoding="utf-8") as writer:
             res: List[str] = []
-            for pred, label in zip(preds, labels):
+            for pred, label in zip(predict_results.predictions, predict_results.label_ids):
+                pred_pad_len, label_pad_len = np.sum(pred == IGNORE_INDEX), np.sum(label == IGNORE_INDEX)
+                pred = pred[len(label) - label_pad_len : len(pred) - pred_pad_len] # remove prompts
+                label = label[:len(label) - label_pad_len]
+
+                pred = self.tokenizer.decode(pred, skip_special_tokens=True)
+                label = self.tokenizer.decode(label, skip_special_tokens=True)
+
                 res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
+
             writer.write("\n".join(res))

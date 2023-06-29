@@ -78,8 +78,10 @@ huggingface-cli login
   - 仅微调低秩适应器。
 - [P-Tuning V2](https://github.com/THUDM/P-tuning-v2)
   - 仅微调前缀编码器。
-- [Freeze](https://arxiv.org/abs/2012.14913)
+- [Freeze Tuning](https://arxiv.org/abs/2012.14913)
   - 仅微调后几层的全连接层。
+- 全量微调
+  - 微调模型所有参数。
 
 ## 软件依赖
 
@@ -322,7 +324,7 @@ python src/export_model.py \
 - [x] 量化微调。
 - [x] 撰写基于该框架的 ChatGLM 模型微调指南手册。
 - [ ] 结合模型编辑技术。（例如：[MEND](https://arxiv.org/abs/2110.11309)）
-- [ ] 加入 [OpenAssistant 对话数据集](https://huggingface.co/datasets/OpenAssistant/oasst1)用于监督微调和意图对齐。
+- [x] 加入 [OpenAssistant 对话数据集](https://huggingface.co/datasets/OpenAssistant/oasst1)用于监督微调和意图对齐。
 - [ ] 加入高质量中文开源指令数据集 [COIG](https://huggingface.co/datasets/BAAI/COIG)。
 
 ## 协议
@@ -345,3 +347,7 @@ python src/export_model.py \
 ## 声明
 
 本项目受益于 [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B)、[ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning) 和 [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp)，感谢作者的付出。
+
+## Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=hiyouga/ChatGLM-Efficient-Tuning&type=Date)

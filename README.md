@@ -74,6 +74,8 @@ Our script now supports the following fine-tuning methods:
   - Fine-tuning the prefix encoder of the model.
 - [Freeze](https://arxiv.org/abs/2012.14913)
   - Fine-tuning the MLPs in the last n blocks of the model.
+- Full Tuning
+  - Fine-tuning all the parameters of the model.
 
 ## Requirement
 
@@ -315,7 +317,7 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 - [x] Fine-tuning the quantized model.
 - [x] Writing a guidebook about how to fine-tune ChatGLM with this framework.
 - [ ] Combining with state-of-the-art model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
-- [ ] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and alignment.
+- [x] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and alignment.
 - [ ] Incorporating the high quality Chinese instruction dataset [COIG](https://huggingface.co/datasets/BAAI/COIG).
 
 ## License
@@ -338,3 +340,7 @@ If this work is helpful, please cite as:
 ## Acknowledgement
 
 This repo benefits from [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B), [ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning) and [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp). Thanks for their wonderful works.
+
+## Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=hiyouga/ChatGLM-Efficient-Tuning&type=Date)

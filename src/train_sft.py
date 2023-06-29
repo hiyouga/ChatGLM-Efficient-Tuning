@@ -93,7 +93,7 @@ def main():
             predict_results.metrics.pop("predict_loss", None)
         trainer.log_metrics("predict", predict_results.metrics)
         trainer.save_metrics("predict", predict_results.metrics)
-        trainer.save_predictions(predict_results, tokenizer)
+        trainer.save_predictions(predict_results)
 
 
 def _mp_fn(index):
