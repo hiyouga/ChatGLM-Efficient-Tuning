@@ -231,7 +231,7 @@ def load_pretrained(
         output_embedding_base_layer = model.transformer
         output_embedding_layer_name = "output_layer"
     else:
-        assert tokenizer.eos_token_id == 150005, "Please specify `use_v2` argument while using ChatGLM2-6B."
+        assert tokenizer.eos_token_id == 130005, "Please specify `use_v2` argument while using ChatGLM2-6B."
         output_embedding_base_layer = model
         output_embedding_layer_name = "lm_head"
 
