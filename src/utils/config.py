@@ -205,7 +205,7 @@ class FinetuningArguments:
         metadata={"help": "Name of trainable modules for Freeze fine-tuning."}
     )
     pre_seq_len: Optional[int] = field(
-        default=16,
+        default=64,
         metadata={"help": "Number of prefix tokens to use for P-tuning V2."}
     )
     prefix_projection: Optional[bool] = field(

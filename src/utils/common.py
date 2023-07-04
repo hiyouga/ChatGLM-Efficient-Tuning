@@ -225,6 +225,11 @@ def load_pretrained(
     # Load and prepare pretrained models (without valuehead).
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
 
+    # Register auto class to save the custom code files.
+    config.__class__.register_for_auto_class()
+    tokenizer.__class__.register_for_auto_class()
+    model.__class__.register_for_auto_class()
+
     if model_args.use_v2:
         assert tokenizer.eos_token_id is not None, "Please update the *.json and *.py files of ChatGLM2-6B from HuggingFace."
         model.lm_head = model.transformer.output_layer
