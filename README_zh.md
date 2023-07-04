@@ -113,7 +113,7 @@ pip install -r requirements.txt
 
 对于 Windows 用户，若要启用 LoRA（QLoRA） 或 Freeze 的量化微调，请下载预构建的 `bitsandbytes` 包，目前支持 CUDA 11.1 到12.1。
 
-```
+```bash
 pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
 ```
 
