@@ -112,7 +112,7 @@ accelerate launch src/train_sft.py \
     --plot_loss \
     --fp16
 ```
-
+注：如果不支持Nvlink，请换成torchrun。accelerate只支持Nvlink。
 框架运行日志如下图所示。
 
 ![3.jpg](media/ads_generation_3.jpg)
