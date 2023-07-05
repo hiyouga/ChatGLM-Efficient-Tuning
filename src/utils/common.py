@@ -226,9 +226,12 @@ def load_pretrained(
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
 
     # Register auto class to save the custom code files.
-    config.__class__.register_for_auto_class()
-    tokenizer.__class__.register_for_auto_class()
-    model.__class__.register_for_auto_class()
+    if hasattr(config, "auto_map") and "AutoConfig" in config.auto_map:
+        config.__class__.register_for_auto_class()
+    if hasattr(config, "auto_map") and "AutoTokenizer" in config.auto_map:
+        tokenizer.__class__.register_for_auto_class()
+    if hasattr(config, "auto_map") and "AutoModel" in config.auto_map:
+        model.__class__.register_for_auto_class()
 
     if model_args.use_v2:
         assert tokenizer.eos_token_id is not None, "Please update the *.json and *.py files of ChatGLM2-6B from HuggingFace."
@@ -240,6 +243,7 @@ def load_pretrained(
         output_embedding_base_layer = model
         output_embedding_layer_name = "lm_head"
 
+    # Initialize adapters
     model = prepare_model_for_training(
         model,
         finetuning_args.finetuning_type,
