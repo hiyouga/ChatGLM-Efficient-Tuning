@@ -19,7 +19,7 @@ class DatasetAttr:
         self.prompt_column = "instruction"
         self.query_column = "input"
         self.response_column = "output"
-        self.history_column = None
+        self.history_column = "history"
 
 
 @dataclass
