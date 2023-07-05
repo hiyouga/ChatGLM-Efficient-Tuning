@@ -13,9 +13,9 @@ Fine-tuning ðŸ¤–[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with ðŸ¤
 
 ## Changelog
 
-[23/06/25] Now we align the [demo API](src/api_demo.py) with the [OpenAI's](https://platform.openai.com/docs/api-reference/chat) format where you can insert the fine-tuned model in arbitrary ChatGPT-based applications.
+[23/06/25] Now we align the [demo API](src/api_demo.py) with the [OpenAI&#39;s](https://platform.openai.com/docs/api-reference/chat) format where you can insert the fine-tuned model in arbitrary ChatGPT-based applications.
 
-[23/06/25] Now we support fine-tuning the [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) model with our framework! Try `--use_v2` argument to fine-tune that model.
+[23/06/25] Now we support fine-tuning the [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) model with our framework! Try `--use_v2` argument to fine-tune and predict that model.
 
 [23/06/05] Now we support 4-bit LoRA training (aka [QLoRA](https://github.com/artidoro/qlora)). Try `--quantization_bit 4` argument to work with 4-bit quantized model. (experimental feature)
 
@@ -192,6 +192,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
 ```
 
 ### Predict
+
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
     --do_predict \
@@ -211,6 +212,7 @@ python src/cli_demo.py \
 ```
 
 ### Web Demo
+
 ```bash
 python src/web_demo.py \
     --checkpoint_dir path_to_checkpoint
@@ -226,28 +228,28 @@ python src/export_model.py \
 
 ### Hardware Requirements
 
-| Fine-tune method | Batch size | Mode |  GRAM  | Speed |
-| ---------------- | ---------- | ---- | ------ | ----- |
-| LoRA (r=8)       |     16     | FP16 |  28GB  | 8ex/s |
-| LoRA (r=8)       |     8      | FP16 |  24GB  | 8ex/s |
-| LoRA (r=8)       |     4      | FP16 |  20GB  | 8ex/s |
-| LoRA (r=8)       |     4      | INT8 |  10GB  | 8ex/s |
-| LoRA (r=8)       |     4      | INT4 |   8GB  | 8ex/s |
-| P-Tuning (p=16)  |     4      | FP16 |  20GB  | 8ex/s |
-| P-Tuning (p=16)  |     4      | INT8 |  16GB  | 8ex/s |
-| P-Tuning (p=16)  |     4      | INT4 |  12GB  | 8ex/s |
-| Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
-| Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
+| Fine-tune method | Batch size | Mode | GRAM | Speed |
+| ---------------- | ---------- | ---- | ---- | ----- |
+| LoRA (r=8)       | 16         | FP16 | 28GB | 8ex/s |
+| LoRA (r=8)       | 8          | FP16 | 24GB | 8ex/s |
+| LoRA (r=8)       | 4          | FP16 | 20GB | 8ex/s |
+| LoRA (r=8)       | 4          | INT8 | 10GB | 8ex/s |
+| LoRA (r=8)       | 4          | INT4 | 8GB  | 8ex/s |
+| P-Tuning (p=16)  | 4          | FP16 | 20GB | 8ex/s |
+| P-Tuning (p=16)  | 4          | INT8 | 16GB | 8ex/s |
+| P-Tuning (p=16)  | 4          | INT4 | 12GB | 8ex/s |
+| Freeze (l=3)     | 4          | FP16 | 24GB | 8ex/s |
+| Freeze (l=3)     | 4          | INT8 | 12GB | 8ex/s |
 
-| RM  method       | Batch size | Mode |  GRAM  | Speed |
-| ---------------- | ---------- | ---- | ------ | ----- |
-| LoRA (r=8) + rm  |     4      | FP16 |  22GB  | -     |
-| LoRA (r=8) + rm  |     1      | INT8 |  11GB  | -     |
+| RM  method      | Batch size | Mode | GRAM | Speed |
+| --------------- | ---------- | ---- | ---- | ----- |
+| LoRA (r=8) + rm | 4          | FP16 | 22GB | -     |
+| LoRA (r=8) + rm | 1          | INT8 | 11GB | -     |
 
-| RLHF method      | Batch size | Mode |  GRAM  | Speed |
-| ---------------- | ---------- | ---- | ------ | ----- |
-| LoRA (r=8) + ppo |     4      | FP16 |  23GB  | -     |
-| LoRA (r=8) + ppo |     1      | INT8 |  12GB  | -     |
+| RLHF method      | Batch size | Mode | GRAM | Speed |
+| ---------------- | ---------- | ---- | ---- | ----- |
+| LoRA (r=8) + ppo | 4          | FP16 | 23GB | -     |
+| LoRA (r=8) + ppo | 1          | INT8 | 12GB | -     |
 
 > Note: `r` is the lora rank, `p` is the number of prefix tokens, `l` is the number of trainable layers, `ex/s` is the examples per second at training. The `gradient_accumulation_steps` is set to `1`. All are evaluated on a single Tesla V100 (32G) GPU, they are approximated values and may vary in different GPUs.
 
@@ -263,13 +265,13 @@ We use the whole `alpaca_gpt4_zh` dataset to fine-tune the ChatGLM model with Lo
 
 We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tuned ChatGLM model and compute the BLEU and ROUGE scores. The results are presented below.
 
-|   Score   | Original | FZ (l=2) | PT (p=16) | LoRA (r=8) |
-| --------- | -------- | ----- | ----- | ----------------- |
-| BLEU-4    |  15.75   | 16.85 | 16.06 | 17.01 (**+1.26**) |
-| Rouge-1   |  34.51   | 36.62 | 34.80 | 36.77 (**+2.26**) |
-| Rouge-2   |  15.11   | 17.04 | 15.32 | 16.83 (**+1.72**) |
-| Rouge-l   |  26.18   | 28.17 | 26.35 | 28.86 (**+2.68**) |
-| Params (%)|  /       | 4.35% | 0.06% | 0.06%             |
+| Score      | Original | FZ (l=2) | PT (p=16) | LoRA (r=8)              |
+| ---------- | -------- | -------- | --------- | ----------------------- |
+| BLEU-4     | 15.75    | 16.85    | 16.06     | 17.01 (**+1.26**) |
+| Rouge-1    | 34.51    | 36.62    | 34.80     | 36.77 (**+2.26**) |
+| Rouge-2    | 15.11    | 17.04    | 15.32     | 16.83 (**+1.72**) |
+| Rouge-l    | 26.18    | 28.17    | 26.35     | 28.86 (**+2.68**) |
+| Params (%) | /        | 4.35%    | 0.06%     | 0.06%                   |
 
 > FZ: freeze tuning, PT: P-Tuning V2 (we use `pre_seq_len=16` for fair comparison with LoRA), Params: the percentange of trainable parameters.
 
@@ -298,26 +300,26 @@ We select 100 instances in the `alpaca_gpt4_zh` dataset to evaluate the fine-tun
 
 - [ ] Employing [LangChain](https://github.com/hwchase17/langchain) to easily build applications that are capable of leveraging external knowledge upon fine-tuned ChatGLM models.
 - [ ] Implementing the alignment algorithms to align human preferrences.
-  - [x] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
+  - [X] [RLHF](https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-chat)
   - [ ] [RRHF](https://github.com/GanjinZero/RRHF)
   - [ ] [RAFT](https://github.com/OptimalScale/LMFlow)
 - [ ] Incorporating [Chinese datasets](https://github.com/brightmart/nlp_chinese_corpus) into the training sets.
-  - [x] [BELLE](https://github.com/LianjiaTech/BELLE)
+  - [X] [BELLE](https://github.com/LianjiaTech/BELLE)
   - [ ] [pCLUE](https://github.com/CLUEbenchmark/pCLUE)
   - [ ] [CLUECorpus](https://github.com/CLUEbenchmark/CLUECorpus2020)
-  - [x] [GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
-  - [x] [FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
+  - [X] [GuanacoDataset](https://huggingface.co/datasets/JosephusCheung/GuanacoDataset)
+  - [X] [FireflyDataset](https://huggingface.co/datasets/YeungNLP/firefly-train-1.1M)
 - [ ] Incorporating [ChatGPT](https://openai.com/blog/chatgpt) & [GPT-4](https://openai.com/research/gpt-4) self-chat data into the training sets.
   - [ ] [Baize](https://github.com/project-baize/baize-chatbot)
-  - [x] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
-- [x] Implementing the Freeze-Tuning and P-Tuning method.
-- [x] Supporting Multi-GPUs fine-tuning.
-- [x] Adding script for evaluation.
-- [x] Loading from checkpoint.
-- [x] Fine-tuning the quantized model.
-- [x] Writing a guidebook about how to fine-tune ChatGLM with this framework.
+  - [X] [GPT-4-LLM](https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM)
+- [X] Implementing the Freeze-Tuning and P-Tuning method.
+- [X] Supporting Multi-GPUs fine-tuning.
+- [X] Adding script for evaluation.
+- [X] Loading from checkpoint.
+- [X] Fine-tuning the quantized model.
+- [X] Writing a guidebook about how to fine-tune ChatGLM with this framework.
 - [ ] Combining with state-of-the-art model editing algorithms. (*e.g. [MEND](https://arxiv.org/abs/2110.11309)*)
-- [x] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and alignment.
+- [X] Incorporating the [OpenAssistant Conversations Dataset](https://huggingface.co/datasets/OpenAssistant/oasst1) for SFT and alignment.
 - [ ] Incorporating the high quality Chinese instruction dataset [COIG](https://huggingface.co/datasets/BAAI/COIG).
 
 ## License
