@@ -90,6 +90,7 @@ huggingface-cli login
 - protobuf, cpm_kernels, sentencepiece
 - jieba, rouge_chinese, nltk（用于评估）
 - gradio, mdtex2html（用于网页端交互）
+- uvicorn, fastapi, sse_starlette（用于 API）
 
 以及 **强而有力的 GPU**！
 

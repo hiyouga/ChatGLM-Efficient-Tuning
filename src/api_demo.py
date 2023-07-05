@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from starlette.responses import StreamingResponse
+from sse_starlette import EventSourceResponse
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from utils import (
@@ -134,7 +134,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
 
     if request.stream:
         generate = predict(query, history, gen_kwargs, request.model)
-        return StreamingResponse(generate, media_type="text/event-stream")
+        return EventSourceResponse(generate, media_type="text/event-stream")
 
     response, _ = model.chat(tokenizer, query, history=history, **gen_kwargs)
     choice_data = ChatCompletionResponseChoice(
@@ -155,7 +155,7 @@ async def predict(query: str, history: List[List[str]], gen_kwargs: Dict[str, An
         finish_reason=None
     )
     chunk = ChatCompletionResponse(model=model_id, choices=[choice_data], object="chat.completion.chunk")
-    yield "data: {}\n\n".format(chunk.json(exclude_unset=True, ensure_ascii=False))
+    yield chunk.json(exclude_unset=True, ensure_ascii=False)
 
     current_length = 0
 
@@ -172,7 +172,7 @@ async def predict(query: str, history: List[List[str]], gen_kwargs: Dict[str, An
             finish_reason=None
         )
         chunk = ChatCompletionResponse(model=model_id, choices=[choice_data], object="chat.completion.chunk")
-        yield "data: {}\n\n".format(chunk.json(exclude_unset=True, ensure_ascii=False))
+        yield chunk.json(exclude_unset=True, ensure_ascii=False)
 
     choice_data = ChatCompletionResponseStreamChoice(
         index=0,
@@ -180,7 +180,8 @@ async def predict(query: str, history: List[List[str]], gen_kwargs: Dict[str, An
         finish_reason="stop"
     )
     chunk = ChatCompletionResponse(model=model_id, choices=[choice_data], object="chat.completion.chunk")
-    yield "data: {}\n\n".format(chunk.json(exclude_unset=True, ensure_ascii=False))
+    yield chunk.json(exclude_unset=True, ensure_ascii=False)
+    yield "[DONE]"
 
 
 if __name__ == "__main__":
@@ -195,5 +196,4 @@ if __name__ == "__main__":
         model = model.cuda()
 
     model.eval()
-
-    uvicorn.run(app, host='0.0.0.0', port=8000, workers=1)
+    uvicorn.run(app, host="0.0.0.0", port=8000, workers=1)

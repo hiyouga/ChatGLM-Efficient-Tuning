@@ -84,6 +84,7 @@ Our script now supports the following fine-tuning methods:
 - protobuf, cpm_kernels and sentencepiece
 - jieba, rouge_chinese and nltk (used at evaluation)
 - gradio and mdtex2html (used in web_demo.py)
+- uvicorn, fastapi and sse_starlette (used in api_demo.py)
 
 And **powerful GPUs**!
 
