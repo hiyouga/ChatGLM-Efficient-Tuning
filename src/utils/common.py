@@ -459,9 +459,11 @@ def prepare_data(
             ("response_column", "response"),
             ("history_column", "history")
         ]: # every dataset will have 4 columns same as each other
-            if getattr(dataset_attr, column_name) != target_name:
-                if getattr(dataset_attr, column_name):
-                    dataset = dataset.rename_column(getattr(dataset_attr, column_name), target_name)
+            origin_name = getattr(dataset_attr, column_name) 
+            if origin_name != target_name:
+                if origin_name:
+                    if origin_name in dataset.column_names:
+                        dataset = dataset.rename_column(origin_name, target_name)
                 else: # None or empty string
                     dataset = dataset.add_column(target_name, dummy_data)
         all_datasets.append(dataset)
