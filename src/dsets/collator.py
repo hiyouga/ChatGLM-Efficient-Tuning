@@ -1,12 +1,11 @@
 import torch
-
 from typing import Dict, Optional, Sequence, Union
 
 from transformers import DataCollatorWithPadding, BatchEncoding
 from transformers.modeling_utils import PreTrainedModel
 from transformers.tokenization_utils import PreTrainedTokenizer
 
-from .other import IGNORE_INDEX
+from extras.constants import IGNORE_INDEX
 
 
 class DataCollatorForChatGLM(DataCollatorWithPadding):

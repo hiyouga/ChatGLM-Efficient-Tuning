@@ -1,35 +1,5 @@
 import torch
-import numpy as np
-from typing import Dict, Sequence, Tuple, Union
-
-from .data_collator import DataCollatorForChatGLM
-
-from .peft_trainer import PeftTrainer
-
-from .other import get_logger
-
-logger = get_logger(__name__)
-
-
-def compute_accuracy(eval_preds: Sequence[Union[np.ndarray, Tuple[np.ndarray]]]) -> Dict[str, float]:
-    preds, _ = eval_preds
-    return {"accuracy": (preds[0] > preds[1]).sum() / len(preds[0])}
-
-
-class PairwiseDataCollatorForChatGLM(DataCollatorForChatGLM):
-    r"""
-    Data collator for pairwise data.
-    """
-
-    def __call__(self, features: Sequence[Dict[str, Union[torch.Tensor, Sequence[int]]]]) -> Dict[str, torch.Tensor]:
-        r"""
-        Pads batched data to the longest sequence in the batch.
-
-        We generate 2 * n examples where the first n examples represent chosen examples and
-        the last n examples represent rejected examples.
-        """
-        features = [{"input_ids": feature[key]} for key in ("accept_ids", "reject_ids") for feature in features]
-        return super().__call__(features)
+from trainer import PeftTrainer
 
 
 class PairwiseTrainerForChatGLM(PeftTrainer):
@@ -53,6 +23,7 @@ class PairwiseTrainerForChatGLM(PeftTrainer):
 
         See: https://github.com/huggingface/transformers/blob/v4.30.2/src/transformers/trainer.py#L3509
         """
+
         batch_size = inputs["input_ids"].size(0) // 2
         _, _, values = model(**inputs)
         r_accept, r_reject = values[-1].split(batch_size, dim=0)

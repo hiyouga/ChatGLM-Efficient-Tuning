@@ -115,7 +115,8 @@ pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/downl
 ### Fine-tuning with a Single GPU
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage sft \
     --do_train \
     --dataset alpaca_gpt4_en \
     --finetuning_type lora \
@@ -136,15 +137,14 @@ Please refer to our [Wiki](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/w
 
 ```bash
 accelerate config # configure the environment
-accelerate launch src/train_sft.py # arguments (same as above)
+accelerate launch src/train_bash.py # arguments (same as above)
 ```
-
-Note: if you are using LoRA method at fine-tuning, please provide `--ddp_find_unused_parameters False` argument to avoid the runtime error.
 
 ### Training Reward Model
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage rm \
     --do_train \
     --dataset comparison_gpt4_en \
     --finetuning_type lora \
@@ -162,7 +162,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
 ### Training with RLHF
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage ppo \
     --do_train \
     --dataset alpaca_gpt4_en \
     --finetuning_type lora \
@@ -182,7 +183,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
 ### Evaluation (BLEU and ROUGE_CHINESE)
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage sft \
     --do_eval \
     --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \
@@ -194,7 +196,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
 
 ### Predict
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage sft \
     --do_predict \
     --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \

@@ -1,29 +1,26 @@
-# coding=utf-8
-# Implements several parameter-efficient supervised fine-tuning method for ChatGLM.
-# This code is inspired by https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py
+# Inspired by: https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py
 
 
-from utils import (
-    DataCollatorForChatGLM,
-    Seq2SeqTrainerForChatGLM,
-    ComputeMetrics,
-    LogCallback,
-    load_pretrained,
-    prepare_args,
-    prepare_data,
-    preprocess_data,
-    get_logits_processor,
-    plot_loss
-)
+from transformers import Seq2SeqTrainingArguments
+from dsets import DataCollatorForChatGLM, get_dataset, preprocess_dataset
+from extras.misc import get_logits_processor
+from extras.ploting import plot_loss
+from hparams import ModelArguments, DataArguments, FinetuningArguments
+from trainer import LogCallback
+from pet.core.model import load_model_and_tokenizer
+from pet.sft.metric import ComputeMetrics
+from pet.sft.sft_trainer import Seq2SeqTrainerForChatGLM
 
 
-def main():
-
-    # Prepare pretrained model and dataset
-    model_args, data_args, training_args, finetuning_args = prepare_args(stage="sft")
-    dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args.do_train, stage="sft")
-    dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="sft")
+def run_sft(
+        model_args: ModelArguments,
+        data_args: DataArguments,
+        training_args: Seq2SeqTrainingArguments,
+        finetuning_args: FinetuningArguments
+):
+    dataset = get_dataset(model_args, data_args)
+    model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="sft")
+    dataset = preprocess_dataset(dataset, tokenizer, data_args, training_args, stage="sft")
     data_collator = DataCollatorForChatGLM(
         tokenizer=tokenizer,
         model=model,
@@ -94,12 +91,3 @@ def main():
         trainer.log_metrics("predict", predict_results.metrics)
         trainer.save_metrics("predict", predict_results.metrics)
         trainer.save_predictions(predict_results)
-
-
-def _mp_fn(index):
-    # For xla_spawn (TPUs)
-    main()
-
-
-if __name__ == "__main__":
-    main()

@@ -2,7 +2,7 @@ import os
 import math
 import torch
 from tqdm import tqdm
-from typing import Callable, Dict, List, Literal, Optional, Tuple
+from typing import Callable, Dict, List, Optional
 
 from transformers import Seq2SeqTrainingArguments, TrainerState
 from transformers.modeling_utils import PreTrainedModel
@@ -11,50 +11,14 @@ from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
 from trl.core import LengthSampler
 from trl.trainer.ppo_trainer import PPODecorators, logprobs_from_logits
 
-from .peft_trainer import PeftTrainer, LogCallback
-
-from .config import FinetuningArguments
-
-from .other import (
-    AverageMeter,
-    get_logger,
-    get_logits_processor
-)
+from extras.logging import get_logger
+from extras.misc import AverageMeter, get_logits_processor
+from hparams import FinetuningArguments
+from trainer import PeftTrainer, LogCallback
+from pet.ppo.utils import cast_layernorm_dtype, replace_model
 
 
 logger = get_logger(__name__)
-
-
-def replace_model(model: AutoModelForCausalLMWithValueHead, target: Literal["default", "reward"]) -> None:
-    if target == "reward": # save default head temporarily
-        valuehead_state_dict = model.v_head.state_dict()
-        setattr(model, "default_head_weight", valuehead_state_dict["summary.weight"])
-        setattr(model, "default_head_bias", valuehead_state_dict["summary.bias"])
-
-    model.pretrained_model.set_adapter(target) # set the LoRA adapter to be active
-    model.v_head.load_state_dict({
-        "summary.weight": getattr(model, "{}_head_weight".format(target)),
-        "summary.bias": getattr(model, "{}_head_bias".format(target))
-    })
-
-
-def cast_layernorm_dtype(
-        model: AutoModelForCausalLMWithValueHead,
-        layer_norm_names: List[str] = ["layernorm"], # for chatglm setting
-        layer_norm_params: Optional[Dict[str, torch.Tensor]] = None
-) -> Tuple[AutoModelForCausalLMWithValueHead, Dict[str, torch.Tensor]]:
-
-    layer_norm_state_dict = {}
-
-    for name, param in model.named_parameters():
-        if param.ndim == 1 and any(layer_norm_name in name for layer_norm_name in layer_norm_names):
-            if layer_norm_params is not None:
-                param.data = layer_norm_params[name] # restore float32 weights
-            else:
-                layer_norm_state_dict[name] = param.data.detach().clone() # store float32 weights for stability
-                param.data = param.data.to(torch.float16)
-
-    return model, layer_norm_state_dict
 
 
 class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
@@ -80,6 +44,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         r"""
         Implements training loop for the PPO stage, like _inner_training_loop() in Huggingface's Trainer.
         """
+
         total_train_batch_size = self.config.batch_size * self.config.gradient_accumulation_steps * self.args.world_size
         len_dataloader = len(self.dataloader)
         num_steps_per_epoch = max(len_dataloader // self.config.gradient_accumulation_steps, 1)
@@ -193,6 +158,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
 
         Subclass and override to inject custom behavior.
         """
+
         self.model, layer_norm_params = cast_layernorm_dtype(self.model)
 
         if length_sampler is not None:
@@ -227,6 +193,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
 
         Subclass and override to inject custom behavior.
         """
+
         bs = len(queries)
         fbs = self.config.mini_batch_size
         all_logprobs = []
@@ -279,5 +246,6 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
 
         Subclass and override to inject custom behavior.
         """
+
         if self.args.should_save:
             self._save(output_dir)

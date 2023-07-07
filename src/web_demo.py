@@ -7,16 +7,17 @@
 import torch
 import mdtex2html
 import gradio as gr
-
-from utils import prepare_infer_args, auto_configure_device_map, load_pretrained
 from transformers.utils.versions import require_version
+
+from extras.misc import auto_configure_device_map
+from pet import get_infer_args, load_model_and_tokenizer
 
 
 require_version("gradio>=3.30.0", "To fix: pip install gradio>=3.30.0")
 
 
-model_args, finetuning_args, generating_args = prepare_infer_args()
-model, tokenizer = load_pretrained(model_args, finetuning_args)
+model_args, finetuning_args, generating_args = get_infer_args()
+model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args)
 
 if torch.cuda.device_count() > 1:
     from accelerate import dispatch_model

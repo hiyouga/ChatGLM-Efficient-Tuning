@@ -1,34 +1,30 @@
-# coding=utf-8
-# Implements parameter-efficient PPO training of fine-tuned ChatGLM.
-# This code is inspired by:
+# Inspired by:
 # https://github.com/lvwerra/trl/blob/main/examples/sentiment/scripts/gpt-neox-20b_peft/gpt-neo-20b_sentiment_peft.py
 
+
 import math
-
-from torch.optim import AdamW
-
-from transformers.optimization import get_scheduler
 from trl import PPOConfig
+from torch.optim import AdamW
+from transformers import Seq2SeqTrainingArguments
+from transformers.optimization import get_scheduler
 
-from utils import (
-    DataCollatorForChatGLM,
-    PPOTrainerForChatGLM,
-    LogCallback,
-    load_pretrained,
-    prepare_args,
-    prepare_data,
-    preprocess_data,
-    plot_loss
-)
+from dsets import DataCollatorForChatGLM, get_dataset, preprocess_dataset
+from extras.ploting import plot_loss
+from hparams import ModelArguments, DataArguments, FinetuningArguments
+from trainer import LogCallback
+from pet.core.model import load_model_and_tokenizer
+from pet.ppo.ppo_trainer import PPOTrainerForChatGLM
 
 
-def main():
-
-    # prepare pretrained model and dataset
-    model_args, data_args, training_args, finetuning_args = prepare_args(stage="ppo")
-    dataset = prepare_data(model_args, data_args)
-    model, tokenizer = load_pretrained(model_args, finetuning_args, training_args.do_train, stage="ppo")
-    dataset = preprocess_data(dataset, tokenizer, data_args, training_args, stage="ppo")
+def run_ppo(
+        model_args: ModelArguments,
+        data_args: DataArguments,
+        training_args: Seq2SeqTrainingArguments,
+        finetuning_args: FinetuningArguments
+):
+    dataset = get_dataset(model_args, data_args)
+    model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="ppo")
+    dataset = preprocess_dataset(dataset, tokenizer, data_args, training_args, stage="ppo")
     data_collator = DataCollatorForChatGLM(tokenizer, model.pretrained_model, use_v2=model_args.use_v2)
 
     ppo_config = PPOConfig(
@@ -71,12 +67,3 @@ def main():
     ppo_trainer.save_state() # must be after save_model
     if ppo_trainer.is_world_process_zero() and model_args.plot_loss:
         plot_loss(training_args.output_dir, keys=["loss", "reward"])
-
-
-def _mp_fn(index):
-    # For xla_spawn (TPUs)
-    main()
-
-
-if __name__ == "__main__":
-    main()
