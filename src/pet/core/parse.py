@@ -3,7 +3,7 @@ import sys
 import torch
 import datasets
 import transformers
-from typing import Tuple
+from typing import Any, Dict, Optional, Tuple
 from transformers import HfArgumentParser, Seq2SeqTrainingArguments
 
 from extras.logging import get_logger
@@ -19,14 +19,18 @@ from hparams import (
 logger = get_logger(__name__)
 
 
-def get_train_args() -> Tuple[ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments, GeneralArguments]:
+def get_train_args(
+        args: Optional[Dict[str, Any]] = None
+) -> Tuple[ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments, GeneralArguments]:
 
     parser = HfArgumentParser((ModelArguments, DataArguments, Seq2SeqTrainingArguments, FinetuningArguments, GeneralArguments))
 
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"): # Provide arguments with a json file.
-        model_args, data_args, training_args, finetuning_args, general_args = parser.parse_json_file(
-            json_file=os.path.abspath(sys.argv[1])
-        )
+    if args is not None:
+        model_args, data_args, training_args, finetuning_args, general_args = parser.parse_dict(args)
+    elif len(sys.argv) == 2 and sys.argv[1].endswith(".yaml"):
+        model_args, data_args, training_args, finetuning_args, general_args = parser.parse_yaml_file(os.path.abspath(sys.argv[1]))
+    elif len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+        model_args, data_args, training_args, finetuning_args, general_args = parser.parse_json_file(os.path.abspath(sys.argv[1]))
     else:
         model_args, data_args, training_args, finetuning_args, general_args = parser.parse_args_into_dataclasses()
 
@@ -94,12 +98,18 @@ def get_train_args() -> Tuple[ModelArguments, DataArguments, Seq2SeqTrainingArgu
     return model_args, data_args, training_args, finetuning_args, general_args
 
 
-def get_infer_args() -> Tuple[ModelArguments, FinetuningArguments, GeneratingArguments]:
+def get_infer_args(
+        args: Optional[Dict[str, Any]] = None
+) -> Tuple[ModelArguments, FinetuningArguments, GeneratingArguments]:
 
     parser = HfArgumentParser((ModelArguments, FinetuningArguments, GeneratingArguments))
 
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"): # Provide arguments with a json file.
-        model_args, finetuning_args, generating_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+    if args is not None:
+        model_args, finetuning_args, generating_args = parser.parse_dict(args)
+    elif len(sys.argv) == 2 and sys.argv[1].endswith(".yaml"):
+        model_args, finetuning_args, generating_args = parser.parse_yaml_file(os.path.abspath(sys.argv[1]))
+    elif len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+        model_args, finetuning_args, generating_args = parser.parse_json_file(os.path.abspath(sys.argv[1]))
     else:
         model_args, finetuning_args, generating_args = parser.parse_args_into_dataclasses()
 
