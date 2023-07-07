@@ -5,13 +5,13 @@
 
 from transformers import Seq2SeqTrainingArguments
 from dsets import get_dataset, preprocess_dataset
+from extras.callbacks import LogCallback
 from extras.ploting import plot_loss
 from hparams import ModelArguments, DataArguments, FinetuningArguments
-from trainer import LogCallback
 from pet.core.model import load_model_and_tokenizer
 from pet.rm.metric import compute_accuracy
 from pet.rm.collator import PairwiseDataCollatorForChatGLM
-from pet.rm.rm_trainer import PairwiseTrainerForChatGLM
+from pet.rm.trainer import PairwiseTrainerForChatGLM
 
 
 def run_rm(

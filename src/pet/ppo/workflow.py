@@ -9,11 +9,11 @@ from transformers import Seq2SeqTrainingArguments
 from transformers.optimization import get_scheduler
 
 from dsets import DataCollatorForChatGLM, get_dataset, preprocess_dataset
+from extras.callbacks import LogCallback
 from extras.ploting import plot_loss
 from hparams import ModelArguments, DataArguments, FinetuningArguments
-from trainer import LogCallback
 from pet.core.model import load_model_and_tokenizer
-from pet.ppo.ppo_trainer import PPOTrainerForChatGLM
+from pet.ppo.trainer import PPOTrainerForChatGLM
 
 
 def run_ppo(

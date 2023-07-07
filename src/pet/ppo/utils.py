@@ -2,6 +2,8 @@ import torch
 from typing import Dict, List, Literal, Optional, Tuple
 from trl import AutoModelForCausalLMWithValueHead
 
+from extras.constants import LAYERNORM_NAMES
+
 
 def replace_model(model: AutoModelForCausalLMWithValueHead, target: Literal["default", "reward"]) -> None:
     if target == "reward": # save default head temporarily
@@ -18,7 +20,7 @@ def replace_model(model: AutoModelForCausalLMWithValueHead, target: Literal["def
 
 def cast_layernorm_dtype(
         model: AutoModelForCausalLMWithValueHead,
-        layer_norm_names: List[str] = ["layernorm"], # for chatglm setting
+        layer_norm_names: List[str] = LAYERNORM_NAMES,
         layer_norm_params: Optional[Dict[str, torch.Tensor]] = None
 ) -> Tuple[AutoModelForCausalLMWithValueHead, Dict[str, torch.Tensor]]:
 

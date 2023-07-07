@@ -1,5 +1,5 @@
 import torch
-from trainer import PeftTrainer
+from pet.core.trainer import PeftTrainer
 
 
 class PairwiseTrainerForChatGLM(PeftTrainer):

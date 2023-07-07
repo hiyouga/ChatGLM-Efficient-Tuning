@@ -3,13 +3,13 @@
 
 from transformers import Seq2SeqTrainingArguments
 from dsets import DataCollatorForChatGLM, get_dataset, preprocess_dataset
+from extras.callbacks import LogCallback
 from extras.misc import get_logits_processor
 from extras.ploting import plot_loss
 from hparams import ModelArguments, DataArguments, FinetuningArguments
-from trainer import LogCallback
 from pet.core.model import load_model_and_tokenizer
 from pet.sft.metric import ComputeMetrics
-from pet.sft.sft_trainer import Seq2SeqTrainerForChatGLM
+from pet.sft.trainer import Seq2SeqTrainerForChatGLM
 
 
 def run_sft(

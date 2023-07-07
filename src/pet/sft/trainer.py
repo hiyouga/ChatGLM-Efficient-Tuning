@@ -8,7 +8,7 @@ from transformers.trainer import PredictionOutput
 
 from extras.constants import IGNORE_INDEX
 from extras.logging import get_logger
-from trainer import PeftTrainer
+from pet.core.trainer import PeftTrainer
 
 
 logger = get_logger(__name__)

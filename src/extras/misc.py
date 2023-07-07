@@ -5,6 +5,8 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.generation.utils import LogitsProcessorList
 from transformers.generation.logits_process import LogitsProcessor
 
+from extras.constants import LAYERNORM_NAMES
+
 
 class AverageMeter:
     r"""
@@ -65,7 +67,7 @@ def prepare_model_for_training(
         output_embedding_base_layer: torch.nn.Module,
         output_embedding_layer_name: Optional[str] = "lm_head",
         use_gradient_checkpointing: Optional[bool] = True,
-        layer_norm_names: Optional[List[str]] = ["layernorm"] # for chatglm setting
+        layer_norm_names: Optional[List[str]] = LAYERNORM_NAMES
 ) -> PreTrainedModel:
 
     for name, param in model.named_parameters():

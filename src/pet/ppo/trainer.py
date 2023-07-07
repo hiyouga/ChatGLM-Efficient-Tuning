@@ -11,10 +11,11 @@ from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
 from trl.core import LengthSampler
 from trl.trainer.ppo_trainer import PPODecorators, logprobs_from_logits
 
+from extras.callbacks import LogCallback
 from extras.logging import get_logger
 from extras.misc import AverageMeter, get_logits_processor
 from hparams import FinetuningArguments
-from trainer import PeftTrainer, LogCallback
+from pet.core.trainer import PeftTrainer
 from pet.ppo.utils import cast_layernorm_dtype, replace_model
 
 
