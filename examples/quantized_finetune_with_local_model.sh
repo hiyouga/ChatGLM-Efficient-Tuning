@@ -1,6 +1,7 @@
 #!/bin/bash
 
-CUDA_VISIBLE_DEVICES=0 python ../src/train_sft.py \
+CUDA_VISIBLE_DEVICES=0 python ../src/train_bash.py \
+    --stage sft \
     --do_train \
     --model_name_or_path path_to_chatglm6b_model \
     --dataset alpaca_gpt4_zh \

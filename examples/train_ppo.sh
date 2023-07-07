@@ -1,10 +1,12 @@
 #!/bin/bash
 
-CUDA_VISIBLE_DEVICES=0 python ../src/train_ppo.py \
+CUDA_VISIBLE_DEVICES=0 python ../src/train_bash.py \
+    --stage ppo \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --dataset_dir ../data \
     --finetuning_type lora \
+    --resume_lora_training False \
     --checkpoint_dir path_to_sft_checkpoint \
     --reward_model path_to_rm_checkpoint \
     --output_dir path_to_ppo_checkpoint \
