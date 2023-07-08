@@ -1,7 +1,7 @@
 # Inspired by: https://github.com/THUDM/ChatGLM-6B/blob/main/ptuning/main.py
 
 
-from transformers import Seq2SeqTrainingArguments
+from transformers import Seq2SeqTrainingArguments, TrainerCallback
 from dsets import DataCollatorForChatGLM, get_dataset, preprocess_dataset
 from extras.callbacks import LogCallback
 from extras.misc import get_logits_processor
@@ -10,13 +10,15 @@ from hparams import ModelArguments, DataArguments, FinetuningArguments
 from pet.core.model import load_model_and_tokenizer
 from pet.sft.metric import ComputeMetrics
 from pet.sft.trainer import Seq2SeqTrainerForChatGLM
+from typing import Optional
 
 
 def run_sft(
         model_args: ModelArguments,
         data_args: DataArguments,
         training_args: Seq2SeqTrainingArguments,
-        finetuning_args: FinetuningArguments
+        finetuning_args: FinetuningArguments,
+        callback_fn: Optional[TrainerCallback] = []
 ):
     dataset = get_dataset(model_args, data_args)
     model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="sft")
@@ -51,7 +53,7 @@ def run_sft(
         args=training_args,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        callbacks=[LogCallback()],
+        callbacks=[LogCallback()]+callback_fn,
         compute_metrics=ComputeMetrics(tokenizer) if training_args.predict_with_generate else None,
         **trainer_kwargs
     )
