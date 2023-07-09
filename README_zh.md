@@ -13,6 +13,8 @@
 
 ## 更新日志
 
+[23/07/09] 我们开源了 [FastEdit](https://github.com/hiyouga/FastEdit) ⚡🩹，一个简单易用的、能迅速编辑大模型事实记忆的工具包。如果您感兴趣请关注我们的 [FastEdit](https://github.com/hiyouga/FastEdit) 项目。
+
 [23/06/25] 我们对齐了[示例 API](src/api_demo.py) 与 [OpenAI API](https://platform.openai.com/docs/api-reference/chat) 的格式，您可以将微调模型接入任意基于 ChatGPT 的应用中。
 
 [23/06/25] 现在我们实现了 [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) 模型的微调。请尝试使用 `--use_v2` 参数来进行训练和预测。

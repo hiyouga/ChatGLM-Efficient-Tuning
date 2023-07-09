@@ -13,6 +13,8 @@ Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with �
 
 ## Changelog
 
+[23/07/09] Now we release [FastEdit](https://github.com/hiyouga/FastEdit) ⚡🩹, an easy-to-use package for editing the factual knowledge of large language models efficently. Please follow [FastEdit](https://github.com/hiyouga/FastEdit) if you are interested.
+
 [23/06/25] Now we align the [demo API](src/api_demo.py) with the [OpenAI's](https://platform.openai.com/docs/api-reference/chat) format where you can insert the fine-tuned model in arbitrary ChatGPT-based applications.
 
 [23/06/25] Now we support fine-tuning the [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) model with our framework! Try `--use_v2` argument to fine-tune and predict that model.
