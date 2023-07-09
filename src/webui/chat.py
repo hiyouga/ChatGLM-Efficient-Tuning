@@ -1,4 +1,5 @@
 import gc
+import os
 import torch
 import mdtex2html
 from webui import common
@@ -59,11 +60,14 @@ class Chater():
         _, _, self.generating_args = get_infer_args({})
 
     def load_model(self, model_name, ckpt=None):
+        if self.model != None:
+            return "You have loaded a model, please unload it first."
         if not ckpt:
             ckpt = None
+        save_dir = os.path.join(common.get_save_dir(), ckpt) if ckpt and common.get_save_dir() else None
         args = {
             'model_name_or_path': common.settings["path_to_model"][model_name],
-            'checkpoint_dir': ckpt
+            'checkpoint_dir': save_dir
         }
         model_args, finetuning_args, self.generating_args = get_infer_args(args)
         yield "Loading model..."

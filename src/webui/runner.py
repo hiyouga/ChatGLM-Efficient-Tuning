@@ -1,5 +1,6 @@
 import transformers
 import time
+import os
 import logging
 import threading
 from pet import (
@@ -84,12 +85,14 @@ class Runner():
         callback_handler.setLevel(logging.INFO)
         logging.root.addHandler(callback_handler)
 
+        save_path = os.path.join(common.web_log_dir, base_model, model_name)
+
         args = {
             "model_name_or_path": common.settings["path_to_model"][base_model],
             "do_train": True,
             "dataset": dataset,
             "finetuning_type": ft_type,
-            "output_dir": model_name,
+            "output_dir": save_path,
             "overwrite_cache": True,
             "per_device_train_batch_size": per_device_train_batch_size,
             "gradient_accumulation_steps": gradient_accumulation_steps,
@@ -119,12 +122,13 @@ class Runner():
         yield "Ready"
 
     def run_eval(self, base_model, ckpt, dataset, per_device_eval_batch_size):
+        save_path = os.path.join(common.web_log_dir, base_model, ckpt)
         args = {
             "model_name_or_path": common.settings["path_to_model"][base_model],
             "do_eval": True,
             "dataset": dataset,
-            "checkpoint_dir": ckpt,
-            "output_dir": f"web_log/{ckpt}_eval",
+            "checkpoint_dir": save_path,
+            "output_dir": os.path.join(save_path, "eval"),
             "per_device_eval_batch_size": per_device_eval_batch_size,
             "predict_with_generate": True
         }

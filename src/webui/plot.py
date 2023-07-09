@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
 import os
 import json
+from webui import common
 
 def plt_loss(ckpt):
-    log_dir = os.path.join(ckpt, 'trainer_log.jsonl')
+    save_dir = common.get_save_dir()
+    if not save_dir:
+        return None
+    log_dir = os.path.join(save_dir, ckpt, 'trainer_log.jsonl')
     fig = plt.figure()
     ax = fig.add_subplot(111)
     if os.path.isfile(log_dir):

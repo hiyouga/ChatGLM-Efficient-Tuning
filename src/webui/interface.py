@@ -4,9 +4,11 @@ from webui import (
     plot,
     common,
     runner,
-    chat
+    chat,
+    utils
 )
 import json
+import os
 
 def get_available_model():
     return list(common.settings["path_to_model"].keys())
@@ -17,8 +19,13 @@ def get_available_dataset():
         return list(dataset_info.keys())
 
 def get_available_ckpt():
-    print('refresh ckpt...')
-    return []
+    ckpts = []
+    save_path = common.get_save_dir()
+    if save_path and os.path.isdir(save_path):
+        for ckpt_dir in os.listdir(save_path):
+            if os.path.isdir(ckpt_dir):
+                ckpts.append(ckpt_dir)
+    return ckpts
 
 def create_model_tab():
     with gr.Row():
@@ -77,7 +84,7 @@ def create_sft_interface(base_model):
         # output demo
         with gr.Row():
             with gr.Column(scale=4):
-                ckpt = gr.Textbox(label="Checkpoint Name", value="logs/test", interactive=False)
+                ckpt = gr.Textbox(label="Checkpoint Name", value=utils.generate_ckpt_name, interactive=False)
                 output = gr.Markdown(value="Ready")
             with gr.Column(scale=1):
                 with gr.Row():
@@ -92,7 +99,7 @@ def create_sft_interface(base_model):
         with gr.Row():
             checkpoint = gr.Dropdown(label='Checkpoint', choices=get_available_ckpt(), interactive=True)
             ui.create_refresh_button(checkpoint, lambda: None, lambda: {'choices': get_available_ckpt()}, 'emoji-button')
-            base_model.change(get_available_ckpt, None, None)
+            base_model.change(lambda: gr.update(choices=get_available_ckpt()), None, checkpoint)
         with gr.Row():
             eval_dataset = gr.Dropdown(label='Dataset', info='The name of provided dataset(s) to use. Use comma to separate multiple datasets.', choices=get_available_dataset(), interactive=True)
         with gr.Row():
@@ -131,6 +138,7 @@ def create_infer_interface(base_model):
     chater = chat.Chater()
     with gr.Row():
         checkpoint = gr.Dropdown(label='Checkpoint', choices=get_available_ckpt(), interactive=True)
+        base_model.change(lambda: gr.update(choices=get_available_ckpt()), None, checkpoint)
         ui.create_refresh_button(checkpoint, lambda: None, lambda: {'choices': get_available_ckpt()}, 'emoji-button')
     with gr.Row():
         load_btn = gr.Button('load', elem_classes="small-button")
