@@ -3,7 +3,8 @@ from webui import (
     ui,
     plot,
     common,
-    runner
+    runner,
+    chat
 )
 import json
 
@@ -100,17 +101,59 @@ def create_sft_interface(base_model):
         eval_output = gr.Markdown(value="Ready")
         eval_start_btn.click(process.run_eval, [base_model, checkpoint, eval_dataset, per_device_eval_batch_size], eval_output)
 
+def create_chat_box(chater):
+    with gr.Box(visible=False) as chat_box:
+        chatbot = gr.Chatbot()
+
+        with gr.Row():
+            with gr.Column(scale=4):
+                with gr.Column(scale=12):
+                    user_input = gr.Textbox(show_label=False, placeholder="Input...", lines=10).style(container=False)
+                with gr.Column(min_width=32, scale=1):
+                    submitBtn = gr.Button("Submit", variant="primary")
+
+            with gr.Column(scale=1):
+                emptyBtn = gr.Button("Clear History")
+                max_length = gr.Slider(0, 4096, value=chater.generating_args.max_length, step=1.0, label="Maximum length", interactive=True)
+                top_p = gr.Slider(0, 1, value=chater.generating_args.top_p, step=0.01, label="Top P", interactive=True)
+                temperature = gr.Slider(0, 1.5, value=chater.generating_args.temperature, step=0.01, label="Temperature", interactive=True)
+
+    history = gr.State([])
+
+    submitBtn.click(chater.predict, [user_input, chatbot, max_length, top_p, temperature, history], [chatbot, history], show_progress=True)
+    submitBtn.click(lambda: gr.update(value=''), [], [user_input])
+
+    emptyBtn.click(lambda: ([], []), outputs=[chatbot, history], show_progress=True)
+
+    return chat_box, chatbot, history
+
 def create_infer_interface(base_model):
+    chater = chat.Chater()
     with gr.Row():
         checkpoint = gr.Dropdown(label='Checkpoint', choices=get_available_ckpt(), interactive=True)
         ui.create_refresh_button(checkpoint, lambda: None, lambda: {'choices': get_available_ckpt()}, 'emoji-button')
+    with gr.Row():
+        load_btn = gr.Button('load', elem_classes="small-button")
+        unload_btn = gr.Button('unload', elem_classes="small-button")
+    infer_info = gr.Markdown(value='Model unloaded, please load a model first.')
+
+    chat_box, chatbot, history = create_chat_box(chater)
+
+    load_btn.click(chater.load_model, [base_model, checkpoint], [infer_info]).then(
+        lambda: gr.update(visible=True), None, chat_box
+    )
+    unload_btn.click(chater.unload_model, None, [infer_info]).then(
+        lambda: ([], []), outputs=[chatbot, history]).then(
+        lambda: gr.update(visible=False), None, chat_box
+    )
+
 
 def create_interface():
     with open(f"{common.css_dir}/main.css") as f:
         css = f.read()
     with gr.Blocks(css=css) as demo:
         base_model = create_model_tab()
-        with gr.Tab('Train', elem_id='sft-tab'):
+        with gr.Tab('Train-SFT', elem_id='sft-tab'):
             create_sft_interface(base_model)
         with gr.Tab('Infer', elem_id='infer_tab'):
             create_infer_interface(base_model)

@@ -2,6 +2,7 @@ elements = {}
 web_log_dir = "logs"
 data_dir = "data"
 css_dir = 'src/webui/css'
+device = 'cuda'
 
 settings = {
     "base_model": None,
