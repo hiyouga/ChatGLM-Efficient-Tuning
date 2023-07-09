@@ -10,3 +10,9 @@ settings = {
 
 def set_base_model(model_name):
     settings["base_model"] = model_name
+
+def add_base_model(model_name, model_path):
+    settings["path_to_model"][model_name] = model_path
+
+def del_base_model(model_name):
+    settings["path_to_model"].pop(model_name)

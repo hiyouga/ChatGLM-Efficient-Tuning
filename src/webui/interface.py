@@ -19,12 +19,39 @@ def get_available_ckpt():
     print('refresh ckpt...')
     return []
 
-def create_sft_interface():
-    process = runner.Runner()
+def create_model_tab():
     with gr.Row():
-        base_model = gr.Dropdown(label='Base model', value='None', choices=get_available_model(), interactive=True)
+        base_model = gr.Dropdown(label='Base model', value=common.settings['base_model'], choices=get_available_model(), interactive=True)
         ui.create_refresh_button(base_model, lambda: None, lambda: {'choices': get_available_model()}, 'emoji-button')
+        save_btn = gr.Button('💾', elem_classes=['emoji-button'])
+        del_btn = gr.Button('🗑️', elem_classes=['emoji-button'])
         base_model.change(common.set_base_model, [base_model], None)
+
+    with gr.Box(visible=False, elem_classes='model-saver') as save_box:
+        model_name = gr.Textbox(lines=1, label='Model name')
+        model_path = gr.Textbox(lines=1, label='Model path', info='The absolute path to your model.')
+    
+        with gr.Row():
+            confirm_btn = gr.Button('Save', elem_classes="small-button")
+            cancel_btn = gr.Button('Cancel', elem_classes="small-button")
+    
+    confirm_btn.click(common.add_base_model, [model_name, model_path], None).then(
+        lambda: gr.update(visible=False), None, save_box
+    )
+    cancel_btn.click(lambda: gr.update(visible=False), None, save_box)
+
+    save_btn.click(lambda: gr.update(visible=True), None, save_box).then(
+        lambda: gr.update(choices=get_available_model()), None, base_model
+    )
+    del_btn.click(common.del_base_model, [base_model], None).then(
+        lambda: gr.update(choices=get_available_model()), None, base_model
+    )
+
+    return base_model
+
+def create_sft_interface(base_model):
+    process = runner.Runner()
+    
     with gr.Tab('Train', elem_id='train-tab'):
         with gr.Row():
             ft_type = gr.Dropdown(label='Which fine-tuning method to use.', value='lora', choices=['none', 'freeze', 'lora', 'full'], interactive=True)
@@ -72,3 +99,19 @@ def create_sft_interface():
         eval_start_btn = gr.Button("Start Evaluation")
         eval_output = gr.Markdown(value="Ready")
         eval_start_btn.click(process.run_eval, [base_model, checkpoint, eval_dataset, per_device_eval_batch_size], eval_output)
+
+def create_infer_interface(base_model):
+    with gr.Row():
+        checkpoint = gr.Dropdown(label='Checkpoint', choices=get_available_ckpt(), interactive=True)
+        ui.create_refresh_button(checkpoint, lambda: None, lambda: {'choices': get_available_ckpt()}, 'emoji-button')
+
+def create_interface():
+    with open(f"{common.css_dir}/main.css") as f:
+        css = f.read()
+    with gr.Blocks(css=css) as demo:
+        base_model = create_model_tab()
+        with gr.Tab('Train', elem_id='sft-tab'):
+            create_sft_interface(base_model)
+        with gr.Tab('Infer', elem_id='infer_tab'):
+            create_infer_interface(base_model)
+    return demo
