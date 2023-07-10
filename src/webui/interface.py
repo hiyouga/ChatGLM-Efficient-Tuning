@@ -23,7 +23,7 @@ def get_available_ckpt():
     save_path = common.get_save_dir()
     if save_path and os.path.isdir(save_path):
         for ckpt_dir in os.listdir(save_path):
-            if os.path.isdir(ckpt_dir):
+            if os.path.isdir(os.path.join(save_path, ckpt_dir)) and os.path.isfile(os.path.join(save_path, ckpt_dir, 'adapter_model.bin')):
                 ckpts.append(ckpt_dir)
     return ckpts
 
@@ -104,9 +104,13 @@ def create_sft_interface(base_model):
             eval_dataset = gr.Dropdown(label='Dataset', info='The name of provided dataset(s) to use. Use comma to separate multiple datasets.', choices=get_available_dataset(), interactive=True)
         with gr.Row():
             per_device_eval_batch_size = gr.Slider(label='Batch Size', value=8, minimum=1, maximum=128, step=1, info='Batch size per GPU/TPU core/CPU for evaluation.', interactive=True)
-        eval_start_btn = gr.Button("Start Evaluation")
+        with gr.Row():
+            eval_start_btn = gr.Button("Start Evaluation")
+            eval_stop_btn = gr.Button("Abort")
         eval_output = gr.Markdown(value="Ready")
+
         eval_start_btn.click(process.run_eval, [base_model, checkpoint, eval_dataset, per_device_eval_batch_size], eval_output)
+        eval_stop_btn.click(process.set_abort, None, None, queue=False)
 
 def create_chat_box(chater):
     with gr.Box(visible=False) as chat_box:

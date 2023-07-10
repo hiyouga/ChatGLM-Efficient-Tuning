@@ -9,7 +9,7 @@ from pet import (
     run_sft
 )
 from datetime import timedelta
-from webui import common
+from webui import common, utils
 
 class log_handler(logging.Handler):
     def __init__(self):
@@ -74,12 +74,18 @@ def format_info(trainer_log, tracker):
 class Runner():
     def __init__(self):
         self.aborted = False
+        self.running = False
     
     def set_abort(self):
         self.aborted = True
+        self.running = False
     
     def run_train(self, model_name, base_model, ft_type, dataset, lr, epochs, fp16, per_device_train_batch_size, gradient_accumulation_steps, lr_scheduler_type, logging_steps, save_steps):
+        if self.running:
+            return "A process is in running, please abort it first."
+        
         self.aborted = False
+        self.running = True
 
         callback_handler = log_handler()
         callback_handler.setLevel(logging.INFO)
@@ -118,20 +124,53 @@ class Runner():
                 yield "Aborted, wait for terminating..."
             else:
                 yield format_info(callback_handler.log, train_callback.tracker)
-        
-        yield "Ready"
+
+        self.running = False
+        if self.aborted:
+            yield "Ready"
 
     def run_eval(self, base_model, ckpt, dataset, per_device_eval_batch_size):
-        save_path = os.path.join(common.web_log_dir, base_model, ckpt)
+        if self.running:
+            return "A process is in running, please abort it first."
+        
+        self.running = True
+
+        callback_handler = log_handler()
+        callback_handler.setLevel(logging.INFO)
+        logging.root.addHandler(callback_handler)
+
+        if not ckpt:
+            ckpt = None
+        save_path = os.path.join(common.web_log_dir, base_model, ckpt) if ckpt else None
+        output_dir = os.path.join(save_path, "eval") if save_path else os.path.join(common.web_log_dir, base_model, "eval")
         args = {
             "model_name_or_path": common.settings["path_to_model"][base_model],
             "do_eval": True,
             "dataset": dataset,
             "checkpoint_dir": save_path,
-            "output_dir": os.path.join(save_path, "eval"),
+            "output_dir": output_dir,
             "per_device_eval_batch_size": per_device_eval_batch_size,
             "predict_with_generate": True
         }
         model_args, data_args, training_args, finetuning_args, general_args = get_train_args(args)
-        # run_sft(model_args, data_args, training_args, finetuning_args)
-        raise NotImplementedError
+
+        train_callback = Callbacks(self)
+        def thread_run():
+            run_sft(model_args, data_args, training_args, finetuning_args, [train_callback])
+        
+        thread = threading.Thread(target=thread_run)
+        thread.start()
+
+        while thread.is_alive():
+            time.sleep(1)
+            if self.aborted:
+                yield "Aborted, wait for terminating..."
+            else:
+                yield format_info(callback_handler.log, train_callback.tracker)
+        
+        self.running = False
+        if self.aborted:
+            yield "Ready"
+        else:
+            yield utils.get_eval_result(os.path.join(output_dir, "eval_results.json"))
+
