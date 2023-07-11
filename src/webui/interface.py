@@ -126,7 +126,7 @@ def create_sft_interface(base_model):
     # eval
     with gr.Tab('Evaluation', elem_id='eval-tab'):
         with gr.Row():
-            checkpoint = gr.Dropdown(label='Checkpoint', choices=get_available_ckpt(), interactive=True)
+            checkpoint = gr.Dropdown(label='Checkpoint', info=f'Automatically read ckpt from {common.web_log_dir}/base_model', choices=get_available_ckpt(), interactive=True)
             ui.create_refresh_button(checkpoint, lambda: None, lambda: {'choices': get_available_ckpt()}, 'emoji-button')
             base_model.change(lambda: gr.update(choices=get_available_ckpt()), None, checkpoint)
         with gr.Row():

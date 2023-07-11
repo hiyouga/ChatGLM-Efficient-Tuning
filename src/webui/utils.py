@@ -10,7 +10,9 @@ def generate_ckpt_name():
 
 def get_eval_result(path):
     with open(path) as f:
-        result = json.load(f)
-    return f"```javascript \
-        {result} \
-    ```"
+        result = json.dumps(json.load(f), indent=4)
+    return f"""
+```json
+{result}
+```
+"""
