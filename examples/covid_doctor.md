@@ -27,7 +27,8 @@ data/
 运行以下命令使用训练集和验证集对模型进行监督微调，这里利用了 LoRA 微调方法，微调后的模型保存在 `covid/sft` 文件夹中。我们采用 5e-5 的学习率，批处理大小为 4×8=32，在训练样本上训练 10 个 epoch。另外，我们使用 5% 的训练样本作为验证样本，用于观察模型是否过拟合。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage sft \
     --do_train \
     --dataset covid_train,covid_dev \
     --dataset_dir data/covid \
@@ -63,7 +64,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
 为了进行后续的强化学习训练，我们需要先训练一个奖励模型。这里我们使用项目中自带的中文对比数据集 `comparison_gpt4_zh` 训练奖励模型，模型训练利用了 LoRA 方法，奖励模型的 LoRA 权重保存在 `covid/rm` 文件夹中。我们采用 1e-5 的学习率，批处理大小为 4×8=32，在训练样本上训练 1 个 epoch。另外，我们使用 5% 的训练样本作为验证样本，用于观察模型是否过拟合。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage rm \
     --do_train \
     --dataset comparison_gpt4_zh \
     --dataset_dir data \
@@ -101,7 +103,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_rm.py \
 > 尽管如此，该项仍然允许设置为 `True`。当采用这种设置时，我们相当于给监督微调后的模型做正则化（regularization）过程。由于 PPO 算法中的 KL 散度惩罚项，这时强化学习训练相当于在减轻监督微调过程中的过拟合现象。如果您对 RLHF 算法有充分的了解，我们建议您自由探索该参数的最佳设置。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage ppo \
     --do_train \
     --dataset covid_train,covid_dev \
     --dataset_dir data/covid \
@@ -132,7 +135,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_ppo.py \
 我们使用训练后的模型在测试集上进行预测，同时评估模型在测试集上的 BLEU 和 ROUGE 分数，预测结果会保存在 `covid/pred/generated_predictions.jsonl` 文件中。由于强化学习阶段创建了新的 LoRA 权重，因此我们要同时加载监督微调阶段和强化学习阶段的 LoRA 权重。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python src/train_sft.py \
+CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
+    --stage sft \
     --do_predict \
     --dataset covid_test \
     --dataset_dir data/covid \

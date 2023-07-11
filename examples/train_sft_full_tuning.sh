@@ -1,6 +1,7 @@
 #!/bin/bash
 
-accelerate launch --config_file accelerate_config.yaml ../src/train_sft.py \
+accelerate launch --config_file accelerate_config.yaml ../src/train_bash.py \
+    --stage sft \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --dataset_dir ../data \

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-CUDA_VISIBLE_DEVICES=0 python ../src/train_rm.py \
+CUDA_VISIBLE_DEVICES=0 python ../src/train_bash.py \
+    --stage rm \
     --do_train \
     --dataset comparison_gpt4_zh \
     --dataset_dir ../data \
