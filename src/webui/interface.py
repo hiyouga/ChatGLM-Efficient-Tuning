@@ -18,6 +18,19 @@ def get_available_dataset():
         dataset_info = json.load(f)
         return list(dataset_info.keys())
 
+def update_preview_btn(dname):
+    with open(f'{common.data_dir}/dataset_info.json') as f:
+        dataset_info = json.load(f)
+    return gr.update(visible="file_name" in dataset_info[dname])
+
+def get_dataset_preview(dname):
+    with open(f'{common.data_dir}/dataset_info.json') as f:
+        dataset_info = json.load(f)
+    dpath = dataset_info[dname]["file_name"]
+    with open(f'{common.data_dir}/{dpath}') as f:
+        data = json.load(f)
+    return data[:2], len(data)
+
 def get_available_ckpt():
     ckpts = []
     save_path = common.get_save_dir()
@@ -57,6 +70,16 @@ def create_model_tab():
 
     return base_model
 
+def create_preview_box():
+    with gr.Box(visible=False, elem_classes='model-saver') as preview:
+        with gr.Row():
+            preview_count = gr.Number(label='Number of Data', interactive=False)
+        with gr.Row():
+            preview_content = gr.JSON(label='Sample', interactive=False)
+        close_btn = gr.Button('Close', elem_classes="small-button")
+    close_btn.click(lambda: gr.update(visible=False), None, preview)
+    return preview, preview_count, preview_content
+
 def create_sft_interface(base_model):
     process = runner.Runner()
     
@@ -65,6 +88,12 @@ def create_sft_interface(base_model):
             ft_type = gr.Dropdown(label='Which fine-tuning method to use.', value='lora', choices=['none', 'freeze', 'lora', 'full'], interactive=True)
         with gr.Row():
             dataset = gr.Dropdown(label='Dataset', info='The name of provided dataset(s) to use. Use comma to separate multiple datasets.', choices=get_available_dataset(), interactive=True)
+            preview_btn = gr.Button('🔍', elem_classes=['emoji-button'], visible=False)
+        dataset.change(update_preview_btn, [dataset], [preview_btn])
+        preview, preview_count, preview_content = create_preview_box()
+        preview_btn.click(get_dataset_preview, [dataset], [preview_content, preview_count]).then(
+            lambda: gr.update(visible=True), None, preview
+        )
         with gr.Row():
             learning_rate = gr.Textbox(label='Learning Rate', value='5e-5', info='The initial learning rate for AdamW.', interactive=True)
             num_train_epochs = gr.Textbox(label='Epochs', value='3.0', info='Total number of training epochs to perform.', interactive=True)
