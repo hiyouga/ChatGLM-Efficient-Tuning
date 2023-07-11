@@ -44,8 +44,8 @@ def create_model_tab():
     with gr.Row():
         base_model = gr.Dropdown(label='Base model', value=common.settings['base_model'], choices=get_available_model(), interactive=True)
         ui.create_refresh_button(base_model, lambda: None, lambda: {'choices': get_available_model()}, 'emoji-button')
-        save_btn = gr.Button('💾', elem_classes=['emoji-button'])
-        del_btn = gr.Button('🗑️', elem_classes=['emoji-button'])
+        save_btn = gr.Button("Add model", elem_classes=["small-button"])
+        del_btn = gr.Button("Delete model", elem_classes=["small-button"])
         base_model.change(common.set_base_model, [base_model], None)
 
     with gr.Box(visible=False, elem_classes='model-saver') as save_box:
@@ -94,10 +94,12 @@ def create_sft_interface(base_model):
         preview_btn.click(get_dataset_preview, [dataset], [preview_content, preview_count]).then(
             lambda: gr.update(visible=True), None, preview
         )
+
         with gr.Row():
             learning_rate = gr.Textbox(label='Learning Rate', value='5e-5', info='The initial learning rate for AdamW.', interactive=True)
             num_train_epochs = gr.Textbox(label='Epochs', value='3.0', info='Total number of training epochs to perform.', interactive=True)
             fp16 = gr.Checkbox(label="fp16", value=True)
+            use_v2 = gr.Checkbox(label="use ChatGLM2", value=True)
         with gr.Row():
             per_device_train_batch_size = gr.Slider(label='Batch Size', value=4, minimum=1, maximum=128, step=1, info='Batch size per GPU/TPU core/CPU for training.', interactive=True)
             gradient_accumulation_steps = gr.Slider(label='Gradient Accumulation', value=4, minimum=1, maximum=16, step=1, info='Number of updates steps to accumulate before performing a backward/update pass.', interactive=True)
@@ -118,7 +120,7 @@ def create_sft_interface(base_model):
             with gr.Column(scale=1):
                 with gr.Row():
                     loss_plt = gr.Plot(label="Loss")
-        start_btn.click(process.run_train, [ckpt, base_model, ft_type, dataset, learning_rate, num_train_epochs, fp16, per_device_train_batch_size, gradient_accumulation_steps, lr_scheduler_type, logging_steps, save_steps], output)
+        start_btn.click(process.run_train, [ckpt, base_model, ft_type, dataset, learning_rate, num_train_epochs, fp16, use_v2, per_device_train_batch_size, gradient_accumulation_steps, lr_scheduler_type, logging_steps, save_steps], output)
         stop_btn.click(process.set_abort, None, None, queue=False)
 
         output.change(plot.plt_loss, [ckpt], loss_plt, queue=False)

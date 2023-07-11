@@ -80,7 +80,7 @@ class Runner():
         self.aborted = True
         self.running = False
     
-    def run_train(self, model_name, base_model, ft_type, dataset, lr, epochs, fp16, per_device_train_batch_size, gradient_accumulation_steps, lr_scheduler_type, logging_steps, save_steps):
+    def run_train(self, model_name, base_model, ft_type, dataset, lr, epochs, fp16, use_v2, per_device_train_batch_size, gradient_accumulation_steps, lr_scheduler_type, logging_steps, save_steps):
         if self.running:
             return "A process is in running, please abort it first."
         
@@ -108,6 +108,7 @@ class Runner():
             "learning_rate": float(lr),
             "num_train_epochs": float(epochs),
             "fp16": fp16,
+            "use_v2": use_v2
         }
         model_args, data_args, training_args, finetuning_args, general_args = get_train_args(args)
 
