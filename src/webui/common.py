@@ -8,7 +8,7 @@ device = 'cuda'
 
 settings = {
     "base_model": None,
-    "path_to_model": {"llama-7b": "/home/incoming/zhengyw/llama/7b", "chatglm1": "/home/incoming/zhengyw/chatglm1"}
+    "path_to_model": {}
 }
 
 def get_save_dir():
