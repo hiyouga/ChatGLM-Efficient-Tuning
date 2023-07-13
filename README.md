@@ -81,9 +81,9 @@ Our script now supports the following fine-tuning methods:
 
 ## Requirement
 
-- Python 3.8+ and PyTorch 1.13.1
+- Python 3.8+ and PyTorch 1.13.1+
 - 🤗Transformers, Datasets, Accelerate, PEFT and TRL
-- protobuf, cpm-kernels and sentencepiece
+- fire, protobuf, cpm-kernels and sentencepiece
 - jieba, rouge-chinese and nltk (used at evaluation)
 - gradio and mdtex2html (used in web_demo.py)
 - uvicorn, fastapi and sse-starlette (used in api_demo.py)
@@ -217,10 +217,10 @@ python src/cli_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### Web Demo
+### All-in-one Web UI
+
 ```bash
-python src/web_demo.py \
-    --checkpoint_dir path_to_checkpoint
+python src/train_web.py
 ```
 
 ### Export model

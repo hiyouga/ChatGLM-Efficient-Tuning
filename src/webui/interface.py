@@ -1,3 +1,5 @@
+import os
+import json
 import gradio as gr
 from webui import (
     ui,
@@ -7,8 +9,7 @@ from webui import (
     chat,
     utils
 )
-import json
-import os
+
 
 def get_available_model():
     return list(common.settings["path_to_model"].keys())

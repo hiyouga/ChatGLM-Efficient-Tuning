@@ -37,12 +37,12 @@ class Callbacks(transformers.TrainerCallback):
         if self.runner.aborted:
             control.should_epoch_stop = True
             control.should_training_stop = True
-    
+
     def on_substep_end(self, args: transformers.TrainingArguments, state: transformers.TrainerState, control: transformers.TrainerControl, **kwargs):
         if self.runner.aborted:
             control.should_epoch_stop = True
             control.should_training_stop = True
-    
+
     def on_log(self, args: transformers.TrainingArguments, state: transformers.TrainerState, control: transformers.TrainerControl, logs, **kwargs):
         if "loss" not in state.log_history[-1]:
             return
@@ -75,15 +75,15 @@ class Runner():
     def __init__(self):
         self.aborted = False
         self.running = False
-    
+
     def set_abort(self):
         self.aborted = True
         self.running = False
-    
+
     def run_train(self, model_name, base_model, ft_type, dataset, lr, epochs, fp16, use_v2, per_device_train_batch_size, gradient_accumulation_steps, lr_scheduler_type, logging_steps, save_steps):
         if self.running:
             return "A process is in running, please abort it first."
-        
+
         self.aborted = False
         self.running = True
 
@@ -110,12 +110,12 @@ class Runner():
             "fp16": fp16,
             "use_v2": use_v2
         }
-        model_args, data_args, training_args, finetuning_args, general_args = get_train_args(args)
+        model_args, data_args, training_args, finetuning_args, _ = get_train_args(args)
 
         train_callback = Callbacks(self)
         def thread_run():
             run_sft(model_args, data_args, training_args, finetuning_args, [train_callback])
-        
+
         thread = threading.Thread(target=thread_run)
         thread.start()
 
@@ -133,7 +133,7 @@ class Runner():
     def run_eval(self, base_model, ckpt, dataset, per_device_eval_batch_size):
         if self.running:
             return "A process is in running, please abort it first."
-        
+
         self.running = True
 
         callback_handler = log_handler()
@@ -158,7 +158,7 @@ class Runner():
         train_callback = Callbacks(self)
         def thread_run():
             run_sft(model_args, data_args, training_args, finetuning_args, [train_callback])
-        
+
         thread = threading.Thread(target=thread_run)
         thread.start()
 
@@ -168,7 +168,7 @@ class Runner():
                 yield "Aborted, wait for terminating..."
             else:
                 yield format_info(callback_handler.log, train_callback.tracker)
-        
+
         self.running = False
         if self.aborted:
             yield "Ready"

@@ -222,11 +222,10 @@ python src/cli_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### 浏览器测试
+### 浏览器一键微调/测试
 
 ```bash
-python src/web_demo.py \
-    --checkpoint_dir path_to_checkpoint
+python src/train_web.py
 ```
 
 ### 导出微调模型

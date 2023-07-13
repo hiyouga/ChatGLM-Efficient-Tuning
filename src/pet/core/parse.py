@@ -46,6 +46,8 @@ def get_train_args(
     transformers.utils.logging.enable_explicit_format()
 
     # Check arguments (do not check finetuning_args since it may be loaded from checkpoints)
+    data_args.init_for_training()
+
     assert general_args.stage == "sft" or (not training_args.predict_with_generate), \
         "`predict_with_generate` cannot be set as True at PT, RM and PPO stages."
 
