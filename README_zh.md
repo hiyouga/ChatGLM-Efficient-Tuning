@@ -62,6 +62,7 @@
 - [Alpaca CoT](https://huggingface.co/datasets/QingyiSi/Alpaca-CoT)
 - [Web QA (Chinese)](https://huggingface.co/datasets/suolyer/webqa)
 - [UltraChat](https://github.com/thunlp/UltraChat)
+- [WebNovel (Chinese)](https://huggingface.co/datasets/zxbsmk/webnovel_cn)
 
 使用方法请参考 [data/README.md](data/README.md) 文件。
 
