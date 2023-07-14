@@ -9,14 +9,13 @@ import torch
 import signal
 import platform
 
-from extras.misc import auto_configure_device_map
-from pet import get_infer_args, load_model_and_tokenizer
+from glmtuner import auto_configure_device_map, get_infer_args, load_model_and_tokenizer
 
 
 os_name = platform.system()
 clear_command = "cls" if os_name == "Windows" else "clear"
 stop_stream = False
-welcome = "欢迎使用 ChatGLM-6B 模型，输入内容即可对话，clear清空对话历史，stop终止程序"
+welcome = "欢迎使用 ChatGLM-6B 模型，输入内容即可对话，clear 清空对话历史，stop 终止程序"
 
 
 def build_prompt(history):
@@ -33,7 +32,6 @@ def signal_handler(signal, frame):
 
 
 def main():
-
     global stop_stream
     model_args, finetuning_args, generating_args = get_infer_args()
     model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args)

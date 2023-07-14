@@ -1,9 +1,10 @@
 # ChatGLM Efficient Tuning
 
-![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social)
-![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)
-![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)
-![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)
+[![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social))](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/stargazers)
+[![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/commits/main)
+[![PyPI](https://img.shields.io/pypi/v/glmtuner)](https://pypi.org/project/glmtuner/)
+[![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/pulls)
 
 Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with 🤗[PEFT](https://github.com/huggingface/peft).
 
@@ -86,7 +87,7 @@ Our script now supports the following fine-tuning methods:
 - 🤗Transformers, Datasets, Accelerate, PEFT and TRL
 - fire, protobuf, cpm-kernels and sentencepiece
 - jieba, rouge-chinese and nltk (used at evaluation)
-- gradio and mdtex2html (used in web_demo.py)
+- gradio and matplotlib (used in train_web.py)
 - uvicorn, fastapi and sse-starlette (used in api_demo.py)
 
 And **powerful GPUs**!

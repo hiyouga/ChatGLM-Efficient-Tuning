@@ -1,9 +1,10 @@
 # ChatGLM Efficient Tuning
 
-![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social)
-![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)
-![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)
-![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)
+[![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social))](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/stargazers)
+[![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/commits/main)
+[![PyPI](https://img.shields.io/pypi/v/glmtuner)](https://pypi.org/project/glmtuner/)
+[![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/pulls)
 
 基于 🤗[PEFT](https://github.com/huggingface/peft) 的高效 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) 微调。
 
@@ -92,7 +93,7 @@ huggingface-cli login
 - 🤗Transformers, Datasets, Accelerate, PEFT, TRL
 - protobuf, cpm-kernels, sentencepiece
 - jieba, rouge-chinese, nltk（用于评估）
-- gradio, mdtex2html（用于网页端交互）
+- gradio, mdtex2html, matplotlib（用于网页端交互）
 - uvicorn, fastapi, sse-starlette（用于 API）
 
 以及 **强而有力的 GPU**！
