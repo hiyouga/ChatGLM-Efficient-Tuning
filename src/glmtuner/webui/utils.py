@@ -1,10 +1,11 @@
-import os
 import json
+import os
+from datetime import datetime
+from typing import Tuple
+
 import gradio as gr
 import matplotlib.figure
 import matplotlib.pyplot as plt
-from typing import Tuple
-from datetime import datetime
 
 from glmtuner.extras.ploting import smooth
 from glmtuner.webui.common import get_save_dir, DATA_DIR
@@ -27,9 +28,9 @@ def can_preview(dataset: list) -> dict:
     with open(os.path.join(DATA_DIR, "dataset_info.json"), "r", encoding="utf-8") as f:
         dataset_info = json.load(f)
     if (
-        len(dataset) > 0
-        and "file_name" in dataset_info[dataset[0]]
-        and os.path.isfile(os.path.join(DATA_DIR, dataset_info[dataset[0]]["file_name"]))
+            len(dataset) > 0
+            and "file_name" in dataset_info[dataset[0]]
+            and os.path.isfile(os.path.join(DATA_DIR, dataset_info[dataset[0]]["file_name"]))
     ):
         return gr.update(visible=True)
     else:
@@ -63,8 +64,9 @@ def gen_plot(base_model: str, output_dir: str) -> matplotlib.figure.Figure:
     with open(log_file, "r", encoding="utf-8") as f:
         for line in f:
             log_info = json.loads(line)
-            steps.append(log_info["current_steps"])
-            losses.append(log_info["loss"])
+            if log_info["loss"]:
+                steps.append(log_info["current_steps"])
+                losses.append(log_info["loss"])
     ax.plot(steps, losses, alpha=0.4, label="original")
     ax.plot(steps, smooth(losses), label="smoothed")
     ax.legend()

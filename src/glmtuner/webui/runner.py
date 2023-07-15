@@ -1,13 +1,14 @@
-import os
-import time
 import logging
+import os
 import threading
-import transformers
+import time
 from typing import Optional, Tuple
 
-from glmtuner.extras.misc import torch_gc
+import transformers
+
 from glmtuner.extras.callbacks import LogCallback
 from glmtuner.extras.logging import LoggerHandler
+from glmtuner.extras.misc import torch_gc
 from glmtuner.tuner import get_train_args, run_sft
 from glmtuner.webui.common import get_save_dir, DATA_DIR
 from glmtuner.webui.utils import format_info, get_eval_results
@@ -23,15 +24,12 @@ class Runner:
         self.aborted = True
         self.running = False
 
-    def initialize(self, base_model: str, model_list: list, dataset: list) -> Tuple[str, LoggerHandler, LogCallback]:
+    def initialize(self, base_model: str, model_path: str, dataset: list) -> Tuple[str, LoggerHandler, LogCallback]:
         if self.running:
             return "A process is in running, please abort it firstly.", None, None
 
         if not base_model:
             return "Please select a model.", None, None
-
-        if len(model_list) == 0:
-            return "No model detected.", None, None
 
         if len(dataset) == 0:
             return "Please choose datasets.", None, None
@@ -56,24 +54,28 @@ class Runner:
             return finish_info if finish_info is not None else "Finished"
 
     def run_train(
-        self, base_model, model_list, checkpoints, output_dir, finetuning_type,
-        dataset, learning_rate, num_train_epochs, max_samples,
-        fp16, use_v2, per_device_train_batch_size, gradient_accumulation_steps,
-        lr_scheduler_type, logging_steps, save_steps
+            self, base_model, model_path, checkpoints, output_dir, finetuning_type,
+            dataset, learning_rate, num_train_epochs, max_samples,
+            fp16, quantization_bit, per_device_train_batch_size, gradient_accumulation_steps,
+            lr_scheduler_type, logging_steps, save_steps
     ):
-        error, logger_handler, trainer_callback = self.initialize(base_model, model_list, dataset)
+        error, logger_handler, trainer_callback = self.initialize(base_model, model_path, dataset)
         if error:
             yield error
             return
 
-        model_path = [path for name, path in model_list if name == base_model]
         if get_save_dir(base_model) and checkpoints:
-            checkpoint_dir = ",".join([os.path.join(get_save_dir(base_model), checkpoint) for checkpoint in checkpoints])
+            checkpoint_dir = ",".join(
+                [os.path.join(get_save_dir(base_model), checkpoint) for checkpoint in checkpoints])
         else:
             checkpoint_dir = None
 
+        if model_path:
+            model_name_or_path = model_path
+        else:
+            model_name_or_path = base_model
         args = dict(
-            model_name_or_path=model_path[0],
+            model_name_or_path=model_name_or_path,
             do_train=True,
             finetuning_type=finetuning_type,
             dataset=",".join(dataset),
@@ -90,7 +92,7 @@ class Runner:
             learning_rate=float(learning_rate),
             num_train_epochs=float(num_train_epochs),
             fp16=fp16,
-            use_v2=use_v2
+            quantization_bit=quantization_bit
         )
         model_args, data_args, training_args, finetuning_args, _ = get_train_args(args)
 
@@ -114,23 +116,28 @@ class Runner:
         yield self.finalize()
 
     def run_eval(
-        self, base_model, model_list, checkpoints, dataset, max_samples, per_device_eval_batch_size, use_v2
+            self, base_model, model_path, checkpoints, dataset, max_samples, per_device_eval_batch_size,
+            quantization_bit
     ):
-        error, logger_handler, trainer_callback = self.initialize(base_model, model_list, dataset)
+        error, logger_handler, trainer_callback = self.initialize(base_model, model_path, dataset)
         if error:
             yield error
             return
 
-        model_path = [path for name, path in model_list if name == base_model]
         if get_save_dir(base_model) and checkpoints:
-            checkpoint_dir = ",".join([os.path.join(get_save_dir(base_model), checkpoint) for checkpoint in checkpoints])
+            checkpoint_dir = ",".join(
+                [os.path.join(get_save_dir(base_model), checkpoint) for checkpoint in checkpoints])
             output_dir = os.path.join(get_save_dir(base_model), "eval_" + "_".join(checkpoints))
         else:
             checkpoint_dir = None
             output_dir = os.path.join(get_save_dir(base_model), "eval_base")
 
+        if model_path:
+            model_name_or_path = model_path
+        else:
+            model_name_or_path = base_model
         args = dict(
-            model_name_or_path=model_path[0],
+            model_name_or_path=model_name_or_path,
             do_eval=True,
             dataset=",".join(dataset),
             dataset_dir=DATA_DIR,
@@ -140,7 +147,7 @@ class Runner:
             overwrite_cache=True,
             predict_with_generate=True,
             per_device_eval_batch_size=per_device_eval_batch_size,
-            use_v2=use_v2
+            quantization_bit=quantization_bit
         )
         model_args, data_args, training_args, finetuning_args, _ = get_train_args(args)
 
