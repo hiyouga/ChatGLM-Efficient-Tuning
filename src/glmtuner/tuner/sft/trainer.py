@@ -31,7 +31,6 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
 
         Subclass and override to inject custom behavior.
         """
-
         input_ids = inputs["input_ids"]
         loss, generated_tokens, labels = super().prediction_step(
             model, inputs, prediction_loss_only=prediction_loss_only, ignore_keys=ignore_keys
@@ -40,15 +39,14 @@ class Seq2SeqTrainerForChatGLM(PeftTrainer):
         return (loss, generated_tokens, labels)
 
     def save_predictions(
-            self,
-            predict_results: PredictionOutput
+        self,
+        predict_results: PredictionOutput
     ) -> None:
         r"""
         Saves model predictions to `output_dir`.
 
         A custom behavior that not contained in Seq2SeqTrainer.
         """
-
         if not self.is_world_process_zero():
             return
 

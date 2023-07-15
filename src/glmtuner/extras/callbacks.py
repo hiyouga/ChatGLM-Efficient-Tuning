@@ -9,14 +9,21 @@ from transformers import (
     TrainerState,
     TrainingArguments
 )
+from transformers.trainer_callback import TrainerControl, TrainerState
+from transformers.training_args import TrainingArguments
 
 
 class LogCallback(TrainerCallback):
 
     def __init__(self, runner=None):
         self.runner = runner
-        self.start_time = time.time()
         self.tracker = {}
+
+    def on_train_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        r"""
+        Event called at the beginning of training.
+        """
+        self.start_time = time.time()
 
     def on_step_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
         r"""
@@ -39,8 +46,6 @@ class LogCallback(TrainerCallback):
         r"""
         Event called after logging the last logs.
         """
-        if "loss" not in state.log_history[-1]:
-            return
         cur_time = time.time()
         cur_steps = state.log_history[-1].get("step")
         elapsed_time = cur_time - self.start_time
@@ -51,6 +56,8 @@ class LogCallback(TrainerCallback):
             "current_steps": cur_steps,
             "total_steps": state.max_steps,
             "loss": state.log_history[-1].get("loss", None),
+            "eval_loss": state.log_history[-1].get("eval_loss", None),
+            "predict_loss": state.log_history[-1].get("predict_loss", None),
             "reward": state.log_history[-1].get("reward", None),
             "learning_rate": state.log_history[-1].get("learning_rate", None),
             "epoch": state.log_history[-1].get("epoch", None),

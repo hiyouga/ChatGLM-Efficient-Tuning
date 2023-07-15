@@ -19,10 +19,10 @@ logger = get_logger(__name__)
 
 
 def init_adapter(
-        model: PreTrainedModel,
-        model_args: ModelArguments,
-        finetuning_args: FinetuningArguments,
-        is_trainable: bool
+    model: PreTrainedModel,
+    model_args: ModelArguments,
+    finetuning_args: FinetuningArguments,
+    is_trainable: bool
 ) -> PreTrainedModel:
     r"""
     Initializes the adapters.

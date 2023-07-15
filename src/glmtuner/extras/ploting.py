@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 
 def smooth(scalars: List[float], weight: Optional[float] = 0.9) -> List[float]:
-    """
+    r"""
     EMA implementation according to TensorBoard.
     """
     last = scalars[0]

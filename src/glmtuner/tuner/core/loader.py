@@ -10,7 +10,7 @@ from transformers import (
 )
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
-from transformers.modeling_utils import PreTrainedModel
+from transformers.modeling_utils import PretrainedConfig, PreTrainedModel
 from transformers.tokenization_utils import PreTrainedTokenizer
 from trl import AutoModelForCausalLMWithValueHead
 
@@ -32,10 +32,10 @@ require_version("trl>=0.4.4", "To fix: pip install trl>=0.4.4")
 
 
 def load_model_and_tokenizer(
-        model_args: ModelArguments,
-        finetuning_args: FinetuningArguments,
-        is_trainable: Optional[bool] = False,
-        stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
+    model_args: ModelArguments,
+    finetuning_args: FinetuningArguments,
+    is_trainable: Optional[bool] = False,
+    stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     r"""
     Loads pretrained model and tokenizer.
@@ -118,22 +118,23 @@ def load_model_and_tokenizer(
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
 
     # Register auto class to save the custom code files.
-    if hasattr(config, "auto_map") and "AutoConfig" in config.auto_map:
+    if hasattr(config, "auto_map") and "AutoConfig" in config.auto_map and isinstance(config, PretrainedConfig):
         config.__class__.register_for_auto_class()
-    if hasattr(config, "auto_map") and "AutoTokenizer" in config.auto_map:
+    if hasattr(config, "auto_map") and "AutoTokenizer" in config.auto_map and isinstance(tokenizer, PreTrainedTokenizer):
         tokenizer.__class__.register_for_auto_class()
-    if hasattr(config, "auto_map") and "AutoModel" in config.auto_map:
+    if hasattr(config, "auto_map") and "AutoModel" in config.auto_map and isinstance(model, PreTrainedModel):
         model.__class__.register_for_auto_class()
 
-    if model_args.use_v2:
-        assert tokenizer.eos_token_id is not None, "Please update the *.json and *.py files of ChatGLM2-6B from HuggingFace."
+    if tokenizer.eos_token_id == 130005: # ChatGLM-6B
+        output_embedding_base_layer = model
+        output_embedding_layer_name = "lm_head"
+    elif tokenizer.eos_token_id == 2: # ChatGLM2-6B
+        assert hasattr(model, "transformer"), "Please update the model files of ChatGLM-6B."
         model.lm_head = model.transformer.output_layer
         output_embedding_base_layer = model.transformer
         output_embedding_layer_name = "output_layer"
     else:
-        assert tokenizer.eos_token_id == 130005, "Please specify `use_v2` argument while using ChatGLM2-6B."
-        output_embedding_base_layer = model
-        output_embedding_layer_name = "lm_head"
+        raise ValueError("Please update the model files of ChatGLM2-6B.")
 
     # Initialize adapters
     model = prepare_model_for_training(

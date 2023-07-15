@@ -1,18 +1,19 @@
 import os
-import torch
+from typing import List, Tuple
 
-from glmtuner.extras.misc import auto_configure_device_map, torch_gc
+from glmtuner.extras.misc import torch_gc
+from glmtuner.chat.stream_chat import ChatModel
 from glmtuner.hparams import GeneratingArguments
-from glmtuner.tuner import get_infer_args, load_model_and_tokenizer
+from glmtuner.tuner import get_infer_args
 from glmtuner.webui.common import get_save_dir
 
 
-class ChatModel:
+class WebChatModel(ChatModel):
 
     def __init__(self):
         self.model = None
         self.tokenizer = None
-        self.gen_args = GeneratingArguments()
+        self.generating_args = GeneratingArguments()
 
     def load_model(self, base_model: str, model_list: list, checkpoints: list, use_v2: bool):
         if self.model is not None:
@@ -33,24 +34,14 @@ class ChatModel:
         else:
             checkpoint_dir = None
 
+        yield "Loading model..."
+
         args = dict(
             model_name_or_path=model_path[0],
-            checkpoint_dir=checkpoint_dir,
-            use_v2=use_v2
+            checkpoint_dir=checkpoint_dir
         )
-        model_args, finetuning_args, self.gen_args = get_infer_args(args)
+        super().__init__(*get_infer_args(args))
 
-        yield "Loading model..."
-        self.model, self.tokenizer = load_model_and_tokenizer(model_args, finetuning_args)
-
-        if torch.cuda.device_count() > 1:
-            from accelerate import dispatch_model
-            device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=model_args.use_v2)
-            self.model = dispatch_model(self.model, device_map)
-        else:
-            self.model = self.model.cuda()
-
-        self.model.eval()
         yield "Model loaded, now you can chat with your model."
 
     def unload_model(self):
@@ -60,12 +51,19 @@ class ChatModel:
         torch_gc()
         yield "Model unloaded, please load a model first."
 
-    def predict(self, chatbot, query, history, max_length, top_p, temperature):
+    def predict(
+        self,
+        chatbot: List[Tuple[str, str]],
+        query: str,
+        history: List[Tuple[str, str]],
+        max_length: int,
+        top_p: float,
+        temperature: float
+    ):
         chatbot.append([query, ""])
-        for response, history in self.model.stream_chat(
-            self.tokenizer, query, history, max_length=max_length, top_p=top_p,
-            temperature=temperature, do_sample=self.gen_args.do_sample,
-            num_beams=self.gen_args.num_beams, top_k=self.gen_args.top_k
-        ):
+        response = ""
+        for new_text in self.stream_chat(query, history, max_length=max_length, top_p=top_p, temperature=temperature):
+            response += new_text
+            new_history = history + [(query, response)]
             chatbot[-1] = [query, response]
-            yield chatbot, history
+            yield chatbot, new_history

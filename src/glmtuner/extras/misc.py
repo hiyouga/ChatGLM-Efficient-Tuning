@@ -62,12 +62,12 @@ def print_trainable_params(model: torch.nn.Module) -> None:
 # Includes: (1) cast the layernorm in fp32 (2) make output embedding layer require grads (3) upcast the lm_head to fp32
 # Inspired by: https://github.com/huggingface/peft/blob/c0209c35abbf88c63aa267800d98a8e212ed0a42/src/peft/utils/other.py#L35
 def prepare_model_for_training(
-        model: PreTrainedModel,
-        finetuning_type: str,
-        output_embedding_base_layer: torch.nn.Module,
-        output_embedding_layer_name: Optional[str] = "lm_head",
-        use_gradient_checkpointing: Optional[bool] = True,
-        layer_norm_names: Optional[List[str]] = LAYERNORM_NAMES
+    model: PreTrainedModel,
+    finetuning_type: str,
+    output_embedding_base_layer: torch.nn.Module,
+    output_embedding_layer_name: Optional[str] = "lm_head",
+    use_gradient_checkpointing: Optional[bool] = True,
+    layer_norm_names: Optional[List[str]] = LAYERNORM_NAMES
 ) -> PreTrainedModel:
 
     for name, param in model.named_parameters():
