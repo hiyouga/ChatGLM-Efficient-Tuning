@@ -1,5 +1,5 @@
 import torch
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from glmtuner.extras.misc import auto_configure_device_map
 from glmtuner.hparams import ModelArguments, FinetuningArguments, GeneratingArguments
@@ -52,12 +52,14 @@ class ChatModel:
 
         return gen_kwargs
 
-    def chat(self, query: str, history: List[Tuple[str, str]], **input_kwargs) -> str:
+    def chat(self, query: str, history: Optional[List[Tuple[str, str]]] = None, **input_kwargs) -> str:
         gen_kwargs = self.process_args(**input_kwargs)
         response = self.model.chat(self.tokenizer, query, history, **gen_kwargs)
         return response
 
-    def stream_chat(self, query: str, history: List[Tuple[str, str]], **input_kwargs) -> Generator[str, None, None]:
+    def stream_chat(
+        self, query: str, history: Optional[List[Tuple[str, str]]] = None, **input_kwargs
+    ) -> Generator[str, None, None]:
         gen_kwargs = self.process_args(**input_kwargs)
         current_length = 0
         for new_response, _ in self.model.stream_chat(self.tokenizer, query, history, **gen_kwargs):
