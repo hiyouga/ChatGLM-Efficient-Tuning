@@ -1,15 +1,14 @@
 import gradio as gr
 from transformers.utils.versions import require_version
 
-from glmtuner.webui.css import CSS
-from glmtuner.webui.runner import Runner
 from glmtuner.webui.components import (
     create_model_tab,
     create_sft_tab,
     create_eval_tab,
     create_infer_tab
 )
-
+from glmtuner.webui.css import CSS
+from glmtuner.webui.runner import Runner
 
 require_version("gradio>=3.36.0", "To fix: pip install gradio>=3.36.0")
 

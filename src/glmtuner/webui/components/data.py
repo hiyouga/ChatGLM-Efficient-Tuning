@@ -1,5 +1,6 @@
-import gradio as gr
 from typing import Tuple
+
+import gradio as gr
 from gradio.components import Component
 
 

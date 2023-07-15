@@ -2,13 +2,13 @@ import gradio as gr
 from gradio.components import Component
 from transformers.trainer_utils import SchedulerType
 
-from glmtuner.webui.components.data import create_preview_box
 from glmtuner.webui.common import list_datasets
+from glmtuner.webui.components.data import create_preview_box
 from glmtuner.webui.runner import Runner
 from glmtuner.webui.utils import can_preview, get_preview, get_time, gen_plot
 
 
-def create_sft_tab(base_model: Component, model_list: Component, checkpoints: Component, runner: Runner) -> None:
+def create_sft_tab(base_model: Component, model_path: Component, checkpoints: Component, runner: Runner) -> None:
     with gr.Row():
         finetuning_type = gr.Dropdown(
             label="Finetuning method", value="lora", choices=["full", "freeze", "p_tuning", "lora"], interactive=True
@@ -37,14 +37,16 @@ def create_sft_tab(base_model: Component, model_list: Component, checkpoints: Co
         max_samples = gr.Textbox(
             label="Max samples", value="100000", info="Number of samples for training.", interactive=True
         )
-        use_v2 = gr.Checkbox(label="use ChatGLM2", value=True)
+        quantization_bit = gr.Dropdown([8, 4], label="Quantization bit", info="Only support 4 bit or 8 bit",
+                                       interactive=True)
 
     with gr.Row():
         per_device_train_batch_size = gr.Slider(
             label="Batch size", value=4, minimum=1, maximum=128, step=1, info="Train batch size.", interactive=True
         )
         gradient_accumulation_steps = gr.Slider(
-            label="Gradient accumulation", value=4, minimum=1, maximum=16, step=1, info='Accumulation steps.', interactive=True
+            label="Gradient accumulation", value=4, minimum=1, maximum=16, step=1, info='Accumulation steps.',
+            interactive=True
         )
         lr_scheduler_type = gr.Dropdown(
             label="LR Scheduler", value="cosine", info="Scheduler type.",
@@ -77,9 +79,9 @@ def create_sft_tab(base_model: Component, model_list: Component, checkpoints: Co
     start.click(
         runner.run_train,
         [
-            base_model, model_list, checkpoints, output_dir, finetuning_type,
+            base_model, model_path, checkpoints, output_dir, finetuning_type,
             dataset, learning_rate, num_train_epochs, max_samples,
-            fp16, use_v2, per_device_train_batch_size, gradient_accumulation_steps,
+            fp16, quantization_bit, per_device_train_batch_size, gradient_accumulation_steps,
             lr_scheduler_type, logging_steps, save_steps
         ],
         output_info

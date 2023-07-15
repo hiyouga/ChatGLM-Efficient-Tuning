@@ -14,32 +14,26 @@ SUPPORTED_MODEL_LIST = [
         "provides": "ChatGLMLLMChain"
     },
     {
-        "name": "chatglm-6b-int8",
-        "pretrained_model_name": "THUDM/chatglm-6b-int8",
-        "local_model_path": None,
-        "provides": "ChatGLMLLMChain"
-    },
-    {
-        "name": "chatglm-6b-int8",
-        "pretrained_model_name": "THUDM/chatglm-6b-int8",
-        "local_model_path": None,
-        "provides": "ChatGLMLLMChain"
-    },
-    {
-        "name": "chatglm-6b-int4-qe",
-        "pretrained_model_name": "THUDM/chatglm-6b-int4-qe",
-        "local_model_path": None,
-        "provides": "ChatGLMLLMChain"
-    },
-    {
         "name": "chatglm2-6b",
         "pretrained_model_name": "THUDM/chatglm2-6b",
         "local_model_path": None,
         "provides": "ChatGLMLLMChain"
     },
     {
+        "name": "chatglm-6b-int8",
+        "pretrained_model_name": "THUDM/chatglm-6b-int8",
+        "local_model_path": None,
+        "provides": "ChatGLMLLMChain"
+    },
+    {
         "name": "chatglm2-6b-int8",
         "pretrained_model_name": "THUDM/chatglm2-6b-int8",
+        "local_model_path": None,
+        "provides": "ChatGLMLLMChain"
+    },
+    {
+        "name": "chatglm-6b-int4",
+        "pretrained_model_name": "THUDM/chatglm-6b-int4",
         "local_model_path": None,
         "provides": "ChatGLMLLMChain"
     },
