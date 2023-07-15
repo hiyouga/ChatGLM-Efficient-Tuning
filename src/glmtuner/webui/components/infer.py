@@ -2,10 +2,10 @@ import gradio as gr
 from typing import Tuple
 from gradio.components import Component
 
-from glmtuner.webui.chat import ChatModel
+from glmtuner.webui.chat import WebChatModel
 
 
-def create_chat_box(chat_model: ChatModel) -> Tuple[Component, Component, Component]:
+def create_chat_box(chat_model: WebChatModel) -> Tuple[Component, Component, Component]:
     with gr.Box(visible=False) as chat_box:
         chatbot = gr.Chatbot()
 
@@ -20,13 +20,13 @@ def create_chat_box(chat_model: ChatModel) -> Tuple[Component, Component, Compon
             with gr.Column(scale=1):
                 clear = gr.Button("Clear History")
                 max_length = gr.Slider(
-                    10, 2048, value=chat_model.gen_args.max_length, step=1.0, label="Maximum length", interactive=True
+                    10, 2048, value=chat_model.generating_args.max_length, step=1.0, label="Maximum length", interactive=True
                 )
                 top_p = gr.Slider(
-                    0, 1, value=chat_model.gen_args.top_p, step=0.01, label="Top P", interactive=True
+                    0, 1, value=chat_model.generating_args.top_p, step=0.01, label="Top P", interactive=True
                 )
                 temperature = gr.Slider(
-                    0, 1.5, value=chat_model.gen_args.temperature, step=0.01, label="Temperature", interactive=True
+                    0, 1.5, value=chat_model.generating_args.temperature, step=0.01, label="Temperature", interactive=True
                 )
 
     history = gr.State([])
@@ -48,7 +48,7 @@ def create_chat_box(chat_model: ChatModel) -> Tuple[Component, Component, Compon
 def create_infer_tab(base_model: Component, model_list: Component, checkpoints: Component) -> None:
     info_box = gr.Markdown(value="Model unloaded, please load a model first.")
 
-    chat_model = ChatModel()
+    chat_model = WebChatModel()
     chat_box, chatbot, history = create_chat_box(chat_model)
 
     with gr.Row():

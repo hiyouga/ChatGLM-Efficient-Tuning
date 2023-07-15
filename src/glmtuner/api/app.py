@@ -1,14 +1,13 @@
-import torch
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sse_starlette import EventSourceResponse
-from typing import Any, Dict, List
+from typing import List, Tuple
 
-from glmtuner.extras.misc import auto_configure_device_map
-from glmtuner.tuner import get_infer_args, load_model_and_tokenizer
+from glmtuner.tuner import get_infer_args
 from glmtuner.extras.misc import torch_gc
+from glmtuner.chat.stream_chat import ChatModel
 from glmtuner.api.protocol import (
     ModelCard,
     ModelList,
@@ -30,17 +29,7 @@ async def lifespan(app: FastAPI): # collects GPU memory
 
 
 def create_app():
-    model_args, finetuning_args, generating_args = get_infer_args()
-    model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args)
-
-    if torch.cuda.device_count() > 1:
-        from accelerate import dispatch_model
-        device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=(tokenizer.eos_token_id==2))
-        model = dispatch_model(model, device_map)
-    else:
-        model = model.cuda()
-
-    model.eval()
+    chat_model = ChatModel(*get_infer_args())
 
     app = FastAPI(lifespan=lifespan)
 
@@ -73,21 +62,13 @@ def create_app():
                 if prev_messages[i].role == "user" and prev_messages[i+1].role == "assistant":
                     history.append([prev_messages[i].content, prev_messages[i+1].content])
 
-        gen_kwargs = generating_args.to_dict()
-        gen_kwargs.update({
-            "temperature": request.temperature if request.temperature else gen_kwargs["temperature"],
-            "top_p": request.top_p if request.top_p else gen_kwargs["top_p"]
-        })
-
-        if request.max_tokens:
-            gen_kwargs.pop("max_length", None)
-            gen_kwargs["max_new_tokens"] = request.max_tokens
-
         if request.stream:
-            generate = predict(query, history, gen_kwargs, request.model)
+            generate = predict(query, history, request)
             return EventSourceResponse(generate, media_type="text/event-stream")
 
-        response, _ = model.chat(tokenizer, query, history=history, **gen_kwargs)
+        response = chat_model.chat(
+            query, history, temperature=request.temperature, top_p=request.top_p, max_new_tokens=request.max_tokens
+        )
 
         usage = ChatCompletionResponseUsage( # too complex to compute
             prompt_tokens=1,
@@ -103,31 +84,27 @@ def create_app():
 
         return ChatCompletionResponse(model=request.model, choices=[choice_data], usage=usage, object="chat.completion")
 
-
-    async def predict(query: str, history: List[List[str]], gen_kwargs: Dict[str, Any], model_id: str):
+    async def predict(query: str, history: List[Tuple[str, str]], request: ChatCompletionRequest):
         choice_data = ChatCompletionResponseStreamChoice(
             index=0,
             delta=DeltaMessage(role="assistant"),
             finish_reason=None
         )
-        chunk = ChatCompletionStreamResponse(model=model_id, choices=[choice_data], object="chat.completion.chunk")
+        chunk = ChatCompletionStreamResponse(model=request.model, choices=[choice_data], object="chat.completion.chunk")
         yield chunk.json(exclude_unset=True, ensure_ascii=False)
 
-        current_length = 0
-
-        for new_response, _ in model.stream_chat(tokenizer, query, history, **gen_kwargs):
-            if len(new_response) == current_length:
+        for new_text in chat_model.stream_chat(
+            query, history, temperature=request.temperature, top_p=request.top_p, max_new_tokens=request.max_tokens
+        ):
+            if len(new_text) == 0:
                 continue
-
-            new_text = new_response[current_length:]
-            current_length = len(new_response)
 
             choice_data = ChatCompletionResponseStreamChoice(
                 index=0,
                 delta=DeltaMessage(content=new_text),
                 finish_reason=None
             )
-            chunk = ChatCompletionStreamResponse(model=model_id, choices=[choice_data], object="chat.completion.chunk")
+            chunk = ChatCompletionStreamResponse(model=request.model, choices=[choice_data], object="chat.completion.chunk")
             yield chunk.json(exclude_unset=True, ensure_ascii=False)
 
         choice_data = ChatCompletionResponseStreamChoice(
@@ -135,7 +112,7 @@ def create_app():
             delta=DeltaMessage(),
             finish_reason="stop"
         )
-        chunk = ChatCompletionStreamResponse(model=model_id, choices=[choice_data], object="chat.completion.chunk")
+        chunk = ChatCompletionStreamResponse(model=request.model, choices=[choice_data], object="chat.completion.chunk")
         yield chunk.json(exclude_unset=True, ensure_ascii=False)
         yield "[DONE]"
 

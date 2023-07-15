@@ -42,7 +42,7 @@ class FinetuningArguments:
     )
     lora_target: Optional[str] = field(
         default="query_key_value",
-        metadata={"help": "Name(s) of target modules to apply LoRA. Use comma to separate multiple modules."}
+        metadata={"help": "Name(s) of target modules to apply LoRA. Use commas to separate multiple modules."}
     )
 
     def __post_init__(self):
