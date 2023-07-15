@@ -1,7 +1,6 @@
 # Inspired by:
 # https://github.com/lvwerra/trl/blob/main/examples/sentiment/scripts/gpt-neox-20b_peft/gpt-neo-20b_sentiment_peft.py
 
-
 import math
 from trl import PPOConfig
 from torch.optim import AdamW
@@ -17,10 +16,10 @@ from glmtuner.tuner.ppo.trainer import PPOTrainerForChatGLM
 
 
 def run_ppo(
-        model_args: ModelArguments,
-        data_args: DataArguments,
-        training_args: Seq2SeqTrainingArguments,
-        finetuning_args: FinetuningArguments
+    model_args: ModelArguments,
+    data_args: DataArguments,
+    training_args: Seq2SeqTrainingArguments,
+    finetuning_args: FinetuningArguments
 ):
     dataset = get_dataset(model_args, data_args)
     model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="ppo")

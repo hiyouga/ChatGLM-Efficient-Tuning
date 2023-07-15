@@ -38,7 +38,7 @@ def main():
 
     if torch.cuda.device_count() > 1:
         from accelerate import dispatch_model
-        device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=model_args.use_v2)
+        device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=(tokenizer.eos_token_id==2))
         model = dispatch_model(model, device_map)
     else:
         model = model.cuda()

@@ -1,6 +1,6 @@
 # ChatGLM Efficient Tuning
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social))](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/stargazers)
+[![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/stargazers)
 [![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)](LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/commits/main)
 [![PyPI](https://img.shields.io/pypi/v/glmtuner)](https://pypi.org/project/glmtuner/)
@@ -14,13 +14,13 @@ Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with �
 
 ## Changelog
 
-[23/07/15] Now we develop an all-in-one Web UI for training, evaluation and inference. Try `train_web.py` to fine-tune ChatGLM-6B model in your Web browser. Thank @KanadeSiina for his efforts in the development.
+[23/07/15] Now we develop an all-in-one Web UI for training, evaluation and inference. Try `train_web.py` to fine-tune ChatGLM-6B model in your Web browser. Thank [@KanadeSiina](https://github.com/KanadeSiina) for his efforts in the development.
 
 [23/07/09] Now we release [FastEdit](https://github.com/hiyouga/FastEdit)⚡🩹, an easy-to-use package for editing the factual knowledge of large language models efficiently. Please follow [FastEdit](https://github.com/hiyouga/FastEdit) if you are interested.
 
 [23/06/25] Now we align the [demo API](src/api_demo.py) with the [OpenAI's](https://platform.openai.com/docs/api-reference/chat) format where you can insert the fine-tuned model in arbitrary ChatGPT-based applications.
 
-[23/06/25] Now we support fine-tuning the [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) model with our framework! Try `--use_v2` argument to fine-tune and predict that model.
+[23/06/25] Now we support fine-tuning the [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) model with our framework!
 
 [23/06/05] Now we support 4-bit LoRA training (aka [QLoRA](https://github.com/artidoro/qlora)). Try `--quantization_bit 4` argument to work with 4-bit quantized model. (experimental feature)
 
@@ -123,6 +123,7 @@ pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/downl
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_train \
     --dataset alpaca_gpt4_en \
     --finetuning_type lora \
@@ -151,6 +152,7 @@ accelerate launch src/train_bash.py # arguments (same as above)
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage rm \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_train \
     --dataset comparison_gpt4_en \
     --finetuning_type lora \
@@ -170,6 +172,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage ppo \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_train \
     --dataset alpaca_gpt4_en \
     --finetuning_type lora \
@@ -192,6 +195,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_eval \
     --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \
@@ -205,6 +209,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_predict \
     --dataset alpaca_gpt4_en \
     --checkpoint_dir path_to_checkpoint \
@@ -214,10 +219,11 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --predict_with_generate
 ```
 
-### CLI Demo
+### API / CLI Demo
 
 ```bash
-python src/cli_demo.py \
+python src/xxx_demo.py \
+    --model_name_or_path path_to_your_chatglm_model \
     --checkpoint_dir path_to_checkpoint
 ```
 
@@ -231,6 +237,7 @@ python src/train_web.py
 
 ```bash
 python src/export_model.py \
+    --model_name_or_path path_to_your_chatglm_model \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_export
 ```

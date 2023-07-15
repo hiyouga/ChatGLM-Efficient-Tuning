@@ -4,7 +4,7 @@ import torch
 from tqdm import tqdm
 from typing import Callable, Dict, List, Optional
 
-from transformers import Seq2SeqTrainingArguments, TrainerState
+from transformers import Seq2SeqTrainingArguments, TrainerState, TrainerControl
 from transformers.modeling_utils import PreTrainedModel
 
 from trl import PPOTrainer, AutoModelForCausalLMWithValueHead
@@ -39,7 +39,9 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         self.finetuning_args = finetuning_args
         self.log_callback = callbacks[0]
         self.state = TrainerState()
+        self.control = TrainerControl()
         self.data_collator = self.accelerator.prepare(kwargs["data_collator"]) # override the data collator of PPOTrainer
+        self._remove_log()
 
     def ppo_train(self, max_target_length: int) -> None:
         r"""
@@ -84,8 +86,9 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         steps_trained = 0
         loss_meter = AverageMeter()
         reward_meter = AverageMeter()
+        self.log_callback.on_train_begin(self.args, self.state, self.control)
 
-        for step in tqdm(range(max_steps), disable=not self.is_world_process_zero()):
+        for step in tqdm(range(max_steps), disable=not self.is_world_process_zero(), leave=False):
 
             for _ in range(self.config.gradient_accumulation_steps):
 
@@ -125,6 +128,9 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
                 loss_meter.update(stats["ppo/loss/total"], n=len(rewards))
                 reward_meter.update(torch.stack(rewards).mean().item(), n=len(rewards))
 
+                if self.control.should_epoch_stop or self.control.should_training_stop:
+                    break
+
                 if steps_trained == len_dataloader:
                     dataiter = iter(self.dataloader)
                     steps_trained = 0
@@ -139,12 +145,15 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
                 print(logs)
                 logs["step"] = step
                 self.state.log_history.append(logs)
-                self.log_callback.on_log(self.args, self.state, None)
+                self.log_callback.on_log(self.args, self.state, self.control)
                 loss_meter.reset()
                 reward_meter.reset()
 
             if (step+1) % self.args.save_steps == 0: # save checkpoint
                 self.save_model(os.path.join(self.args.output_dir, f"checkpoint-{step+1}"))
+
+            if self.control.should_training_stop:
+                break
 
     @torch.no_grad()
     def generate(

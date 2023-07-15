@@ -35,8 +35,7 @@ class ChatModel:
 
         args = dict(
             model_name_or_path=model_path[0],
-            checkpoint_dir=checkpoint_dir,
-            use_v2=use_v2
+            checkpoint_dir=checkpoint_dir
         )
         model_args, finetuning_args, self.gen_args = get_infer_args(args)
 
@@ -45,7 +44,7 @@ class ChatModel:
 
         if torch.cuda.device_count() > 1:
             from accelerate import dispatch_model
-            device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=model_args.use_v2)
+            device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=(self.tokenizer.eos_token_id==2))
             self.model = dispatch_model(self.model, device_map)
         else:
             self.model = self.model.cuda()

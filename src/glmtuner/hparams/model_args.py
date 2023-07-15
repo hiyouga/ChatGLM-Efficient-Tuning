@@ -12,10 +12,6 @@ class ModelArguments:
         default="THUDM/chatglm-6b",
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models."}
     )
-    use_v2: Optional[bool] = field(
-        default=False,
-        metadata={"help": "Whether to use ChatGLM2 or not."}
-    )
     config_name: Optional[str] = field(
         default=None,
         metadata={"help": "Pretrained config name or path if not the same as model_name."}
@@ -74,9 +70,6 @@ class ModelArguments:
     )
 
     def __post_init__(self):
-        if self.use_v2 and self.model_name_or_path == "THUDM/chatglm-6b":
-            self.model_name_or_path = "THUDM/chatglm2-6b"
-
         if self.checkpoint_dir is not None: # support merging lora weights
             self.checkpoint_dir = [cd.strip() for cd in self.checkpoint_dir.split(",")]
 

@@ -1,6 +1,6 @@
 # ChatGLM Efficient Tuning
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social))](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/stargazers)
+[![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/ChatGLM-Efficient-Tuning?style=social)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/stargazers)
 [![GitHub Code License](https://img.shields.io/github/license/hiyouga/ChatGLM-Efficient-Tuning)](LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/hiyouga/ChatGLM-Efficient-Tuning)](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/commits/main)
 [![PyPI](https://img.shields.io/pypi/v/glmtuner)](https://pypi.org/project/glmtuner/)
@@ -14,13 +14,13 @@
 
 ## 更新日志
 
-[23/07/15] 我们开发了支持训练和测试的浏览器一键微调界面。请尝试使用 `train_web.py` 在您的浏览器中微调 ChatGLM-6B 模型。感谢 @KanadeSiina 在该功能开发中付出的努力。
+[23/07/15] 我们开发了支持训练和测试的浏览器一键微调界面。请尝试使用 `train_web.py` 在您的浏览器中微调 ChatGLM-6B 模型。感谢 [@KanadeSiina](https://github.com/KanadeSiina) 在该功能开发中付出的努力。
 
 [23/07/09] 我们开源了 [FastEdit](https://github.com/hiyouga/FastEdit)⚡🩹，一个简单易用的、能迅速编辑大模型事实记忆的工具包。如果您感兴趣请关注我们的 [FastEdit](https://github.com/hiyouga/FastEdit) 项目。
 
 [23/06/25] 我们对齐了[示例 API](src/api_demo.py) 与 [OpenAI API](https://platform.openai.com/docs/api-reference/chat) 的格式，您可以将微调模型接入任意基于 ChatGPT 的应用中。
 
-[23/06/25] 现在我们实现了 [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) 模型的微调。请尝试使用 `--use_v2` 参数来进行训练和预测。
+[23/06/25] 现在我们实现了 [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B) 模型的微调。
 
 [23/06/05] 现在我们实现了 4 比特的 LoRA 训练（也称 [QLoRA](https://github.com/artidoro/qlora)）。请尝试使用 `--quantization_bit 4` 参数进行 4 比特量化微调。（实验性功能）
 
@@ -95,7 +95,7 @@ huggingface-cli login
 - 🤗Transformers, Datasets, Accelerate, PEFT, TRL
 - protobuf, cpm-kernels, sentencepiece
 - jieba, rouge-chinese, nltk（用于评估）
-- gradio, mdtex2html, matplotlib（用于网页端交互）
+- gradio, matplotlib（用于网页端交互）
 - uvicorn, fastapi, sse-starlette（用于 API）
 
 以及 **强而有力的 GPU**！
@@ -129,6 +129,7 @@ pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/downl
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
@@ -157,6 +158,7 @@ accelerate launch src/train_bash.py # 参数同上
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage rm \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_train \
     --dataset comparison_gpt4_zh \
     --finetuning_type lora \
@@ -176,6 +178,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage ppo \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_train \
     --dataset alpaca_gpt4_zh \
     --finetuning_type lora \
@@ -197,6 +200,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_eval \
     --dataset alpaca_gpt4_zh \
     --checkpoint_dir path_to_checkpoint \
@@ -210,6 +214,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
+    --model_name_or_path path_to_your_chatglm_model \
     --do_predict \
     --dataset alpaca_gpt4_zh \
     --checkpoint_dir path_to_checkpoint \
@@ -219,10 +224,11 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --predict_with_generate
 ```
 
-### 命令行测试
+### API / 命令行测试
 
 ```bash
-python src/cli_demo.py \
+python src/xxx_demo.py \
+    --model_name_or_path path_to_your_chatglm_model \
     --checkpoint_dir path_to_checkpoint
 ```
 
@@ -236,6 +242,7 @@ python src/train_web.py
 
 ```bash
 python src/export_model.py \
+    --model_name_or_path path_to_your_chatglm_model \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_export
 ```
