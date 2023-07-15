@@ -28,13 +28,13 @@ def can_preview(dataset: list) -> dict:
     with open(os.path.join(DATA_DIR, "dataset_info.json"), "r", encoding="utf-8") as f:
         dataset_info = json.load(f)
     if (
-            len(dataset) > 0
-            and "file_name" in dataset_info[dataset[0]]
-            and os.path.isfile(os.path.join(DATA_DIR, dataset_info[dataset[0]]["file_name"]))
+        len(dataset) > 0
+        and "file_name" in dataset_info[dataset[0]]
+        and os.path.isfile(os.path.join(DATA_DIR, dataset_info[dataset[0]]["file_name"]))
     ):
-        return gr.update(visible=True)
+        return gr.update(interactive=True)
     else:
-        return gr.update(visible=False)
+        return gr.update(interactive=False)
 
 
 def get_preview(dataset: list) -> Tuple[int, list]:
@@ -64,7 +64,7 @@ def gen_plot(base_model: str, output_dir: str) -> matplotlib.figure.Figure:
     with open(log_file, "r", encoding="utf-8") as f:
         for line in f:
             log_info = json.loads(line)
-            if log_info["loss"]:
+            if log_info.get("loss", None):
                 steps.append(log_info["current_steps"])
                 losses.append(log_info["loss"])
     ax.plot(steps, losses, alpha=0.4, label="original")

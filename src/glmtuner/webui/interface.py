@@ -10,6 +10,7 @@ from glmtuner.webui.components import (
 from glmtuner.webui.css import CSS
 from glmtuner.webui.runner import Runner
 
+
 require_version("gradio>=3.36.0", "To fix: pip install gradio>=3.36.0")
 
 
@@ -17,16 +18,16 @@ def create_ui() -> gr.Blocks:
     runner = Runner()
 
     with gr.Blocks(title="Web Tuner", css=CSS) as demo:
-        base_model, model_list, checkpoints = create_model_tab()
+        model_name, model_path, checkpoints = create_model_tab()
 
         with gr.Tab("SFT"):
-            create_sft_tab(base_model, model_list, checkpoints, runner)
+            create_sft_tab(model_name, model_path, checkpoints, runner)
 
         with gr.Tab("Evaluate"):
-            create_eval_tab(base_model, model_list, checkpoints, runner)
+            create_eval_tab(model_name, model_path, checkpoints, runner)
 
         with gr.Tab("Inference"):
-            create_infer_tab(base_model, model_list, checkpoints)
+            create_infer_tab(model_name, model_path, checkpoints)
 
     return demo
 
@@ -34,4 +35,4 @@ def create_ui() -> gr.Blocks:
 if __name__ == "__main__":
     demo = create_ui()
     demo.queue()
-    demo.launch(server_name="0.0.0.0", share=True, inbrowser=True)
+    demo.launch(server_name="0.0.0.0", share=False, inbrowser=True)

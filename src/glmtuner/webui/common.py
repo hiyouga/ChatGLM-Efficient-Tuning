@@ -1,45 +1,42 @@
-import codecs
 import json
 import os
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import gradio as gr
 from peft.utils import WEIGHTS_NAME as PEFT_WEIGHTS_NAME
 from transformers.trainer import WEIGHTS_NAME, WEIGHTS_INDEX_NAME
 
-CACHE_DIR = "cache"  # to save models
+CACHE_DIR = "cache"
 DATA_DIR = "data"
 SAVE_DIR = "saves"
-TEMP_USE_CONFIG = "tmp.use.config"
+USER_CONFIG = "user.config"
 
 
-def get_temp_use_config_path():
-    return os.path.join(SAVE_DIR, TEMP_USE_CONFIG)
+def get_config_path():
+    return os.path.join(CACHE_DIR, USER_CONFIG)
 
 
-def load_temp_use_config():
-    if not os.path.exists(get_temp_use_config_path()):
+def load_config() -> Dict[str, str]:
+    if not os.path.exists(get_config_path()):
         return {}
-    with codecs.open(get_temp_use_config_path()) as f:
+
+    with open(get_config_path(), "r", encoding="utf-8") as f:
         try:
             user_config = json.load(f)
             return user_config
-        except Exception as e:
+        except:
             return {}
 
 
-def save_temp_use_config(user_config: dict):
-    with codecs.open(get_temp_use_config_path(), "w", encoding="utf-8") as f:
-        json.dump(f, user_config, ensure_ascii=False)
-
-
-def save_model_config(model_name: str, model_path: str):
-    with codecs.open(get_temp_use_config_path(), "w", encoding="utf-8") as f:
-        json.dump({"model_name": model_name, "model_path": model_path}, f, ensure_ascii=False)
+def save_config(model_name: str, model_path: str) -> None:
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    user_config = dict(model_name=model_name, model_path=model_path)
+    with open(get_config_path(), "w", encoding="utf-8") as f:
+        json.dump(user_config, f, ensure_ascii=False)
 
 
 def get_save_dir(model_name: str) -> str:
-    return os.path.join(SAVE_DIR, model_name.split("/")[-1])
+    return os.path.join(SAVE_DIR, os.path.split(model_name)[-1])
 
 
 def add_model(model_list: list, model_name: str, model_path: str) -> Tuple[list, str, str]:
@@ -62,11 +59,11 @@ def list_checkpoints(model_name: str) -> dict:
     if save_dir and os.path.isdir(save_dir):
         for checkpoint in os.listdir(save_dir):
             if (
-                    os.path.isdir(os.path.join(save_dir, checkpoint))
-                    and any([
-                os.path.isfile(os.path.join(save_dir, checkpoint, name))
-                for name in (WEIGHTS_NAME, WEIGHTS_INDEX_NAME, PEFT_WEIGHTS_NAME)
-            ])
+                os.path.isdir(os.path.join(save_dir, checkpoint))
+                and any([
+                    os.path.isfile(os.path.join(save_dir, checkpoint, name))
+                    for name in (WEIGHTS_NAME, WEIGHTS_INDEX_NAME, PEFT_WEIGHTS_NAME)
+                ])
             ):
                 checkpoints.append(checkpoint)
     return gr.update(value=[], choices=checkpoints)

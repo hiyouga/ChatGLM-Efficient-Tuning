@@ -1,7 +1,6 @@
-from typing import Tuple
-
 import gradio as gr
 from gradio.components import Component
+from typing import Tuple
 
 
 def create_preview_box() -> Tuple[Component, Component, Component]:

@@ -70,15 +70,11 @@ class ModelArguments:
     )
 
     def __post_init__(self):
-        if self.checkpoint_dir == "":
+        if not self.checkpoint_dir:
             self.checkpoint_dir = None
-        # if base model is already quantization version, ignore quantization_bit config
-        if self.quantization_bit == "" or "int" in self.model_name_or_path:
-            self.quantization_bit = None
 
         if self.checkpoint_dir is not None: # support merging lora weights
             self.checkpoint_dir = [cd.strip() for cd in self.checkpoint_dir.split(",")]
 
         if self.quantization_bit is not None:
-            self.quantization_bit = int(self.quantization_bit)
             assert self.quantization_bit in [4, 8], "We only accept 4-bit or 8-bit quantization."
