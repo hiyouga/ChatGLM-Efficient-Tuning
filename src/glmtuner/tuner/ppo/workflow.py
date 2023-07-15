@@ -4,7 +4,8 @@
 import math
 from trl import PPOConfig
 from torch.optim import AdamW
-from transformers import Seq2SeqTrainingArguments
+from typing import Optional, List
+from transformers import Seq2SeqTrainingArguments, TrainerCallback
 from transformers.optimization import get_scheduler
 
 from glmtuner.dsets import DataCollatorForChatGLM, get_dataset, preprocess_dataset
@@ -19,12 +20,13 @@ def run_ppo(
     model_args: ModelArguments,
     data_args: DataArguments,
     training_args: Seq2SeqTrainingArguments,
-    finetuning_args: FinetuningArguments
+    finetuning_args: FinetuningArguments,
+    callbacks: Optional[List[TrainerCallback]] = [LogCallback()]
 ):
     dataset = get_dataset(model_args, data_args)
     model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="ppo")
     dataset = preprocess_dataset(dataset, tokenizer, data_args, training_args, stage="ppo")
-    data_collator = DataCollatorForChatGLM(tokenizer, model.pretrained_model, use_v2=model_args.use_v2)
+    data_collator = DataCollatorForChatGLM(tokenizer, model.pretrained_model)
 
     ppo_config = PPOConfig(
         model_name=model_args.model_name_or_path,
@@ -50,7 +52,7 @@ def run_ppo(
     ppo_trainer = PPOTrainerForChatGLM(
         training_args=training_args,
         finetuning_args=finetuning_args,
-        callbacks=[LogCallback()],
+        callbacks=callbacks,
         config=ppo_config,
         model=model,
         ref_model=None,

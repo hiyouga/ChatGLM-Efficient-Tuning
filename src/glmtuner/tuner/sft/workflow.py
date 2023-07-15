@@ -26,8 +26,7 @@ def run_sft(
     data_collator = DataCollatorForChatGLM(
         tokenizer=tokenizer,
         model=model,
-        ignore_pad_token_for_loss=(data_args.ignore_pad_token_for_loss and not training_args.predict_with_generate),
-        use_v2=model_args.use_v2
+        ignore_pad_token_for_loss=(data_args.ignore_pad_token_for_loss and not training_args.predict_with_generate)
     )
 
     # Override the decoding parameters of Seq2SeqTrainer

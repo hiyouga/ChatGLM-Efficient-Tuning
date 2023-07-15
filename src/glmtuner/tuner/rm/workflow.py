@@ -2,7 +2,8 @@
 # https://github.com/lvwerra/trl/blob/main/examples/summarization/scripts/reward_summarization.py
 # https://github.com/CarperAI/trlx/blob/main/examples/summarize_rlhf/reward_model/train_reward_model_gptj.py
 
-from transformers import Seq2SeqTrainingArguments
+from typing import Optional, List
+from transformers import Seq2SeqTrainingArguments, TrainerCallback
 
 from glmtuner.dsets import get_dataset, preprocess_dataset
 from glmtuner.extras.callbacks import LogCallback
@@ -18,12 +19,13 @@ def run_rm(
     model_args: ModelArguments,
     data_args: DataArguments,
     training_args: Seq2SeqTrainingArguments,
-    finetuning_args: FinetuningArguments
+    finetuning_args: FinetuningArguments,
+    callbacks: Optional[List[TrainerCallback]] = [LogCallback()]
 ):
     dataset = get_dataset(model_args, data_args)
     model, tokenizer = load_model_and_tokenizer(model_args, finetuning_args, training_args.do_train, stage="rm")
     dataset = preprocess_dataset(dataset, tokenizer, data_args, training_args, stage="rm")
-    data_collator = PairwiseDataCollatorForChatGLM(tokenizer, model.pretrained_model, use_v2=model_args.use_v2)
+    data_collator = PairwiseDataCollatorForChatGLM(tokenizer, model.pretrained_model)
 
     training_args.remove_unused_columns = False # Important for pairwise dataset
 
@@ -44,7 +46,7 @@ def run_rm(
         args=training_args,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        callbacks=[LogCallback()],
+        callbacks=callbacks,
         compute_metrics=compute_accuracy,
         **trainer_kwargs
     )
