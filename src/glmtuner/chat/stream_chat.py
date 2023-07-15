@@ -57,7 +57,7 @@ class ChatModel:
         response = self.model.chat(self.tokenizer, query, history, **gen_kwargs)
         return response
 
-    def stream_chat(self, query: str, history: List[Tuple[str, str]], **input_kwargs) -> Generator[str]:
+    def stream_chat(self, query: str, history: List[Tuple[str, str]], **input_kwargs) -> Generator[str, None, None]:
         gen_kwargs = self.process_args(**input_kwargs)
         current_length = 0
         for new_response, _ in self.model.stream_chat(self.tokenizer, query, history, **gen_kwargs):
