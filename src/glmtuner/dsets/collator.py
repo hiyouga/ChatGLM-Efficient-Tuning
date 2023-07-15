@@ -16,18 +16,17 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
         self,
         tokenizer: PreTrainedTokenizer,
         model: PreTrainedModel,
-        ignore_pad_token_for_loss: Optional[bool] = False,
-        use_v2: Optional[bool] = False
+        ignore_pad_token_for_loss: Optional[bool] = False
     ):
         super().__init__(tokenizer, padding=True)
         self.model = model
         self.label_pad_token_id = IGNORE_INDEX if ignore_pad_token_for_loss else tokenizer.pad_token_id
-        if use_v2:
-            self.get_attention_masks = self.get_attention_masks_v2
-            self.get_position_ids = self.get_position_ids_v2
-        else:
+        if tokenizer.eos_token_id == 130005:
             self.get_attention_masks = self.get_attention_masks_v1
             self.get_position_ids = self.get_position_ids_v1
+        else:
+            self.get_attention_masks = self.get_attention_masks_v2
+            self.get_position_ids = self.get_position_ids_v2
 
     def get_attention_masks_v1(self, input_ids: torch.Tensor, device: torch.device) -> torch.Tensor:
         r"""
