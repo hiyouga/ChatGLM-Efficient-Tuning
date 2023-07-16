@@ -43,14 +43,14 @@ def create_eval_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str
 
     return dict(
         dataset_dir=dataset_dir,
-        # dataset=dataset,
-        # preview_btn=preview_btn,
-        # preview_count=preview_count,
-        # preview_samples=preview_samples,
-        # max_samples=max_samples,
-        # eval_batch_size=eval_batch_size,
-        # quantization_bit=quantization_bit,
-        # start_btn=start_btn,
-        # stop_btn=stop_btn,
-        # output=output
+        dataset=dataset,
+        preview_btn=preview_btn,
+        preview_count=preview_count,
+        preview_samples=preview_samples,
+        max_samples=max_samples,
+        batch_size=eval_batch_size,
+        quantization_bit=quantization_bit,
+        start_btn=start_btn,
+        stop_btn=stop_btn,
+        output=output
     )

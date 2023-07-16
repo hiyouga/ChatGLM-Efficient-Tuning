@@ -8,13 +8,13 @@ from glmtuner.webui.components.chatbot import create_chat_box
 
 
 def create_infer_tab(top_elems: Dict[str, Component]) -> Dict[str, Component]:
-    info_box = gr.Markdown(value="Model unloaded, please load a model first.")
+    info_box = gr.Markdown()
 
     chat_model = WebChatModel()
     chat_box, chatbot, history = create_chat_box(chat_model)
 
     with gr.Row():
-        load_btn = gr.Button("Load model")
+        load_btn = gr.Button()
         unload_btn = gr.Button("Unload model")
         quantization_bit = gr.Dropdown([8, 4], label="Quantization bit", info="Quantize model to 4/8-bit mode.")
 
@@ -34,4 +34,9 @@ def create_infer_tab(top_elems: Dict[str, Component]) -> Dict[str, Component]:
         lambda: gr.update(visible=(chat_model.model is not None)), outputs=[chat_box]
     )
 
-    return dict()
+    return dict(
+        info_box=info_box,
+        load_btn=load_btn,
+        unload_btn=unload_btn,
+        quantization_bit=quantization_bit
+    )
