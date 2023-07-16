@@ -31,24 +31,19 @@ def create_ui() -> gr.Blocks:
         with gr.Tab("Inference"):
             infer_elems = create_infer_tab(top_elems)
 
-        manager = Manager([top_elems, sft_elems, eval_elems, infer_elems])
+        elem_list = [top_elems, sft_elems, eval_elems, infer_elems]
+        manager = Manager(elem_list)
 
         demo.load(
             manager.gen_label,
             [top_elems["lang"]],
-            list(top_elems.values())
-            + list(sft_elems.values())
-            + list(eval_elems.values())
-            + list(infer_elems.values())
+            [elem for elems in elem_list for elem in elems.values()],
         )
 
         top_elems["lang"].change(
             manager.gen_label,
             [top_elems["lang"]],
-            list(top_elems.values())
-            + list(sft_elems.values())
-            + list(eval_elems.values())
-            + list(infer_elems.values())
+            [elem for elems in elem_list for elem in elems.values()],
         )
 
     return demo
