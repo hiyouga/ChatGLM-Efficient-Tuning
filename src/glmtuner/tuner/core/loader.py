@@ -11,7 +11,7 @@ from transformers import (
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 from transformers.modeling_utils import PretrainedConfig, PreTrainedModel
-from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.tokenization_utils import PreTrainedTokenizerBase
 from trl import AutoModelForCausalLMWithValueHead
 
 from glmtuner.extras.logging import get_logger
@@ -36,7 +36,7 @@ def load_model_and_tokenizer(
     finetuning_args: FinetuningArguments,
     is_trainable: Optional[bool] = False,
     stage: Optional[Literal["sft", "rm", "ppo"]] = "sft"
-) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
+) -> Tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     r"""
     Loads pretrained model and tokenizer.
 
@@ -118,11 +118,11 @@ def load_model_and_tokenizer(
     model = AutoModel.from_pretrained(model_to_load, config=config, **config_kwargs)
 
     # Register auto class to save the custom code files.
-    if hasattr(config, "auto_map") and "AutoConfig" in config.auto_map and isinstance(config, PretrainedConfig):
+    if isinstance(config, PretrainedConfig):
         config.__class__.register_for_auto_class()
-    if hasattr(config, "auto_map") and "AutoTokenizer" in config.auto_map and isinstance(tokenizer, PreTrainedTokenizer):
+    if isinstance(tokenizer, PreTrainedTokenizerBase):
         tokenizer.__class__.register_for_auto_class()
-    if hasattr(config, "auto_map") and "AutoModel" in config.auto_map and isinstance(model, PreTrainedModel):
+    if isinstance(model, PreTrainedModel):
         model.__class__.register_for_auto_class()
 
     if tokenizer.eos_token_id == 130005: # ChatGLM-6B
