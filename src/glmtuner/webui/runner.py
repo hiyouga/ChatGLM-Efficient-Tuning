@@ -10,7 +10,7 @@ from glmtuner.extras.constants import SUPPORTED_MODELS
 from glmtuner.extras.logging import LoggerHandler
 from glmtuner.extras.misc import torch_gc
 from glmtuner.tuner import get_train_args, run_sft
-from glmtuner.webui.common import get_save_dir, DATA_DIR
+from glmtuner.webui.common import get_save_dir
 from glmtuner.webui.utils import format_info, get_eval_results
 
 
@@ -64,8 +64,8 @@ class Runner:
 
     def run_train(
         self, model_name, model_path, checkpoints, output_dir, finetuning_type,
-        dataset, learning_rate, num_train_epochs, max_samples,
-        fp16, quantization_bit, per_device_train_batch_size, gradient_accumulation_steps,
+        dataset, dataset_dir, learning_rate, num_train_epochs, max_samples,
+        fp16, quantization_bit, batch_size, gradient_accumulation_steps,
         lr_scheduler_type, logging_steps, save_steps
     ):
         model_name_or_path, error, logger_handler, trainer_callback = self.initialize(model_name, model_path, dataset)
@@ -83,12 +83,12 @@ class Runner:
             do_train=True,
             finetuning_type=finetuning_type,
             dataset=",".join(dataset),
-            dataset_dir=DATA_DIR,
+            dataset_dir=dataset_dir,
             max_samples=int(max_samples),
             output_dir=os.path.join(get_save_dir(model_name), output_dir),
             checkpoint_dir=checkpoint_dir,
             overwrite_cache=True,
-            per_device_train_batch_size=per_device_train_batch_size,
+            per_device_train_batch_size=batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
             lr_scheduler_type=lr_scheduler_type,
             logging_steps=logging_steps,
@@ -120,8 +120,8 @@ class Runner:
         yield self.finalize()
 
     def run_eval(
-        self, model_name, model_path, checkpoints, dataset, max_samples, per_device_eval_batch_size,
-        quantization_bit
+        self, model_name, model_path, checkpoints, dataset, dataset_dir,
+        max_samples, batch_size, quantization_bit
     ):
         model_name_or_path, error, logger_handler, trainer_callback = self.initialize(model_name, model_path, dataset)
         if error:
@@ -139,13 +139,13 @@ class Runner:
             model_name_or_path=model_name_or_path,
             do_eval=True,
             dataset=",".join(dataset),
-            dataset_dir=DATA_DIR,
+            dataset_dir=dataset_dir,
             max_samples=int(max_samples),
             output_dir=output_dir,
             checkpoint_dir=checkpoint_dir,
             overwrite_cache=True,
             predict_with_generate=True,
-            per_device_eval_batch_size=per_device_eval_batch_size,
+            per_device_eval_batch_size=batch_size,
             quantization_bit=int(quantization_bit) if quantization_bit else None
         )
         model_args, data_args, training_args, finetuning_args, _ = get_train_args(args)
