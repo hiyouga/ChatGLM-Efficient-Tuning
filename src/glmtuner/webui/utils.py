@@ -8,7 +8,7 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 
 from glmtuner.extras.ploting import smooth
-from glmtuner.webui.common import get_save_dir, DATA_DIR
+from glmtuner.webui.common import get_save_dir, DATA_CONFIG
 
 
 def format_info(log: str, tracker: dict) -> str:
@@ -24,26 +24,26 @@ def get_time() -> str:
     return datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
 
-def can_preview(dataset: list) -> dict:
-    with open(os.path.join(DATA_DIR, "dataset_info.json"), "r", encoding="utf-8") as f:
+def can_preview(dataset_dir: str, dataset: list) -> dict:
+    with open(os.path.join(dataset_dir, DATA_CONFIG), "r", encoding="utf-8") as f:
         dataset_info = json.load(f)
     if (
         len(dataset) > 0
         and "file_name" in dataset_info[dataset[0]]
-        and os.path.isfile(os.path.join(DATA_DIR, dataset_info[dataset[0]]["file_name"]))
+        and os.path.isfile(os.path.join(dataset_dir, dataset_info[dataset[0]]["file_name"]))
     ):
         return gr.update(interactive=True)
     else:
         return gr.update(interactive=False)
 
 
-def get_preview(dataset: list) -> Tuple[int, list]:
-    with open(os.path.join(DATA_DIR, "dataset_info.json"), "r", encoding="utf-8") as f:
+def get_preview(dataset_dir: str, dataset: list) -> Tuple[int, list, dict]:
+    with open(os.path.join(dataset_dir, DATA_CONFIG), "r", encoding="utf-8") as f:
         dataset_info = json.load(f)
     data_file = dataset_info[dataset[0]]["file_name"]
-    with open(os.path.join(DATA_DIR, data_file), "r", encoding="utf-8") as f:
+    with open(os.path.join(dataset_dir, data_file), "r", encoding="utf-8") as f:
         data = json.load(f)
-    return len(data), data[:2]
+    return len(data), data[:2], gr.update(visible=True)
 
 
 def get_eval_results(path: os.PathLike) -> str:
