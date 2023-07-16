@@ -12,9 +12,9 @@ from glmtuner.webui.utils import can_preview, get_preview, get_time, gen_plot
 
 def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str, Component]:
     with gr.Row():
-        finetuning_type = gr.Dropdown(value="lora", choices=METHODS, interactive=True, scale=2)
+        finetuning_type = gr.Dropdown(value="lora", choices=METHODS, interactive=True, scale=1)
         dataset_dir = gr.Textbox(value=DEFAULT_DATA_DIR, interactive=True, scale=1)
-        dataset = gr.Dropdown(choices=list_datasets(), multiselect=True, interactive=True, scale=2)
+        dataset = gr.Dropdown(choices=list_datasets(), multiselect=True, interactive=True, scale=4)
         preview_btn = gr.Button(interactive=False, scale=1)
 
     preview_box, preview_count, preview_samples = create_preview_box()
@@ -48,7 +48,7 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
     with gr.Row():
         with gr.Column(scale=4):
             output_dir = gr.Textbox(value=get_time(), interactive=True)
-            output = gr.Markdown()
+            output_box = gr.Markdown()
 
         with gr.Column(scale=1):
             loss_viewer = gr.Plot()
@@ -62,11 +62,11 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
             fp16, quantization_bit, batch_size, gradient_accumulation_steps,
             lr_scheduler_type, logging_steps, save_steps
         ],
-        output
+        [output_box]
     )
     stop_btn.click(runner.set_abort, queue=False)
 
-    output.change(gen_plot, [top_elems["model_name"], output_dir], loss_viewer, queue=False)
+    output_box.change(gen_plot, [top_elems["model_name"], output_dir], loss_viewer, queue=False)
 
     return dict(
         finetuning_type=finetuning_type,
@@ -88,6 +88,6 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
         start_btn=start_btn,
         stop_btn=stop_btn,
         output_dir=output_dir,
-        output=output,
+        output_box=output_box,
         loss_viewer=loss_viewer
     )

@@ -11,7 +11,7 @@ def create_infer_tab(top_elems: Dict[str, Component]) -> Dict[str, Component]:
     info_box = gr.Markdown()
 
     chat_model = WebChatModel()
-    chat_box, chatbot, history = create_chat_box(chat_model)
+    chat_box, chatbot, history, chat_elems = create_chat_box(chat_model)
 
     with gr.Row():
         load_btn = gr.Button()
@@ -38,5 +38,6 @@ def create_infer_tab(top_elems: Dict[str, Component]) -> Dict[str, Component]:
         info_box=info_box,
         load_btn=load_btn,
         unload_btn=unload_btn,
-        quantization_bit=quantization_bit
+        quantization_bit=quantization_bit,
+        **chat_elems
     )

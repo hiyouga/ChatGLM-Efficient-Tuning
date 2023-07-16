@@ -18,10 +18,10 @@ LOCALES = {
     "model_path": {
         "en": {
             "label": "Local path (Optional)",
-            "info": "The absolute path of the directory where the local model file is located."
+            "info": "Absolute path of the model directory."
         },
         "zh": {
-            "label": "模型文件夹（可选项）",
+            "label": "模型路径（可选项）",
             "info": "模型文件夹在磁盘上的绝对路径。"
         }
     },
@@ -30,7 +30,7 @@ LOCALES = {
             "label": "Checkpoints"
         },
         "zh": {
-            "label": "训练断点"
+            "label": "模型断点"
         }
     },
     "refresh_btn": {
@@ -44,11 +44,11 @@ LOCALES = {
     "dataset_dir": {
         "en": {
             "label": "Data dir",
-            "info": "The absolute path of the directory where the dataset file is located."
+            "info": "Path of the data directory."
         },
         "zh": {
-            "label": "数据文件夹",
-            "info": "数据文件夹在磁盘上的绝对路径。"
+            "label": "数据路径",
+            "info": "数据文件夹的路径。"
         }
     },
     "dataset": {
@@ -86,29 +86,31 @@ LOCALES = {
     "max_samples": {
         "en": {
             "label": "Max samples",
-            "info": "The maximum samples to process."
+            "info": "Maximum samples per dataset."
         },
         "zh": {
-            "label": "最大样例数",
-            "info": "最大处理的样本数。"
+            "label": "最大样本数",
+            "info": "每个数据集最多使用的样本数。"
         }
     },
     "batch_size": {
         "en": {
-            "label": "Batch size"
+            "label": "Batch size",
+            "info": "Number of samples to process per GPU."
         },
         "zh":{
-            "label": "批处理大小"
+            "label": "批处理大小",
+            "info": "每块 GPU 上处理的样本数量。"
         }
     },
     "quantization_bit": {
         "en": {
             "label": "Quantization bit",
-            "info": "Quantize model to 4/8-bit mode."
+            "info": "Enable 4/8-bit model quantization."
         },
         "zh": {
             "label": "量化",
-            "info": "将模型量化到 4/8-bit 模式。"
+            "info": "启用 4/8 比特模型量化。"
         }
     },
     "start_btn": {
@@ -124,10 +126,10 @@ LOCALES = {
             "value": "Abort"
         },
         "zh": {
-            "value": "终止"
+            "value": "中断"
         }
     },
-    "output": {
+    "output_box": {
         "en": {
             "value": "Ready"
         },
@@ -137,7 +139,7 @@ LOCALES = {
     },
     "finetuning_type": {
         "en": {
-            "label": "Finetuning type"
+            "label": "Finetuning method"
         },
         "zh": {
             "label": "微调方法"
@@ -146,11 +148,11 @@ LOCALES = {
     "learning_rate": {
         "en": {
             "label": "Learning rate",
-            "info": "The initial learning rate for AdamW."
+            "info": "Initial learning rate for AdamW."
         },
         "zh": {
             "label": "学习率",
-            "info": "AdamW 的初始学习率。"
+            "info": "AdamW 优化器的初始学习率。"
         }
     },
     "num_train_epochs": {
@@ -160,35 +162,37 @@ LOCALES = {
         },
         "zh": {
             "label": "训练轮数",
-            "info": "总共进行训练的轮数。"
+            "info": "需要执行的训练总轮数。"
         }
     },
     "gradient_accumulation_steps": {
         "en": {
             "label": "Gradient accumulation",
-            "info": "Accumulation steps."
+            "info": "Number of gradient accumulation steps."
         },
         "zh": {
             "label": "梯度累积",
-            "info": "累积的梯度步数。"
+            "info": "梯度累积的步数。"
         }
     },
     "lr_scheduler_type": {
         "en": {
             "label": "LR Scheduler",
-            "info": "Scheduler type.",
+            "info": "Name of learning rate scheduler.",
         },
         "zh": {
             "label": "学习率调节器",
-            "info": "调节器的种类。"
+            "info": "采用的学习率调节器名称。"
         }
     },
     "fp16": {
         "en": {
-            "label": "fp16"
+            "label": "fp16",
+            "info": "Whether to use fp16 mixed precision training."
         },
         "zh": {
-            "label": "fp16"
+            "label": "fp16",
+            "info": "是否启用 FP16 混合精度训练。"
         }
     },
     "logging_steps": {
@@ -197,26 +201,28 @@ LOCALES = {
             "info": "Number of update steps between two logs."
         },
         "zh": {
-            "label": "记录间隔",
-            "info": "两次记录之间间隔的更新步数。"
+            "label": "日志间隔",
+            "info": "每两次日志输出间的更新步数。"
         }
     },
     "save_steps": {
         "en": {
             "label": "Save steps",
-            "info": "Number of updates steps before two checkpoint saves."
+            "info": "Number of updates steps between two checkpoints."
         },
         "zh": {
             "label": "保存间隔",
-            "info": "两次断点保存之间间隔的更新步数。"
+            "info": "每两次断点保存间的更新步数。"
         }
     },
     "output_dir": {
         "en": {
-            "label": "Checkpoint name"
+            "label": "Checkpoint name",
+            "info": "Directory to save checkpoint."
         },
         "zh": {
-            "label": "断点名称"
+            "label": "断点名称",
+            "info": "保存模型断点的文件夹名称"
         }
     },
     "loss_viewer": {
@@ -249,6 +255,54 @@ LOCALES = {
         },
         "zh": {
             "value": "卸载模型"
+        }
+    },
+    "query": {
+        "en": {
+            "placeholder": "Input..."
+        },
+        "zh": {
+            "placeholder": "输入..."
+        }
+    },
+    "submit_btn": {
+        "en": {
+            "value": "Submit"
+        },
+        "zh": {
+            "value": "提交"
+        }
+    },
+    "clear_btn": {
+        "en": {
+            "value": "Clear history"
+        },
+        "zh": {
+            "value": "清空历史"
+        }
+    },
+    "max_length": {
+        "en": {
+            "label": "Maximum length"
+        },
+        "zh": {
+            "label": "最大长度"
+        }
+    },
+    "top_p": {
+        "en": {
+            "label": "Top-p"
+        },
+        "zh": {
+            "label": "Top-p 采样值"
+        }
+    },
+    "temperature": {
+        "en": {
+            "label": "Temperature"
+        },
+        "zh": {
+            "label": "温度系数"
         }
     }
 }

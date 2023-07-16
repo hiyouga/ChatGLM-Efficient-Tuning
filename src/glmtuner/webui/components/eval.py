@@ -29,7 +29,7 @@ def create_eval_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str
         start_btn = gr.Button()
         stop_btn = gr.Button()
 
-    output = gr.Markdown()
+    output_box = gr.Markdown()
 
     start_btn.click(
         runner.run_eval,
@@ -37,7 +37,7 @@ def create_eval_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str
             top_elems["model_name"], top_elems["model_path"], top_elems["checkpoints"],
             dataset, dataset_dir, max_samples, batch_size, quantization_bit
         ],
-        [output]
+        [output_box]
     )
     stop_btn.click(runner.set_abort, queue=False)
 
@@ -52,5 +52,5 @@ def create_eval_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str
         quantization_bit=quantization_bit,
         start_btn=start_btn,
         stop_btn=stop_btn,
-        output=output
+        output_box=output_box
     )

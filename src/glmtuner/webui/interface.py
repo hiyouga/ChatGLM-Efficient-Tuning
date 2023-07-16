@@ -1,7 +1,6 @@
 import gradio as gr
 from transformers.utils.versions import require_version
 
-from glmtuner.webui.common import list_datasets
 from glmtuner.webui.components import (
     create_top,
     create_sft_tab,
