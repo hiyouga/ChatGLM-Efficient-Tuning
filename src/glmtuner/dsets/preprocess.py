@@ -32,6 +32,19 @@ def preprocess_dataset(
                 prompt = prefix + prompt
                 yield prompt, answer
 
+    def format_predict_example(examples): # support question with no answer used in prediction
+        for i in range(len(examples["prompt"])):
+            if examples["prompt"][i]:
+                query = examples["prompt"][i]
+                query = query + examples["query"][i] if examples["query"][i] else query
+                history = examples["history"][i] if examples["history"][i] else []
+                prompt = ""
+                for j, (old_query, response) in enumerate(history):
+                    prompt += "[Round {}]\n\n问：{}\n\n答：{}\n\n".format(j+1, old_query, response)
+                prompt += "[Round {}]\n\n问：{}\n\n答：".format(len(history)+1, query)
+                prompt = prefix + prompt
+                yield prompt
+
     def preprocess_supervised_dataset(examples):
         # v1: build inputs with format `X [gMASK] <sop> Y <eop>` and labels with format `[IGNORE] ... [IGNORE] Y <eop>`
         # v2: build inputs with format `[gMASK] sop X Y </s>` and labels with format `[IGNORE] ... [IGNORE] Y </s>`
@@ -72,6 +85,24 @@ def preprocess_dataset(
             model_inputs["input_ids"].append(input_ids)
             model_inputs["labels"].append(labels)
         return model_inputs
+    
+    def preprocess_prediction_dataset(examples):
+        # v1: build inputs with format `X [gMASK] <sop>` and labels with format `Y [gMASK] <sop>`
+        # v2: build inputs with format `[gMASK] sop X` and labels with format `[gMASK] sop Y`
+        # print(examples)
+        model_inputs = {"input_ids": []}
+        for prompt in format_predict_example(examples):
+            source_ids = tokenizer.encode(text=prompt, add_special_tokens=False)
+
+            if len(source_ids) > data_args.max_source_length - 2: # gmask and sop tokens
+                source_ids = source_ids[:data_args.max_source_length - 2]
+
+            input_ids = tokenizer.build_inputs_with_special_tokens(source_ids)
+
+            model_inputs["input_ids"].append(input_ids)
+
+        return model_inputs
+
 
     def preprocess_pairwise_dataset(examples):
         # v1: build input pairs with format `X [gMASK] <sop> Y1 <eop>` and `X [gMASK] <sop> Y2 <eop>`
@@ -99,11 +130,12 @@ def preprocess_dataset(
     def print_sft_dataset_example(example):
         print("input_ids:\n{}".format(example["input_ids"]))
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"], skip_special_tokens=False)))
-        print("label_ids:\n{}".format(example["labels"]))
-        print("labels:\n{}".format(
-            tokenizer.decode([d if d != IGNORE_INDEX else tokenizer.pad_token_id for d in example["labels"]],
-                             skip_special_tokens=False)
-        ))
+        if "label" in example.keys():
+            print("label_ids:\n{}".format(example["labels"]))
+            print("labels:\n{}".format(
+                tokenizer.decode([d if d != IGNORE_INDEX else tokenizer.pad_token_id for d in example["labels"]],
+                                skip_special_tokens=False)
+            ))
 
     def print_pairwise_dataset_example(example):
         print("accept_ids:\n{}".format(example["accept_ids"]))
@@ -116,8 +148,13 @@ def preprocess_dataset(
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"], skip_special_tokens=False)))
 
     if stage == "sft":
-        preprocess_function = preprocess_evaluation_dataset \
+        if training_args.do_predict:
+            preprocess_function = preprocess_prediction_dataset \
             if training_args.predict_with_generate else preprocess_supervised_dataset
+        else:
+            preprocess_function = preprocess_evaluation_dataset \
+                if training_args.predict_with_generate else preprocess_supervised_dataset
+            
     elif stage == "rm":
         preprocess_function = preprocess_pairwise_dataset
     elif stage == "ppo":
