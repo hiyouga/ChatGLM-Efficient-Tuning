@@ -32,7 +32,7 @@ def run_ppo(
         model_name=model_args.model_name_or_path,
         learning_rate=training_args.learning_rate,
         mini_batch_size=training_args.per_device_train_batch_size,
-        batch_size=training_args.per_device_train_batch_size,
+        batch_size=training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps,
         gradient_accumulation_steps=training_args.gradient_accumulation_steps,
         ppo_epochs=1,
         max_grad_norm=training_args.max_grad_norm

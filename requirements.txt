@@ -3,7 +3,7 @@ transformers>=4.27.4
 datasets>=2.10.0
 accelerate>=0.19.0
 peft>=0.3.0
-trl>=0.4.4
+trl>=0.4.7
 protobuf
 cpm-kernels
 sentencepiece
@@ -12,7 +12,7 @@ rouge-chinese
 nltk
 gradio>=3.36.0
 uvicorn
-pydantic==1.10.7
+pydantic
 fastapi
 sse-starlette
 matplotlib
