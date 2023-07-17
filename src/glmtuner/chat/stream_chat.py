@@ -36,10 +36,10 @@ class ChatModel:
 
         gen_kwargs = self.generating_args.to_dict()
         gen_kwargs.update(dict(
-            temperature=temperature if temperature else gen_kwargs["temperature"],
-            top_p=top_p if top_p else gen_kwargs["top_p"],
-            top_k=top_k if top_k else gen_kwargs["top_k"],
-            repetition_penalty=repetition_penalty if repetition_penalty else gen_kwargs["repetition_penalty"]
+            temperature=temperature or gen_kwargs["temperature"],
+            top_p=top_p or gen_kwargs["top_p"],
+            top_k=top_k or gen_kwargs["top_k"],
+            repetition_penalty=repetition_penalty or gen_kwargs["repetition_penalty"]
         ))
 
         if max_length:
