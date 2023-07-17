@@ -260,7 +260,6 @@ python src/export_model.py \
 | P-Tuning (p=16)  |     4      | INT8 |  16GB  | 8ex/s |
 | P-Tuning (p=16)  |     4      | INT4 |  12GB  | 8ex/s |
 | Freeze (l=3)     |     4      | FP16 |  24GB  | 8ex/s |
-| Freeze (l=3)     |     4      | INT8 |  12GB  | 8ex/s |
 
 | 奖励模型训练方法 |  批处理大小  | 模式 | GPU显存 | 速度 |
 | --------------- | ----------  | ---- | ------ | ---- |
