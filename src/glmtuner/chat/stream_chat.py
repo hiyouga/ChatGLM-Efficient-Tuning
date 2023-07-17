@@ -52,11 +52,13 @@ class ChatModel:
 
         return gen_kwargs
 
+    @torch.inference_mode()
     def chat(self, query: str, history: Optional[List[Tuple[str, str]]] = None, **input_kwargs) -> str:
         gen_kwargs = self.process_args(**input_kwargs)
         response = self.model.chat(self.tokenizer, query, history, **gen_kwargs)
         return response
 
+    @torch.inference_mode()
     def stream_chat(
         self, query: str, history: Optional[List[Tuple[str, str]]] = None, **input_kwargs
     ) -> Generator[str, None, None]:

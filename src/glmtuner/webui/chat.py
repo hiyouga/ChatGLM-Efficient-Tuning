@@ -16,7 +16,10 @@ class WebChatModel(ChatModel):
         self.tokenizer = None
         self.generating_args = GeneratingArguments()
 
-    def load_model(self, model_name: str, model_path: str, checkpoints: list, quantization_bit: str):
+    def load_model(
+        self, lang: str, model_name: str, model_path: str, checkpoints: list,
+        finetuning_type: str, quantization_bit: str
+    ):
         if self.model is not None:
             yield "You have loaded a model, please unload it first."
             return
@@ -42,6 +45,7 @@ class WebChatModel(ChatModel):
         yield "Loading model..."
         args = dict(
             model_name_or_path=model_name_or_path,
+            finetuning_type=finetuning_type,
             checkpoint_dir=checkpoint_dir,
             quantization_bit=int(quantization_bit) if quantization_bit else None
         )

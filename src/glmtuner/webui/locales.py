@@ -233,6 +233,14 @@ LOCALES = {
             "label": "损失"
         }
     },
+    "predict": {
+        "en": {
+            "label": "Save predictions"
+        },
+        "zh": {
+            "label": "保存预测结果"
+        }
+    },
     "info_box": {
         "en": {
             "value": "Model unloaded, please load a model first."

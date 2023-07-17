@@ -56,11 +56,10 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
     start_btn.click(
         runner.run_train,
         [
-            top_elems["model_name"], top_elems["model_path"], top_elems["checkpoints"],
-            output_dir, finetuning_type,
-            dataset, dataset_dir, learning_rate, num_train_epochs, max_samples,
+            top_elems["lang"], top_elems["model_name"], top_elems["model_path"], top_elems["checkpoints"],
+            finetuning_type, dataset, dataset_dir, learning_rate, num_train_epochs, max_samples,
             fp16, quantization_bit, batch_size, gradient_accumulation_steps,
-            lr_scheduler_type, logging_steps, save_steps
+            lr_scheduler_type, logging_steps, save_steps, output_dir
         ],
         [output_box]
     )

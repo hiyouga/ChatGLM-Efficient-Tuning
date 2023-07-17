@@ -63,10 +63,10 @@ class Runner:
             return finish_info if finish_info is not None else "Finished"
 
     def run_train(
-        self, model_name, model_path, checkpoints, output_dir, finetuning_type,
+        self, lang, model_name, model_path, checkpoints, finetuning_type,
         dataset, dataset_dir, learning_rate, num_train_epochs, max_samples,
         fp16, quantization_bit, batch_size, gradient_accumulation_steps,
-        lr_scheduler_type, logging_steps, save_steps
+        lr_scheduler_type, logging_steps, save_steps, output_dir
     ):
         model_name_or_path, error, logger_handler, trainer_callback = self.initialize(model_name, model_path, dataset)
         if error:
@@ -120,8 +120,8 @@ class Runner:
         yield self.finalize()
 
     def run_eval(
-        self, model_name, model_path, checkpoints, dataset, dataset_dir,
-        max_samples, batch_size, quantization_bit
+        self, lang, model_name, model_path, checkpoints, finetuning_type,
+        dataset, dataset_dir, max_samples, batch_size, quantization_bit, predict
     ):
         model_name_or_path, error, logger_handler, trainer_callback = self.initialize(model_name, model_path, dataset)
         if error:
@@ -138,6 +138,7 @@ class Runner:
         args = dict(
             model_name_or_path=model_name_or_path,
             do_eval=True,
+            finetuning_type=finetuning_type,
             dataset=",".join(dataset),
             dataset_dir=dataset_dir,
             max_samples=int(max_samples),
@@ -148,6 +149,11 @@ class Runner:
             per_device_eval_batch_size=batch_size,
             quantization_bit=int(quantization_bit) if quantization_bit else None
         )
+
+        if predict:
+            args.pop("do_eval", None)
+            args["do_predict"] = True
+
         model_args, data_args, training_args, finetuning_args, _ = get_train_args(args)
 
         run_args = dict(
