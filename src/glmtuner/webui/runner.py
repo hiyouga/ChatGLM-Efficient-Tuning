@@ -172,4 +172,4 @@ class Runner:
             else:
                 yield format_info(logger_handler.log, trainer_callback.tracker)
 
-        yield self.finalize(lang, get_eval_results(os.path.join(output_dir, "eval_results.json")))
+        yield self.finalize(lang, get_eval_results(os.path.join(output_dir, "all_results.json")))
