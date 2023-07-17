@@ -1,11 +1,10 @@
-import json
 import os
-from datetime import datetime
-from typing import Tuple
-
+import json
 import gradio as gr
 import matplotlib.figure
 import matplotlib.pyplot as plt
+from typing import Tuple
+from datetime import datetime
 
 from glmtuner.extras.ploting import smooth
 from glmtuner.webui.common import get_save_dir, DATA_CONFIG
@@ -52,8 +51,8 @@ def get_eval_results(path: os.PathLike) -> str:
     return "```json\n{}\n```\n".format(result)
 
 
-def gen_plot(base_model: str, output_dir: str) -> matplotlib.figure.Figure:
-    log_file = os.path.join(get_save_dir(base_model), output_dir, "trainer_log.jsonl")
+def gen_plot(base_model: str, finetuning_type: str, output_dir: str) -> matplotlib.figure.Figure:
+    log_file = os.path.join(get_save_dir(base_model), finetuning_type, output_dir, "trainer_log.jsonl")
     if not os.path.isfile(log_file):
         return None
 

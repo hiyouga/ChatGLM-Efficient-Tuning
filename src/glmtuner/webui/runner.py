@@ -6,11 +6,11 @@ import transformers
 from typing import Optional, Tuple
 
 from glmtuner.extras.callbacks import LogCallback
-from glmtuner.extras.constants import SUPPORTED_MODELS
 from glmtuner.extras.logging import LoggerHandler
 from glmtuner.extras.misc import torch_gc
 from glmtuner.tuner import get_train_args, run_sft
-from glmtuner.webui.common import get_save_dir
+from glmtuner.webui.common import get_model_path, get_save_dir
+from glmtuner.webui.locales import ALERTS
 from glmtuner.webui.utils import format_info, get_eval_results
 
 
@@ -24,24 +24,19 @@ class Runner:
         self.aborted = True
         self.running = False
 
-    def initialize(self, model_name: str, model_path: str, dataset: list) -> Tuple[str, str, LoggerHandler, LogCallback]:
+    def initialize(self, lang: str, model_name: str, dataset: list) -> Tuple[str, str, LoggerHandler, LogCallback]:
         if self.running:
-            return None, "A process is in running, please abort it firstly.", None, None
+            return None, ALERTS["err_conflict"][lang], None, None
 
         if not model_name:
-            return None, "Please select a model.", None, None
+            return None, ALERTS["err_no_model"][lang], None, None
 
-        if model_path:
-            if not os.path.isdir(model_path):
-                return None, "Cannot find model directory in local disk.", None, None
-            model_name_or_path = model_path
-        elif model_name in SUPPORTED_MODELS: # TODO: use list in gr.State
-            model_name_or_path = SUPPORTED_MODELS[model_name]["hf_path"]
-        else:
-            return None, "Invalid model.", None, None
+        model_name_or_path = get_model_path(model_name)
+        if not model_name_or_path:
+            return None, ALERTS["err_no_path"][lang], None, None
 
         if len(dataset) == 0:
-            return None, "Please choose datasets.", None, None
+            return None, ALERTS["err_no_dataset"][lang], None, None
 
         self.aborted = False
         self.running = True
@@ -54,27 +49,29 @@ class Runner:
 
         return model_name_or_path, "", logger_handler, trainer_callback
 
-    def finalize(self, finish_info: Optional[str] = None) -> str:
+    def finalize(self, lang: str, finish_info: Optional[str] = None) -> str:
         self.running = False
         torch_gc()
         if self.aborted:
-            return "Ready"
+            return ALERTS["info_aborted"][lang]
         else:
-            return finish_info if finish_info is not None else "Finished"
+            return finish_info if finish_info is not None else ALERTS["info_finished"][lang]
 
     def run_train(
-        self, lang, model_name, model_path, checkpoints, finetuning_type,
+        self, lang, model_name, checkpoints, finetuning_type,
         dataset, dataset_dir, learning_rate, num_train_epochs, max_samples,
         fp16, quantization_bit, batch_size, gradient_accumulation_steps,
         lr_scheduler_type, logging_steps, save_steps, output_dir
     ):
-        model_name_or_path, error, logger_handler, trainer_callback = self.initialize(model_name, model_path, dataset)
+        model_name_or_path, error, logger_handler, trainer_callback = self.initialize(lang, model_name, dataset)
         if error:
             yield error
             return
 
         if checkpoints:
-            checkpoint_dir = ",".join([os.path.join(get_save_dir(model_name), checkpoint) for checkpoint in checkpoints])
+            checkpoint_dir = ",".join(
+                [os.path.join(get_save_dir(model_name), finetuning_type, checkpoint) for checkpoint in checkpoints]
+            )
         else:
             checkpoint_dir = None
 
@@ -85,7 +82,7 @@ class Runner:
             dataset=",".join(dataset),
             dataset_dir=dataset_dir,
             max_samples=int(max_samples),
-            output_dir=os.path.join(get_save_dir(model_name), output_dir),
+            output_dir=os.path.join(get_save_dir(model_name), finetuning_type, output_dir),
             checkpoint_dir=checkpoint_dir,
             overwrite_cache=True,
             per_device_train_batch_size=batch_size,
@@ -113,27 +110,29 @@ class Runner:
         while thread.is_alive():
             time.sleep(1)
             if self.aborted:
-                yield "Aborted, wait for terminating..."
+                yield ALERTS["info_aborting"][lang]
             else:
                 yield format_info(logger_handler.log, trainer_callback.tracker)
 
-        yield self.finalize()
+        yield self.finalize(lang)
 
     def run_eval(
-        self, lang, model_name, model_path, checkpoints, finetuning_type,
+        self, lang, model_name, checkpoints, finetuning_type,
         dataset, dataset_dir, max_samples, batch_size, quantization_bit, predict
     ):
-        model_name_or_path, error, logger_handler, trainer_callback = self.initialize(model_name, model_path, dataset)
+        model_name_or_path, error, logger_handler, trainer_callback = self.initialize(lang, model_name, dataset)
         if error:
             yield error
             return
 
         if checkpoints:
-            checkpoint_dir = ",".join([os.path.join(get_save_dir(model_name), checkpoint) for checkpoint in checkpoints])
-            output_dir = os.path.join(get_save_dir(model_name), "eval_" + "_".join(checkpoints))
+            checkpoint_dir = ",".join(
+                [os.path.join(get_save_dir(model_name), finetuning_type, checkpoint) for checkpoint in checkpoints]
+            )
+            output_dir = os.path.join(get_save_dir(model_name), finetuning_type, "eval_" + "_".join(checkpoints))
         else:
             checkpoint_dir = None
-            output_dir = os.path.join(get_save_dir(model_name), "eval_base")
+            output_dir = os.path.join(get_save_dir(model_name), finetuning_type, "eval_base")
 
         args = dict(
             model_name_or_path=model_name_or_path,
@@ -169,8 +168,8 @@ class Runner:
         while thread.is_alive():
             time.sleep(1)
             if self.aborted:
-                yield "Aborted, wait for terminating..."
+                yield ALERTS["info_aborting"][lang]
             else:
                 yield format_info(logger_handler.log, trainer_callback.tracker)
 
-        yield self.finalize(get_eval_results(os.path.join(output_dir, "eval_results.json")))
+        yield self.finalize(lang, get_eval_results(os.path.join(output_dir, "eval_results.json")))

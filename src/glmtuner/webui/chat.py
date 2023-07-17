@@ -2,11 +2,11 @@ import os
 from typing import List, Tuple
 
 from glmtuner.chat.stream_chat import ChatModel
-from glmtuner.extras.constants import SUPPORTED_MODELS
 from glmtuner.extras.misc import torch_gc
 from glmtuner.hparams import GeneratingArguments
 from glmtuner.tuner import get_infer_args
-from glmtuner.webui.common import get_save_dir
+from glmtuner.webui.common import get_model_path, get_save_dir
+from glmtuner.webui.locales import ALERTS
 
 
 class WebChatModel(ChatModel):
@@ -17,32 +17,30 @@ class WebChatModel(ChatModel):
         self.generating_args = GeneratingArguments()
 
     def load_model(
-        self, lang: str, model_name: str, model_path: str, checkpoints: list,
+        self, lang: str, model_name: str, checkpoints: list,
         finetuning_type: str, quantization_bit: str
     ):
         if self.model is not None:
-            yield "You have loaded a model, please unload it first."
+            yield ALERTS["err_exists"][lang]
             return
 
         if not model_name:
-            yield "Please select a model."
+            yield ALERTS["err_no_model"][lang]
             return
 
-        if model_path:
-            if not os.path.isdir(model_path):
-                return None, "Cannot find model directory in local disk.", None, None
-            model_name_or_path = model_path
-        elif model_name in SUPPORTED_MODELS: # TODO: use list in gr.State
-            model_name_or_path = SUPPORTED_MODELS[model_name]["hf_path"]
-        else:
-            return None, "Invalid model.", None, None
+        model_name_or_path = get_model_path(model_name)
+        if not model_name_or_path:
+            yield ALERTS["err_no_path"][lang]
+            return
 
         if checkpoints:
-            checkpoint_dir = ",".join([os.path.join(get_save_dir(model_name), checkpoint) for checkpoint in checkpoints])
+            checkpoint_dir = ",".join(
+                [os.path.join(get_save_dir(model_name), finetuning_type, checkpoint) for checkpoint in checkpoints]
+            )
         else:
             checkpoint_dir = None
 
-        yield "Loading model..."
+        yield ALERTS["info_loading"][lang]
         args = dict(
             model_name_or_path=model_name_or_path,
             finetuning_type=finetuning_type,
@@ -51,14 +49,14 @@ class WebChatModel(ChatModel):
         )
         super().__init__(*get_infer_args(args))
 
-        yield "Model loaded, now you can chat with your model."
+        yield ALERTS["info_loaded"][lang]
 
-    def unload_model(self):
-        yield "Unloading model..."
+    def unload_model(self, lang: str):
+        yield ALERTS["info_unloading"][lang]
         self.model = None
         self.tokenizer = None
         torch_gc()
-        yield "Model unloaded, please load a model first."
+        yield ALERTS["info_unloaded"][lang]
 
     def predict(
         self,

@@ -17,12 +17,12 @@ LOCALES = {
     },
     "model_path": {
         "en": {
-            "label": "Local path (Optional)",
-            "info": "Absolute path of the model directory."
+            "label": "Model path",
+            "info": "Path to pretrained model or model identifier from Hugging Face."
         },
         "zh": {
-            "label": "模型路径（可选项）",
-            "info": "模型文件夹在磁盘上的绝对路径。"
+            "label": "模型路径",
+            "info": "本地模型的文件路径或 Hugging Face 的模型标识符。"
         }
     },
     "checkpoints": {
@@ -83,6 +83,14 @@ LOCALES = {
             "label": "样例"
         }
     },
+    "close_btn": {
+        "en": {
+            "value": "Close"
+        },
+        "zh": {
+            "value": "关闭"
+        }
+    },
     "max_samples": {
         "en": {
             "label": "Max samples",
@@ -131,10 +139,10 @@ LOCALES = {
     },
     "output_box": {
         "en": {
-            "value": "Ready"
+            "value": "Ready."
         },
         "zh": {
-            "value": "准备就绪"
+            "value": "准备就绪。"
         }
     },
     "finetuning_type": {
@@ -222,7 +230,7 @@ LOCALES = {
         },
         "zh": {
             "label": "断点名称",
-            "info": "保存模型断点的文件夹名称"
+            "info": "保存模型断点的文件夹名称。"
         }
     },
     "loss_viewer": {
@@ -312,5 +320,57 @@ LOCALES = {
         "zh": {
             "label": "温度系数"
         }
+    }
+}
+
+
+ALERTS = {
+    "err_conflict": {
+        "en": "A process is in running, please abort it firstly.",
+        "zh": "任务已存在，请先中断训练。"
+    },
+    "err_exists": {
+        "en": "You have loaded a model, please unload it first.",
+        "zh": "模型已存在，请先卸载模型。"
+    },
+    "err_no_model": {
+        "en": "Please select a model.",
+        "zh": "请选择模型。"
+    },
+    "err_no_path": {
+        "en": "Model not found.",
+        "zh": "模型未找到。"
+    },
+    "err_no_dataset": {
+        "en": "Please choose a dataset.",
+        "zh": "请选择数据集。"
+    },
+    "info_aborting": {
+        "en": "Aborted, wait for terminating...",
+        "zh": "训练中断，正在等待线程结束……"
+    },
+    "info_aborted": {
+        "en": "Ready.",
+        "zh": "准备就绪。"
+    },
+    "info_finished": {
+        "en": "Finished.",
+        "zh": "训练完毕。"
+    },
+    "info_loading": {
+        "en": "Loading model...",
+        "zh": "加载中……"
+    },
+    "info_unloading": {
+        "en": "Unloading model...",
+        "zh": "卸载中……"
+    },
+    "info_loaded": {
+        "en": "Model loaded, now you can chat with your model!",
+        "zh": "模型已加载，可以开始聊天了！"
+    },
+    "info_unloaded": {
+        "en": "Model unloaded.",
+        "zh": "模型已卸载。"
     }
 }

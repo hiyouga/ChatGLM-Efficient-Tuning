@@ -4,4 +4,4 @@ from glmtuner.tuner import get_train_args, get_infer_args, load_model_and_tokeni
 from glmtuner.webui import create_ui
 
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
