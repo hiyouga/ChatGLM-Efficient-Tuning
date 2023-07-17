@@ -118,6 +118,12 @@ If you want to enable LoRA(QLoRA) or Freeze quantization on Windows, you will be
 pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
 ```
 
+### All-in-one Web UI
+
+```bash
+python src/train_web.py
+```
+
 ### Fine-tuning with a Single GPU
 
 ```bash
@@ -219,18 +225,22 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --predict_with_generate
 ```
 
-### API / CLI Demo
+### API Demo
 
 ```bash
-python src/xxx_demo.py \
+python src/api_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### All-in-one Web UI
+See `http://localhost:8000/docs` for API documentation.
+
+### CLI Demo
 
 ```bash
-python src/train_web.py
+python src/cli_demo.py \
+    --model_name_or_path path_to_your_chatglm_model \
+    --checkpoint_dir path_to_checkpoint
 ```
 
 ### Export model

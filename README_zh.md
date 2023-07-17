@@ -124,6 +124,12 @@ pip install -r requirements.txt
 pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
 ```
 
+### 浏览器一键微调/测试
+
+```bash
+python src/train_web.py
+```
+
 ### 单 GPU 微调训练
 
 ```bash
@@ -224,18 +230,22 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --predict_with_generate
 ```
 
-### API / 命令行测试
+### API 服务
 
 ```bash
-python src/xxx_demo.py \
+python src/api_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
     --checkpoint_dir path_to_checkpoint
 ```
 
-### 浏览器一键微调/测试
+关于 API 文档请见 `http://localhost:8000/docs`。
+
+### 命令行测试
 
 ```bash
-python src/train_web.py
+python src/cli_demo.py \
+    --model_name_or_path path_to_your_chatglm_model \
+    --checkpoint_dir path_to_checkpoint
 ```
 
 ### 导出微调模型
