@@ -14,7 +14,7 @@ from glmtuner.webui.common import get_save_dir, DATA_CONFIG
 def format_info(log: str, tracker: dict) -> str:
     info = log
     if "current_steps" in tracker:
-        info += "Running **{:d}/{:d}**: {} < {}".format(
+        info += "Running **{:d}/{:d}**: {} < {}\n".format(
             tracker["current_steps"], tracker["total_steps"], tracker["elapsed_time"], tracker["remaining_time"]
         )
     return info
