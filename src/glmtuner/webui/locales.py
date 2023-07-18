@@ -209,6 +209,16 @@ LOCALES = {
             "info": "采用的学习率调节器名称。"
         }
     },
+    "dev_ratio": {
+        "en": {
+            "label": "Dev ratio",
+            "info": "Proportion of data in the dev set."
+        },
+        "zh": {
+            "label": "验证集比例",
+            "info": "验证集占全部样本的百分比。"
+        }
+    },
     "fp16": {
         "en": {
             "label": "fp16",

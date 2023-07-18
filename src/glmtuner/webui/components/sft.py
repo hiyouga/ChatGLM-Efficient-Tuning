@@ -23,8 +23,8 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
     preview_btn.click(get_preview, [dataset_dir, dataset], [preview_count, preview_samples, preview_box])
 
     with gr.Row():
-        max_source_length = gr.Slider(value=512, minimum=3, maximum=4096, step=1)
-        max_target_length = gr.Slider(value=512, minimum=3, maximum=4096, step=1)
+        max_source_length = gr.Slider(value=512, minimum=4, maximum=4096, step=1)
+        max_target_length = gr.Slider(value=512, minimum=4, maximum=4096, step=1)
         learning_rate = gr.Textbox(value="5e-5")
         num_train_epochs = gr.Textbox(value="3.0")
         max_samples = gr.Textbox(value="100000")
@@ -35,6 +35,7 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
         lr_scheduler_type = gr.Dropdown(
             value="cosine", choices=[scheduler.value for scheduler in SchedulerType]
         )
+        dev_ratio = gr.Slider(value=0, minimum=0, maximum=1, step=0.001)
         fp16 = gr.Checkbox(value=True)
 
     with gr.Row():
@@ -72,6 +73,7 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
             batch_size,
             gradient_accumulation_steps,
             lr_scheduler_type,
+            dev_ratio,
             fp16,
             logging_steps,
             save_steps,
@@ -100,6 +102,7 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
         batch_size=batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
         lr_scheduler_type=lr_scheduler_type,
+        dev_ratio=dev_ratio,
         fp16=fp16,
         logging_steps=logging_steps,
         save_steps=save_steps,
