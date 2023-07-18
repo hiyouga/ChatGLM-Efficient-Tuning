@@ -129,6 +129,26 @@ LOCALES = {
             "value": "关闭"
         }
     },
+    "max_source_length": {
+        "en": {
+            "label": "Max source length",
+            "info": "Max tokens in source sequence."
+        },
+        "zh": {
+            "label": "输入序列最大长度",
+            "info": "输入序列分词后的最大长度。"
+        }
+    },
+    "max_target_length": {
+        "en": {
+            "label": "Max target length",
+            "info": "Max tokens in target sequence."
+        },
+        "zh": {
+            "label": "输出序列最大长度",
+            "info": "输出序列分词后的最大长度。"
+        }
+    },
     "learning_rate": {
         "en": {
             "label": "Learning rate",

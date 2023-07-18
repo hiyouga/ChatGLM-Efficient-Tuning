@@ -76,7 +76,9 @@ class WebChatModel(ChatModel):
     ):
         chatbot.append([query, ""])
         response = ""
-        for new_text in self.stream_chat(query, history, max_length=max_length, top_p=top_p, temperature=temperature):
+        for new_text in self.stream_chat(
+            query, history, max_length=max_length, top_p=top_p, temperature=temperature
+        ):
             response += new_text
             new_history = history + [(query, response)]
             chatbot[-1] = [query, response]

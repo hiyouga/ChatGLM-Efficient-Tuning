@@ -102,20 +102,20 @@ def get_train_args(
 
 def get_infer_args(
     args: Optional[Dict[str, Any]] = None
-) -> Tuple[ModelArguments, FinetuningArguments, GeneratingArguments]:
+) -> Tuple[ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments]:
 
-    parser = HfArgumentParser((ModelArguments, FinetuningArguments, GeneratingArguments))
+    parser = HfArgumentParser((ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments))
 
     if args is not None:
-        model_args, finetuning_args, generating_args = parser.parse_dict(args)
+        model_args, data_args, finetuning_args, generating_args = parser.parse_dict(args)
     elif len(sys.argv) == 2 and sys.argv[1].endswith(".yaml"):
-        model_args, finetuning_args, generating_args = parser.parse_yaml_file(os.path.abspath(sys.argv[1]))
+        model_args, data_args, finetuning_args, generating_args = parser.parse_yaml_file(os.path.abspath(sys.argv[1]))
     elif len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        model_args, finetuning_args, generating_args = parser.parse_json_file(os.path.abspath(sys.argv[1]))
+        model_args, data_args, finetuning_args, generating_args = parser.parse_json_file(os.path.abspath(sys.argv[1]))
     else:
-        model_args, finetuning_args, generating_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, finetuning_args, generating_args = parser.parse_args_into_dataclasses()
 
     assert model_args.checkpoint_dir is None or finetuning_args.finetuning_type == "lora" \
         or len(model_args.checkpoint_dir) == 1, "Only LoRA tuning accepts multiple checkpoints."
 
-    return model_args, finetuning_args, generating_args
+    return model_args, data_args, finetuning_args, generating_args
