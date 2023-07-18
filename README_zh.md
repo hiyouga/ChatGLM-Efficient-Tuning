@@ -248,6 +248,14 @@ python src/cli_demo.py \
     --checkpoint_dir path_to_checkpoint
 ```
 
+### 浏览器测试
+
+```bash
+python src/web_demo.py \
+    --model_name_or_path path_to_your_chatglm_model \
+    --checkpoint_dir path_to_checkpoint
+```
+
 ### 导出微调模型
 
 ```bash
