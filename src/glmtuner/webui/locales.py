@@ -25,6 +25,14 @@ LOCALES = {
             "info": "本地模型的文件路径或 Hugging Face 的模型标识符。"
         }
     },
+    "finetuning_type": {
+        "en": {
+            "label": "Finetuning method"
+        },
+        "zh": {
+            "label": "微调方法"
+        }
+    },
     "checkpoints": {
         "en": {
             "label": "Checkpoints"
@@ -39,6 +47,36 @@ LOCALES = {
         },
         "zh": {
             "value": "刷新断点"
+        }
+    },
+    "quantization_bit": {
+        "en": {
+            "label": "Quantization bit (optional)",
+            "info": "Enable 4/8-bit model quantization."
+        },
+        "zh": {
+            "label": "量化等级（非必填）",
+            "info": "启用 4/8 比特模型量化。"
+        }
+    },
+    "template": {
+        "en": {
+            "label": "Prompt template",
+            "info": "The template used in constructing prompts."
+        },
+        "zh": {
+            "label": "提示模板",
+            "info": "构建提示词时使用的模板"
+        }
+    },
+    "source_prefix": {
+        "en": {
+            "label": "Source prefix (optional)",
+            "info": "A sequence used as the prefix of each samples."
+        },
+        "zh": {
+            "label": "前缀序列（非必填）",
+            "info": "作为每个输入样本前缀的序列"
         }
     },
     "dataset_dir": {
@@ -91,68 +129,6 @@ LOCALES = {
             "value": "关闭"
         }
     },
-    "max_samples": {
-        "en": {
-            "label": "Max samples",
-            "info": "Maximum samples per dataset."
-        },
-        "zh": {
-            "label": "最大样本数",
-            "info": "每个数据集最多使用的样本数。"
-        }
-    },
-    "batch_size": {
-        "en": {
-            "label": "Batch size",
-            "info": "Number of samples to process per GPU."
-        },
-        "zh":{
-            "label": "批处理大小",
-            "info": "每块 GPU 上处理的样本数量。"
-        }
-    },
-    "quantization_bit": {
-        "en": {
-            "label": "Quantization bit",
-            "info": "Enable 4/8-bit model quantization."
-        },
-        "zh": {
-            "label": "量化",
-            "info": "启用 4/8 比特模型量化。"
-        }
-    },
-    "start_btn": {
-        "en": {
-            "value": "Start"
-        },
-        "zh": {
-            "value": "开始"
-        }
-    },
-    "stop_btn": {
-        "en": {
-            "value": "Abort"
-        },
-        "zh": {
-            "value": "中断"
-        }
-    },
-    "output_box": {
-        "en": {
-            "value": "Ready."
-        },
-        "zh": {
-            "value": "准备就绪。"
-        }
-    },
-    "finetuning_type": {
-        "en": {
-            "label": "Finetuning method"
-        },
-        "zh": {
-            "label": "微调方法"
-        }
-    },
     "learning_rate": {
         "en": {
             "label": "Learning rate",
@@ -171,6 +147,26 @@ LOCALES = {
         "zh": {
             "label": "训练轮数",
             "info": "需要执行的训练总轮数。"
+        }
+    },
+    "max_samples": {
+        "en": {
+            "label": "Max samples",
+            "info": "Maximum samples per dataset."
+        },
+        "zh": {
+            "label": "最大样本数",
+            "info": "每个数据集最多使用的样本数。"
+        }
+    },
+    "batch_size": {
+        "en": {
+            "label": "Batch size",
+            "info": "Number of samples to process per GPU."
+        },
+        "zh":{
+            "label": "批处理大小",
+            "info": "每块 GPU 上处理的样本数量。"
         }
     },
     "gradient_accumulation_steps": {
@@ -223,6 +219,22 @@ LOCALES = {
             "info": "每两次断点保存间的更新步数。"
         }
     },
+    "start_btn": {
+        "en": {
+            "value": "Start"
+        },
+        "zh": {
+            "value": "开始"
+        }
+    },
+    "stop_btn": {
+        "en": {
+            "value": "Abort"
+        },
+        "zh": {
+            "value": "中断"
+        }
+    },
     "output_dir": {
         "en": {
             "label": "Checkpoint name",
@@ -231,6 +243,14 @@ LOCALES = {
         "zh": {
             "label": "断点名称",
             "info": "保存模型断点的文件夹名称。"
+        }
+    },
+    "output_box": {
+        "en": {
+            "value": "Ready."
+        },
+        "zh": {
+            "value": "准备就绪。"
         }
     },
     "loss_viewer": {
@@ -249,14 +269,6 @@ LOCALES = {
             "label": "保存预测结果"
         }
     },
-    "info_box": {
-        "en": {
-            "value": "Model unloaded, please load a model first."
-        },
-        "zh": {
-            "value": "模型未加载，请先加载模型。"
-        }
-    },
     "load_btn": {
         "en": {
             "value": "Load model"
@@ -271,6 +283,14 @@ LOCALES = {
         },
         "zh": {
             "value": "卸载模型"
+        }
+    },
+    "info_box": {
+        "en": {
+            "value": "Model unloaded, please load a model first."
+        },
+        "zh": {
+            "value": "模型未加载，请先加载模型。"
         }
     },
     "query": {
