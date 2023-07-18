@@ -108,7 +108,11 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
             # Compute rewards
             replace_model(unwrapped_model, target="reward")
             with torch.no_grad():
-                _, _, values = self.model(**self.prepare_model_inputs(queries, responses))
+                _, _, values = self.model(
+                    **self.prepare_model_inputs(queries, responses),
+                    output_hidden_states=True,
+                    return_dict=True
+                )
             rewards = [reward for reward in values[-1].to(torch.float32)] # use float32 type
             replace_model(unwrapped_model, target="default")
 
@@ -208,7 +212,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
                 input_kwargs["attention_mask"] = self.data_collator.get_attention_masks(input_ids, device=self.current_device)
                 input_kwargs["position_ids"] = self.data_collator.get_position_ids(input_ids, device=self.current_device)
 
-            logits, _, values = model(**input_kwargs)
+            logits, _, values = model(**input_kwargs, output_hidden_states=True, return_dict=True)
             logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
             values = values.transpose(0, 1)
             masks = torch.zeros_like(input_ids)
