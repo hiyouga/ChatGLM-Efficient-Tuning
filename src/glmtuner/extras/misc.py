@@ -107,6 +107,7 @@ def auto_configure_device_map(num_gpus: int, use_v2: bool) -> Dict[str, int]:
             "transformer.encoder.final_layernorm": 0,
             "transformer.output_layer": 0,
             "transformer.rotary_pos_emb": 0,
+            "transformer.prefix_encoder": 0,
             "lm_head": 0
         }
     else:
