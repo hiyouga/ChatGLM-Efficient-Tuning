@@ -3,8 +3,17 @@ import datasets
 from typing import Any, Dict, List
 
 
-_DESCRIPTION = "The BELLE multiturn chat dataset for ChatGLM."
-_CITATION = ""
+_DESCRIPTION = "BELLE multiturn chat dataset."
+
+_CITATION = """\
+@article{belle2023exploring,
+  title={Exploring the Impact of Instruction Data Scaling on Large Language Models: An Empirical Study on Real-World Use Cases},
+  author={Yunjie Ji, Yong Deng, Yan Gong, Yiping Peng, Qiang Niu, Lei Zhang, Baochang Ma, Xiangang Li},
+  journal={arXiv preprint arXiv:2303.14742},
+  year={2023}
+}
+"""
+
 _HOMEPAGE = "https://huggingface.co/datasets/BelleGroup/multiturn_chat_0.8M"
 _LICENSE = "gpl-3.0"
 _URL = "https://huggingface.co/datasets/BelleGroup/multiturn_chat_0.8M/resolve/main/multiturn_chat_0.8M.json"
@@ -39,7 +48,7 @@ class BelleMultiturn(datasets.GeneratorBasedBuilder):
             )
         ]
 
-    def _generate_examples(self, filepath: str) -> Dict[int, Dict[str, Any]]: # generate multi-turn chat for ChatGLM
+    def _generate_examples(self, filepath: str) -> Dict[int, Dict[str, Any]]: # generate multi-turn chat with history
         with open(filepath, "r", encoding="utf-8") as f:
             for key, row in enumerate(f):
                 data = json.loads(row)
