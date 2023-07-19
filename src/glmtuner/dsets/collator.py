@@ -123,7 +123,7 @@ class DataCollatorForChatGLM(DataCollatorWithPadding):
                 labels = [feature["labels"].clone().detach().flip(0) for feature in features]
             else:
                 labels = [torch.tensor(feature["labels"]).flip(0) for feature in features]
-            input_ids = input_ids + labels # pad them to the same length
+            input_ids += labels # pad them to the same length
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids,
