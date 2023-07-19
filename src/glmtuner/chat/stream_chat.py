@@ -27,14 +27,14 @@ class ChatModel:
         else:
             self.model = self.model.cuda()
 
-        self.source_prefix = data_args.source_prefix if data_args.source_prefix else ""
+        self.source_prefix = data_args.source_prefix or ""
         self.generating_args = generating_args
 
     def get_prompt(
         self, query: str, history: Optional[List[Tuple[str, str]]] = None, prefix: Optional[str] = None
     ) -> str:
         prefix = prefix + "\n" if prefix else "" # add separator for non-empty prefix
-        history = history if history else []
+        history = history or []
         prompt = ""
         for i, (old_query, response) in enumerate(history):
             prompt += "[Round {}]\n\n问：{}\n\n答：{}\n\n".format(i+1, old_query, response)
@@ -45,7 +45,7 @@ class ChatModel:
     def process_args(
         self, query: str, history: Optional[List[Tuple[str, str]]] = None, prefix: Optional[str] = None, **input_kwargs
     ) -> Tuple[Dict[str, Any], int]:
-        prefix = prefix if prefix else self.source_prefix
+        prefix = prefix or self.source_prefix
 
         inputs = self.tokenizer([self.get_prompt(query, history, prefix)], return_tensors="pt")
         inputs = inputs.to(self.model.device)
@@ -100,5 +100,4 @@ class ChatModel:
         thread = Thread(target=self.model.generate, kwargs=gen_kwargs)
         thread.start()
 
-        for new_text in streamer:
-            yield new_text
+        yield from streamer
