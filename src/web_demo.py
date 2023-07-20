@@ -5,7 +5,7 @@
 import gradio as gr
 from transformers.utils.versions import require_version
 
-from glmtuner import get_infer_args
+from glmtuner.tuner import get_infer_args
 from glmtuner.webui.chat import WebChatModel
 from glmtuner.webui.components.chatbot import create_chat_box
 from glmtuner.webui.manager import Manager

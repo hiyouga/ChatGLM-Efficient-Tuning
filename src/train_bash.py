@@ -1,4 +1,4 @@
-from glmtuner import get_train_args, run_sft, run_rm, run_ppo
+from glmtuner.tuner import get_train_args, run_sft, run_rm, run_ppo
 
 
 def main():

@@ -2,8 +2,7 @@
 # Exports the fine-tuned ChatGLM-6B model.
 # Usage: python export_model.py --checkpoint_dir path_to_checkpoint --output_dir path_to_save_model
 
-
-from glmtuner import get_train_args, load_model_and_tokenizer
+from glmtuner.tuner import get_train_args, load_model_and_tokenizer
 
 
 def main():

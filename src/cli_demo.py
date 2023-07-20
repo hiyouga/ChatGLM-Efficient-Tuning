@@ -2,7 +2,8 @@
 # Implements stream chat in command line for ChatGLM fine-tuned with PEFT.
 # Usage: python cli_demo.py --checkpoint_dir path_to_checkpoint [--quantization_bit 4]
 
-from glmtuner import ChatModel, get_infer_args
+from glmtuner import ChatModel
+from glmtuner.tuner import get_infer_args
 
 
 def main():
