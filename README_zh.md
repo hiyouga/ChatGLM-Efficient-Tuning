@@ -216,6 +216,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --model_name_or_path path_to_your_chatglm_model \
     --do_eval \
     --dataset alpaca_gpt4_zh \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_eval_result \
     --per_device_eval_batch_size 8 \
@@ -224,12 +225,14 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```
 
 ### 模型预测
+
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
     --model_name_or_path path_to_your_chatglm_model \
     --do_predict \
     --dataset alpaca_gpt4_zh \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_predict_result \
     --per_device_eval_batch_size 8 \
@@ -237,11 +240,14 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --predict_with_generate
 ```
 
+注：如果需要预测的样本没有标签，请首先在 `response` 列中填入一些占位符，以免样本在预处理阶段被丢弃。
+
 ### API 服务
 
 ```bash
 python src/api_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint
 ```
 
@@ -252,6 +258,7 @@ python src/api_demo.py \
 ```bash
 python src/cli_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint
 ```
 
@@ -260,6 +267,7 @@ python src/cli_demo.py \
 ```bash
 python src/web_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint
 ```
 
@@ -268,6 +276,7 @@ python src/web_demo.py \
 ```bash
 python src/export_model.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_export
 ```

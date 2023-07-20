@@ -211,6 +211,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --model_name_or_path path_to_your_chatglm_model \
     --do_eval \
     --dataset alpaca_gpt4_en \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_eval_result \
     --per_device_eval_batch_size 8 \
@@ -219,34 +220,40 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
 ```
 
 ### Predict
+
 ```bash
 CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --stage sft \
     --model_name_or_path path_to_your_chatglm_model \
     --do_predict \
     --dataset alpaca_gpt4_en \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_predict_result \
     --per_device_eval_batch_size 8 \
-    --max_samples 50 \
+    --max_samples 100 \
     --predict_with_generate
 ```
+
+If you want to predict the samples with empty responses, please kindly fill the `response` column with **dummy tokens** to ensure the sample will not be discarded throughout the preprocessing phase.
 
 ### API Demo
 
 ```bash
 python src/api_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint
 ```
 
-See `http://localhost:8000/docs` for API documentation.
+Visit `http://localhost:8000/docs` for API documentation.
 
 ### CLI Demo
 
 ```bash
 python src/cli_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint
 ```
 
@@ -255,6 +262,7 @@ python src/cli_demo.py \
 ```bash
 python src/web_demo.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint
 ```
 
@@ -263,6 +271,7 @@ python src/web_demo.py \
 ```bash
 python src/export_model.py \
     --model_name_or_path path_to_your_chatglm_model \
+    --finetuning_type lora \
     --checkpoint_dir path_to_checkpoint \
     --output_dir path_to_export
 ```
