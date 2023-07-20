@@ -75,10 +75,15 @@ class Runner:
         batch_size: int,
         gradient_accumulation_steps: int,
         lr_scheduler_type: str,
+        max_grad_norm: str,
         dev_ratio: float,
-        fp16: bool,
         logging_steps: int,
         save_steps: int,
+        warmup_steps: int,
+        compute_type: str,
+        lora_rank: int,
+        lora_dropout: float,
+        lora_target: str,
         output_dir: str
     ):
         model_name_or_path, error, logger_handler, trainer_callback = self.initialize(lang, model_name, dataset)
@@ -111,9 +116,15 @@ class Runner:
             per_device_train_batch_size=batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
             lr_scheduler_type=lr_scheduler_type,
-            fp16=fp16,
+            max_grad_norm=float(max_grad_norm),
             logging_steps=logging_steps,
             save_steps=save_steps,
+            warmup_steps=warmup_steps,
+            fp16=(compute_type == "fp16"),
+            bf16=(compute_type == "bf16"),
+            lora_rank=lora_rank,
+            lora_dropout=lora_dropout,
+            lora_target=lora_target or "query_key_value",
             output_dir=os.path.join(get_save_dir(model_name), finetuning_type, output_dir)
         )
 

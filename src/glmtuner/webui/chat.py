@@ -70,6 +70,7 @@ class WebChatModel(ChatModel):
         chatbot: List[Tuple[str, str]],
         query: str,
         history: List[Tuple[str, str]],
+        prefix: str,
         max_length: int,
         top_p: float,
         temperature: float
@@ -77,7 +78,7 @@ class WebChatModel(ChatModel):
         chatbot.append([query, ""])
         response = ""
         for new_text in self.stream_chat(
-            query, history, max_length=max_length, top_p=top_p, temperature=temperature
+            query, history, prefix, max_length=max_length, top_p=top_p, temperature=temperature
         ):
             response += new_text
             new_history = history + [(query, response)]
