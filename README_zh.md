@@ -329,6 +329,10 @@ python src/export_model.py \
 
 > FZ：Freeze 微调，PT：P-Tuning V2 微调（为了与 LoRA 公平比较，我们使用了 `pre_seq_len=16`），训练参数：可训练参数占全部参数的百分比。
 
+### RLHF 标注工具
+
+在 RLHF 阶段需要手工对模型生成的 k 个数据进行排序，如果没有好的标注工具，可以选用 [SupritYoung/RLHF-Label-Tool](https://github.com/SupritYoung/RLHF-Label-Tool/tree/master) 进行标注。
+
 ## 和现有类似项目的比较
 
 - [THUDM/ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B/tree/main/ptuning)
