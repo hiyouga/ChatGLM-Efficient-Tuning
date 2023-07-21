@@ -3,7 +3,7 @@ import os
 import threading
 import time
 import transformers
-from typing import List, Optional, Tuple
+from typing import Generator, List, Optional, Tuple
 
 from glmtuner.extras.callbacks import LogCallback
 from glmtuner.extras.logging import LoggerHandler
@@ -24,7 +24,9 @@ class Runner:
         self.aborted = True
         self.running = False
 
-    def initialize(self, lang: str, model_name: str, dataset: list) -> Tuple[str, str, LoggerHandler, LogCallback]:
+    def initialize(
+        self, lang: str, model_name: str, dataset: List[str]
+    ) -> Tuple[str, str, LoggerHandler, LogCallback]:
         if self.running:
             return None, ALERTS["err_conflict"][lang], None, None
 
@@ -49,7 +51,9 @@ class Runner:
 
         return model_name_or_path, "", logger_handler, trainer_callback
 
-    def finalize(self, lang: str, finish_info: Optional[str] = None) -> str:
+    def finalize(
+        self, lang: str, finish_info: Optional[str] = None
+    ) -> str:
         self.running = False
         torch_gc()
         if self.aborted:
@@ -85,7 +89,7 @@ class Runner:
         lora_dropout: float,
         lora_target: str,
         output_dir: str
-    ):
+    ) -> Generator[str, None, None]:
         model_name_or_path, error, logger_handler, trainer_callback = self.initialize(lang, model_name, dataset)
         if error:
             yield error
@@ -170,7 +174,7 @@ class Runner:
         max_samples: str,
         batch_size: int,
         predict: bool
-    ):
+    ) -> Generator[str, None, None]:
         model_name_or_path, error, logger_handler, trainer_callback = self.initialize(lang, model_name, dataset)
         if error:
             yield error

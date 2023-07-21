@@ -116,8 +116,10 @@ def preprocess_dataset(
         print("inputs:\n{}".format(tokenizer.decode(example["input_ids"], skip_special_tokens=False)))
 
     if stage == "sft":
-        preprocess_function = preprocess_evaluation_dataset \
-            if training_args.predict_with_generate else preprocess_supervised_dataset
+        if not training_args.predict_with_generate:
+            preprocess_function = preprocess_supervised_dataset
+        else:
+            preprocess_function = preprocess_evaluation_dataset
     elif stage == "rm":
         preprocess_function = preprocess_pairwise_dataset
     elif stage == "ppo":
