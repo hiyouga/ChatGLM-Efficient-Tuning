@@ -81,6 +81,14 @@ class WebChatModel(ChatModel):
             query, history, prefix, max_length=max_length, top_p=top_p, temperature=temperature
         ):
             response += new_text
+            response = self.postprocess(response)
             new_history = history + [(query, response)]
             chatbot[-1] = [query, response]
             yield chatbot, new_history
+
+    def postprocess(self, response: str) -> str:
+        blocks = response.split("```")
+        for i, block in enumerate(blocks):
+            if i % 2 == 0:
+                blocks[i] = block.replace("<", "&lt;").replace(">", "&gt;")
+        return "```".join(blocks)

@@ -125,7 +125,7 @@ cd ChatGLM-Efficient-Tuning
 pip install -r requirements.txt
 ```
 
-对于 Windows 用户，若要启用 LoRA（QLoRA） 或 Freeze 的量化微调，请下载预构建的 `bitsandbytes` 包，目前支持 CUDA 11.1 到12.1。
+如果要在 Windows 平台上开启量化 LoRA（QLoRA），需要安装预编译的 `bitsandbytes` 库, 支持 CUDA 11.1 到 12.1.
 
 ```bash
 pip install https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.39.1-py3-none-win_amd64.whl
@@ -399,7 +399,7 @@ python src/export_model.py \
 
 ## 声明
 
-本项目受益于 [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B)、[ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning) 和 [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp)，感谢作者的付出。
+本项目受益于 [ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B)、[ChatGLM-Tuning](https://github.com/mymusise/ChatGLM-Tuning) 和 [yuanzhoulvpi2017/zero_nlp](https://github.com/yuanzhoulvpi2017/zero_nlp)，感谢以上诸位作者的付出。
 
 ## Star History
 
