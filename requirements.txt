@@ -1,11 +1,9 @@
 torch>=1.13.1
-transformers>=4.27.4
-datasets>=2.10.0
-accelerate>=0.19.0
-peft>=0.3.0
+transformers>=4.29.1
+datasets>=2.12.0
+accelerate>=0.21.0
+peft>=0.4.0
 trl>=0.4.7
-protobuf
-cpm-kernels
 sentencepiece
 jieba
 rouge-chinese
@@ -16,3 +14,5 @@ pydantic==1.10.11
 fastapi==0.95.1
 sse-starlette
 matplotlib
+protobuf
+cpm-kernels

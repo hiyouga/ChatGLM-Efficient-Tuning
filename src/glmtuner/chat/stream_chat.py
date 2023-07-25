@@ -51,6 +51,7 @@ class ChatModel:
         inputs = inputs.to(self.model.device)
         prompt_length = len(inputs["input_ids"][0])
 
+        do_sample = input_kwargs.pop("do_sample", None)
         temperature = input_kwargs.pop("temperature", None)
         top_p = input_kwargs.pop("top_p", None)
         top_k = input_kwargs.pop("top_k", None)
@@ -61,6 +62,7 @@ class ChatModel:
         gen_kwargs = self.generating_args.to_dict()
         gen_kwargs.update(dict(
             input_ids=inputs["input_ids"],
+            do_sample=do_sample if do_sample is not None else gen_kwargs["do_sample"],
             temperature=temperature or gen_kwargs["temperature"],
             top_p=top_p or gen_kwargs["top_p"],
             top_k=top_k or gen_kwargs["top_k"],
