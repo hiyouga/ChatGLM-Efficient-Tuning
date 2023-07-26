@@ -43,7 +43,7 @@ def create_sft_tab(top_elems: Dict[str, Component], runner: Runner) -> Dict[str,
             logging_steps = gr.Slider(value=5, minimum=5, maximum=1000, step=5)
             save_steps = gr.Slider(value=100, minimum=10, maximum=5000, step=10)
             warmup_steps = gr.Slider(value=0, minimum=0, maximum=5000, step=1)
-            compute_type = gr.Radio(choices=["fp16", "bf16"], value="fp16")
+            compute_type = gr.Radio(choices=["fp16", "bf16", "fp32"], value="fp16")
 
     with gr.Accordion(label="LoRA config", open=False) as lora_tab:
         with gr.Row():
