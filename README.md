@@ -149,6 +149,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --save_steps 1000 \
     --learning_rate 5e-5 \
     --num_train_epochs 3.0 \
+    --plot_loss \
     --fp16
 ```
 
@@ -170,6 +171,8 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --do_train \
     --dataset comparison_gpt4_en \
     --finetuning_type lora \
+    --resume_lora_training False \
+    --checkpoint_dir path_to_sft_checkpoint \
     --output_dir path_to_rm_checkpoint \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 4 \
@@ -178,6 +181,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --save_steps 1000 \
     --learning_rate 1e-5 \
     --num_train_epochs 1.0 \
+    --plot_loss \
     --fp16
 ```
 
@@ -201,7 +205,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --save_steps 1000 \
     --learning_rate 1e-5 \
     --num_train_epochs 1.0 \
-    --fp16
+    --plot_loss
 ```
 
 ### Evaluation (BLEU and ROUGE_CHINESE)

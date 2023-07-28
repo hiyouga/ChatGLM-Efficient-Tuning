@@ -6,6 +6,8 @@ CUDA_VISIBLE_DEVICES=0 python ../src/train_bash.py \
     --dataset comparison_gpt4_zh \
     --dataset_dir ../data \
     --finetuning_type lora \
+    --resume_lora_training False \
+    --checkpoint_dir path_to_sft_checkpoint \
     --output_dir path_to_rm_checkpoint \
     --overwrite_cache \
     --per_device_train_batch_size 2 \

@@ -70,13 +70,15 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --dataset comparison_gpt4_zh \
     --dataset_dir data \
     --finetuning_type lora \
+    --resume_lora_training False \
+    --checkpoint_dir covid/sft \
     --output_dir covid/rm \
     --overwrite_cache \
-    --per_device_train_batch_size 4 \
-    --per_device_eval_batch_size 4 \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
     --gradient_accumulation_steps 8 \
-    --max_source_length 512 \
-    --max_target_length 512 \
+    --max_source_length 1024 \
+    --max_target_length 128 \
     --lr_scheduler_type cosine \
     --logging_steps 10 \
     --save_steps 100 \
@@ -109,12 +111,13 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --dataset covid_train,covid_dev \
     --dataset_dir data/covid \
     --finetuning_type lora \
+    --resume_lora_training False \
     --checkpoint_dir covid/sft \
     --reward_model covid/rm \
     --output_dir covid/ppo \
     --overwrite_cache \
     --per_device_train_batch_size 2 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 8 \
     --max_source_length 256 \
     --max_target_length 128 \
     --lr_scheduler_type cosine \
@@ -122,7 +125,6 @@ CUDA_VISIBLE_DEVICES=0 python src/train_bash.py \
     --save_steps 100 \
     --learning_rate 1e-5 \
     --num_train_epochs 5.0 \
-    --resume_lora_training False \
     --plot_loss
 ```
 
