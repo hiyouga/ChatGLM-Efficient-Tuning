@@ -119,6 +119,7 @@ huggingface-cli login
 ### 环境搭建（可跳过）
 
 ```bash
+git lfs install
 git clone https://github.com/hiyouga/ChatGLM-Efficient-Tuning.git
 conda create -n chatglm_etuning python=3.10
 conda activate chatglm_etuning
