@@ -3,8 +3,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 from threading import Thread
 from transformers import TextIteratorStreamer
 
-from glmtuner.extras.misc import get_logits_processor
-from glmtuner.extras.misc import auto_configure_device_map
+from glmtuner.extras.misc import dispatch_model, get_logits_processor
 from glmtuner.hparams import ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments
 from glmtuner.tuner import load_model_and_tokenizer
 
@@ -19,15 +18,8 @@ class ChatModel:
         generating_args: GeneratingArguments
     ) -> None:
         self.model, self.tokenizer = load_model_and_tokenizer(model_args, finetuning_args)
-
-        if torch.cuda.device_count() > 1:
-            from accelerate import dispatch_model
-            device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=(self.tokenizer.eos_token_id==2))
-            self.model = dispatch_model(self.model, device_map)
-        else:
-            self.model = self.model.cuda()
-
-        self.source_prefix = data_args.source_prefix or ""
+        self.model = dispatch_model(self.model, use_v2=(self.tokenizer.eos_token_id==2))
+        self.source_prefix = data_args.source_prefix
         self.generating_args = generating_args
 
     def get_prompt(

@@ -93,6 +93,15 @@ def prepare_model_for_training(
     return model
 
 
+def torch_gc() -> None:
+    r"""
+    Collects GPU memory.
+    """
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+
+
 def auto_configure_device_map(num_gpus: int, use_v2: bool) -> Dict[str, int]:
     r"""
     Configures device map for ChatGLM.
@@ -135,10 +144,15 @@ def auto_configure_device_map(num_gpus: int, use_v2: bool) -> Dict[str, int]:
     return device_map
 
 
-def torch_gc() -> None:
+def dispatch_model(model: PreTrainedModel, use_v2: bool) -> PreTrainedModel:
     r"""
-    Collects GPU memory.
+    Dispatches a pre-trained model to GPUs with balanced memory.
     """
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
+    if torch.cuda.device_count() > 1:
+        from accelerate import dispatch_model
+
+        device_map = auto_configure_device_map(torch.cuda.device_count(), use_v2=use_v2)
+        model.tie_weights()
+        return dispatch_model(model, device_map)
+    else:
+        return model.cuda()
