@@ -40,6 +40,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         self.state = TrainerState()
         self.control = TrainerControl()
         self.data_collator = self.accelerator.prepare(kwargs["data_collator"]) # override the data collator of PPOTrainer
+        self.tokenizer = kwargs['tokenizer']
         self._remove_log()
 
     def ppo_train(self, max_target_length: int) -> None:
@@ -85,6 +86,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
         steps_trained = 0
         loss_meter = AverageMeter()
         reward_meter = AverageMeter()
+        game_data = {}
         self.log_callback.on_train_begin(self.args, self.state, self.control)
 
         for step in tqdm(range(max_steps), disable=not self.is_world_process_zero(), leave=False):
@@ -97,7 +99,11 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
             # Get responses
             query_tensors = batch["input_ids"]
             response_tensors = self.generate(batch, length_sampler, return_prompt=False, **gen_kwargs)
-
+            
+            
+            game_data["query"] = [self.tokenizer.decode(r.squeeze()) for r in query_tensors]
+            game_data["response"] = [self.tokenizer.decode(r.squeeze()) for r in response_tensors]
+            
             queries, responses = [], []
             for i in range(len(query_tensors)):
                 query_length = (query_tensors[i] != self.tokenizer.pad_token_id).nonzero()[0]
@@ -135,6 +141,7 @@ class PPOTrainerForChatGLM(PPOTrainer, PeftTrainer):
                 logs["step"] = step
                 self.state.log_history.append(logs)
                 self.log_callback.on_log(self.args, self.state, self.control)
+                self.log_stats(stats, game_data, rewards)
                 loss_meter.reset()
                 reward_meter.reset()
 
