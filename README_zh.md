@@ -12,6 +12,16 @@
 
 \[ [English](README.md) | 中文 \]
 
+如果有任何的疑问，可以阅读我们的[Wiki📄](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/wiki) 文档或者提出issue
+
+## 相关项目
+
+### [LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning)
+基于PEFT的LLaMA系列模型高效微调
+
+### [FastEdit](https://github.com/hiyouga/FastEdit)
+10秒编辑你的大语言模型
+
 ## 更新日志
 
 [23/07/15] 我们开发了支持训练和测试的浏览器一键微调界面。请尝试使用 `train_web.py` 在您的浏览器中微调 ChatGLM-6B 模型。感谢 [@KanadeSiina](https://github.com/KanadeSiina) 和 [@codemayq](https://github.com/codemayq) 在该功能开发中付出的努力。
