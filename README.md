@@ -12,16 +12,11 @@ Fine-tuning 🤖[ChatGLM-6B](https://github.com/THUDM/ChatGLM-6B) model with �
 
 \[ English | [中文](README_zh.md) \]
 
-If you encounter any problems, you can refer to our [Wiki📄](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/wiki) or feel free to raise an issue.
+If you have any questions, please refer to our [Wiki📄](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/wiki).
 
-## Our related projects.
+## Notice
 
-### [LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning)
-Fine-tuning LLaMA Based models with PEFT.
-
-### [FastEdit](https://github.com/hiyouga/FastEdit)
-Editing large language models within 10 seconds
-
+This repo will **not be maintained** in the future. Please follow **[LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning)** for fine-tuning the language models (including ChatGLM2-6B).
 
 ## Changelog
 

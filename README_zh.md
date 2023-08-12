@@ -12,15 +12,11 @@
 
 \[ [English](README.md) | 中文 \]
 
-如果有任何的疑问，可以阅读我们的[Wiki📄](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/wiki) 文档或者提出issue
+如果有任何疑问，请阅读我们的 [文档 📄](https://github.com/hiyouga/ChatGLM-Efficient-Tuning/wiki)。
 
-## 相关项目
+## 公告
 
-### [LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning)
-基于PEFT的LLaMA系列模型高效微调
-
-### [FastEdit](https://github.com/hiyouga/FastEdit)
-10秒编辑你的大语言模型
+该项目今后**将不再维护**。请关注 **[LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning)** 大模型微调项目（包含 ChatGLM2-6B 模型）。
 
 ## 更新日志
 
