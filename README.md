@@ -16,7 +16,7 @@ If you have any questions, please refer to our [Wiki📄](https://github.com/hiy
 
 ## Notice
 
-This repo will **not be maintained** in the future. Please follow **[LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning)** for fine-tuning the language models (including ChatGLM2-6B).
+This repo will **not be maintained** in the future. Please follow **[LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)** for fine-tuning the language models (including ChatGLM2-6B).
 
 ## Changelog
 

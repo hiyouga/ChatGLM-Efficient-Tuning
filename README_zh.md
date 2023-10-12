@@ -16,7 +16,7 @@
 
 ## 公告
 
-该项目今后**将不再维护**。请关注 **[LLaMA-Efficient-Tuning](https://github.com/hiyouga/LLaMA-Efficient-Tuning)** 大模型微调项目（包含 ChatGLM2-6B 模型）。
+该项目今后**将不再维护**。请关注 **[LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)** 大模型微调项目（包括 ChatGLM2-6B 模型）。
 
 ## 更新日志
 
